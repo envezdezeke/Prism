@@ -2,7 +2,7 @@
 
 ## Overview
 
-Two people build DealPilot in 21 hours on two parallel tracks. Ezekiel builds the deterministic engine in the order the data flows: foundations and the API contract first, then reading the folder, moving the deal and catching the fakes. That engine is frozen as the scored baseline at H10. He then adds the Nemotron agents around it, working by H16. Jesse writes the golden labels for the 13 sample deals by H2 and builds the pipeline cockpit UI against mock fixtures from H1. He then builds the fraud-graph hero view and leads the demo and pitch. The tracks meet at fixed hand-offs: the contract at H1, the golden labels at H2, the switch from mock to live data at H10 and the agent endpoints at H16. After the H19 feature freeze, both run a dry run on a simulated weekend drop, record the demo and rehearse the pitch.
+Two people build DealPilot in 21 hours on two parallel tracks. Ezekiel builds the deterministic engine in the order the data flows: foundations and the API contract first, then reading the folder, moving the deal and catching the fakes. That engine is frozen as the scored baseline at H10. He then adds the Nemotron agents around it, working by H16. Jesse writes the golden labels for the 13 sample deals by H2 and builds the pipeline cockpit UI against mock fixtures from H1, then builds the fraud-graph hero view and leads the demo and pitch. The tracks meet at fixed hand-offs: the contract at H1, the golden labels at H2, the switch from mock to live data at H10 and the agent endpoints at H16. After the H19 feature freeze, both run a dry run on a simulated weekend drop, record the demo and rehearse the pitch.
 
 **Clock:** H0 = Sat 2026-11-07 15:40 CT. H21 = Sun 2026-11-08 12:40 CT. If the real deadline turns out different, shift the clock column and keep the H-numbers and the gaps between them.
 
@@ -46,11 +46,11 @@ Phase numbers follow start time. The two tracks run in parallel, so Phase 2 (Jes
 | # | What | From → To | Due | Done when |
 |---|------|-----------|-----|-----------|
 | I1 | API contract + mock fixtures (FND-07) | Ezekiel → Jesse | H1 (Sat 16:40) | Pydantic schemas and JSON fixtures cover deals, deal detail, clock (advance, replay), inbox (including the reply POST), alerts, graph (nodes, rarity-weighted edges, per-edge evidence, first-visible sim time), investigator trace and red-team report. `MOCK=1` serves them; OpenAPI at `/docs`. |
-| I2 | Golden labels (FND-08) | Jesse → Ezekiel | H2 (Sat 17:40) | `golden/expected_sample.json` covers all 13 deals and the self-score script runs against it |
+| I2 | Golden labels (FND-08) | Jesse → Ezekiel | H2 (Sat 17:40) | `eval/gold.json` covers all 13 deals and the self-score script runs against it |
 | I3 | Switch the UI from mock to live (Phase 4 live API on the frozen Phase 5 engine) | Ezekiel → Jesse | H10 (Sun 01:40), switched by H10.5 | `MOCK=0` shows the real sample-week run with no UI change beyond the flag |
 | I4 | Graph data endpoint, live | Ezekiel → Jesse | H10 (Sun 01:40) | Same shape as the I1 graph fixture, from the frozen engine, queryable at a sim time for the replay |
 | I5 | Investigator trace + red-team report endpoints, live | Ezekiel → Jesse | H16 (Sun 07:40) | Same shapes as the I1 fixtures, and they work offline in replay mode |
-| I6 | README clean-checkout run | Ezekiel → Jesse | H19 (Sun 10:40) | Jesse runs engine, API and UI from a fresh clone on his machine (DEMO-02) |
+| I6 | README clean-checkout run | Ezekiel → Jesse | H19 (Sun 10:40) | Jesse runs engine, API and UI from a fresh clone on Jesse's machine (DEMO-02) |
 
 **Contract rule:** if a shape has to change, change the Pydantic schema and regenerate the fixture first, then tell the other person. The UI never reads a field the contract doesn't define.
 
@@ -100,8 +100,8 @@ Cut in this order when a gate is at risk.
 **Success Criteria** (what must be TRUE):
   1. Running the CLI on the sample `--folder` and `--arrivals` writes `out/submission.json` with all 13 folder keys. It passes the validator, comes out byte-identical on a second run, and still gets written when one deal's documents are corrupted (the error is recorded for that deal). The validator rejects a hand-broken file (bad key, bad enum, bad `KIND:target`).
   2. Asked for files at sim time T, the engine returns only files with `arrive_at <= T` (ties sorted by path), and deleting every later file leaves the output up to T unchanged. All emitted times are fixed `-06:00` ISO strings and money is integer cents. Rules load from `stages.json`, `teams.json` and `config/fraud.yaml`, and a grep test finds no folder, company or trick names in engine code.
-  3. By H1, with `MOCK=1`, the API serves every contract endpoint (deals, deal detail, clock, inbox, alerts, graph, investigator trace, red-team report) from JSON fixtures, and Jesse can load them in his browser.
-  4. By H2, `golden/expected_sample.json` holds Jesse's expected facts, issues, sign-off routing, hold or no hold, linked deals and `history_flags` for all 13 sample deals. The self-score script prints a per-deal, per-field score of engine output against it.
+  3. By H1, with `MOCK=1`, the API serves every contract endpoint (deals, deal detail, clock, inbox, alerts, graph, investigator trace, red-team report) from JSON fixtures, and Jesse can load them in a browser.
+  4. By H2, `eval/gold.json` holds Jesse's expected facts, issues, sign-off routing, hold or no hold, linked deals and `history_flags` for all 13 sample deals. The self-score script prints a per-deal, per-field score of engine output against it.
   5. A smoke script shows a plain completion, a tool-call round trip and a VL read of Tyler's JPG on the hosted Nemotron API. It records whether native tool calling works, which decides how Phase 6 builds its agent loop.
 **Plans**: TBD
 **Notes**: Also inventory `shared_folder` against `arrivals.jsonl` (research counts disagree: 167 vs 140 PDFs + 5 CSVs + 1 JPG; 173 arrivals vs 186 files) and spike RapidOCR on the JPG in a clean venv. NEM-02 sits here, not in Phase 6, so hosted tool calling is proven before anything depends on it.
@@ -163,7 +163,11 @@ Cut in this order when a gate is at risk.
   4. Every held or watched deal shows evidence for each signal family (F1–F6) that fired, with each shared entity's rarity against history. A deal with only 1–2 families appears on the watch tier and is not held.
   5. At H10 the sample-week submission validates, is byte-identical across two runs, passes both trap suites (no false issues, no false holds), has its self-score against the golden labels recorded, and is tagged as the frozen baseline. The live graph endpoint serves nodes, rarity-weighted edges, family evidence and each edge's first-visible sim time.
 **Plans**: TBD
-**Notes**: The deepest risk in the project. Thresholds live in `config/fraud.yaml` and are not fitted to the sample. No sample literals ("DocuForge", "Delacroix", 4471, "Metroplex", "Commerce Street") appear in detection code.
+**Notes**: The deepest risk in the project. Thresholds live in `config/fraud.yaml` and are not fitted to the sample. No sample literals ("DocuForge", "Delacroix", 4471, "Metroplex", "Commerce Street") appear in detection code. The sample is already analyzed, so it can't serve as a blind fraud test. Follow Jesse's validation protocol (`HANDOFF.md` §3):
+- Replay history in time order and report how many deals into a scheme the first flag fires.
+- Run blind checks: without the DUP_EIN/SHELL_ADDRESS rules, does the generic detector still surface those labeled history deals?
+- Measure false positives on history deals that are `funded`, `fraud_label=none` and `current`/`paid_off`. This is the key metric.
+- Freeze thresholds before the organizers' drop and treat the drop as a blind test.
 
 ### Phase 6: Nemotron Agents
 **Goal**: Nemotron agents investigate each flagged cluster, attack the detector with invented fraud tricks, read the documents the parser can't, and write the plain-words messages. All of it sits off the scored path, so switching Nemotron off changes nothing that is scored.
@@ -179,6 +183,10 @@ Cut in this order when a gate is at risk.
   5. Credit memos, sign-off requests and alerts read as plain words from Nemotron and fall back to templates when the API fails. A free-text human reply is parsed into one of the request's allowed options.
 **Plans**: TBD
 **Notes**: Hosted build.nvidia.com API with the record/replay cache; Brev is break-glass only. Model IDs live in env vars. A plain OpenAI-SDK tool loop, no agent framework.
+- **Red-team protocol (`HANDOFF.md` §3):** write the trick menu before any tuning, with randomized strength and fields: a shared hidden party in different roles, number style, template fingerprint, a lookalike counterparty, threshold gaming and a timing burst.
+- Evaluate by leaving one trick family out at a time, never with a random row split.
+- Keep a seeded deterministic generator next to Nemotron's so the results reproduce.
+- The report feeds the pitch line: "Tested on fraud types it never saw … caught X, with Y false alarms."
 
 ### Phase 7: Fraud Graph, Dry Run and Pitch
 **Goal**: Judges watch the fraud ring light up as the clock advances, see why each link matters and what the agents found, and see DealPilot handle a fresh drop with no code changes. All of it is captured in a recorded demo and a 3-minute pitch.

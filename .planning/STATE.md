@@ -45,7 +45,7 @@ Clock: H0 = Sat 2026-11-07 15:40 CT. H21 = Sun 2026-11-08 12:40 CT. Full hour-by
 
 **Ezekiel, now:** plan and start Phase 1. The first deliverable is the API contract plus mock fixtures, due to Jesse at H1 (Sat 16:40).
 
-**Jesse, now:** write the golden labels for the 13 sample deals into `golden/expected_sample.json`, due at H2 (Sat 17:40). Per deal: expected facts, issues, who each sign-off goes to, hold or no hold, linked deals, `history_flags`. The exact file shape comes with the Phase 1 plan; start with per-deal notes. You need the data pack at `data/participant/` on your machine; it is not in git, so get it from Ezekiel. From H1, start Phase 2 against the mock fixtures; it does not wait on the engine.
+**Jesse, now:** write the golden labels for the 13 sample deals into `eval/gold.json`, due at H2 (Sat 17:40). Per deal: expected facts, issues, who each sign-off goes to, hold or no hold, linked deals, `history_flags`. The exact file shape comes with the Phase 1 plan; start with per-deal notes. You need the data pack at `data/participant/` on your machine; it is not in git, so get it from Ezekiel. From H1, start Phase 2 against the mock fixtures; it does not wait on the engine.
 
 **Next hand-offs and gates:**
 - H1 (Sat 16:40): contract + mock fixtures, Ezekiel to Jesse

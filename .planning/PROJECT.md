@@ -86,6 +86,14 @@ DealPilot is our HackUTD 2026 entry for the Goldman Sachs challenge, also entere
 - LSFD_docs (scanned filenames only).
 - Equipment deals on the real Metroplex vendor (Oakline Auto, …9902).
 
+**Jesse's handoff.** `HANDOFF.md` (repo root) adds:
+- the validation protocol: leave one trick family out, replay history in time order, and track false positives on good history deals as the key metric;
+- an execution checklist;
+- questions for Vijay Kumar (the Goldman Sachs contact in the event channel);
+- pitch framing and Jesse's finance work items.
+
+The answer key is `eval/gold.json`. The repo is private.
+
 **Prior team experience.** Won 1st place at RowdyHacks (UTSA Investment Society track) with a FastAPI + deterministic quant pipeline, judged by replaying the model against a rubric. Same discipline applies here: a deterministic, auditable engine, then self-score against the format.
 
 ## Constraints

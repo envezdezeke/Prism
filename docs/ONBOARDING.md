@@ -40,9 +40,11 @@ We're entered in **two tracks**:
 | | Ezekiel | Jesse |
 |---|---|---|
 | Owns | Python engine (reading, pipeline, alerts, fraud graph), Nemotron agents | Golden answer labels, the web UI, demo + pitch |
-| First task | Foundations + API contract | Hand-label `golden/expected_sample.json` (the right answers for all 13 sample deals), then scaffold the UI against mock data |
+| First task | Foundations + API contract | Hand-label `eval/gold.json` (the right answers for all 13 sample deals), then scaffold the UI against mock data |
 
 **The only interface between us is the API contract** (`contracts/` plus JSON fixtures). Jesse builds the UI with `MOCK=1`, so it never waits on the engine. When the engine is ready, we flip one env var.
+
+Jesse's own plan notes (validation protocol, execution checklist, questions for Vijay, pitch framing, Jesse's work list) are in **[`HANDOFF.md`](../HANDOFF.md)**. PROJECT.md wins if the two conflict.
 
 The full timeline, with hour-by-hour windows, is in **[`.planning/ROADMAP.md`](../.planning/ROADMAP.md)**. Where we are right now is in **[`.planning/STATE.md`](../.planning/STATE.md)**.
 

@@ -16,7 +16,7 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 - [ ] **FND-05**: CLI runs a full sim on any `--folder` + `--arrivals` (sample, weekend drop, hidden set) with no code changes and writes `out/submission.json`. (E)
 - [ ] **FND-06**: Submission validator rejects output that breaks `SUBMISSION_FORMAT.md` (keys, enums, `KIND:target` issues). A crash on one deal never prevents the file being written. (E)
 - [ ] **FND-07**: Pydantic API contract + JSON fixtures exist so the UI can be built against `MOCK=1` before the engine is done. (E→J)
-- [ ] **FND-08**: Hand-labelled golden expectations for the 13 sample deals (`golden/expected_sample.json`) and a self-score script compare engine output against them. (J, script E)
+- [ ] **FND-08**: Hand-labelled golden expectations for the 13 sample deals (`eval/gold.json`) and a self-score script compare engine output against them. (J, script E)
 
 ### Read the folder (READ)
 
