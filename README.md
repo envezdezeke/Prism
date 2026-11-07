@@ -11,9 +11,15 @@ graph of deals and the parties, documents, and accounts they share.
 - **Agents:** NVIDIA Nemotron — fraud investigator (ReAct + tools), red-team scenario generator, VL fallback document reader.
 - **UI:** React + Vite + Tailwind, clean light fintech design with an interactive fraud graph.
 
+## New to the repo? Start here
+
+**[`docs/ONBOARDING.md`](docs/ONBOARDING.md)**: what we're building, the fraud we found, who does what, setup, and how we work.
+
 ## Status
 
-Planning — see [`.planning/PROJECT.md`](.planning/PROJECT.md). Roadmap in progress.
+- Plan: [`.planning/ROADMAP.md`](.planning/ROADMAP.md) (phases, hour windows, owners)
+- Right now: [`.planning/STATE.md`](.planning/STATE.md)
+- Why and decisions: [`.planning/PROJECT.md`](.planning/PROJECT.md)
 
 ## Data
 

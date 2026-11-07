@@ -96,7 +96,66 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 
 ## Traceability
 
-(Filled by roadmap.)
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| FND-01 | Phase 1 | Pending |
+| FND-02 | Phase 1 | Pending |
+| FND-03 | Phase 1 | Pending |
+| FND-04 | Phase 1 | Pending |
+| FND-05 | Phase 1 | Pending |
+| FND-06 | Phase 1 | Pending |
+| FND-07 | Phase 1 | Pending |
+| FND-08 | Phase 1 | Pending |
+| NEM-02 | Phase 1 | Pending |
+| UI-01 | Phase 2 | Pending |
+| UI-02 | Phase 2 | Pending |
+| UI-03 | Phase 2 | Pending |
+| UI-04 | Phase 2 | Pending |
+| UI-05 | Phase 2 | Pending |
+| READ-01 | Phase 3 | Pending |
+| READ-02 | Phase 3 | Pending |
+| READ-03 | Phase 3 | Pending |
+| READ-04 | Phase 3 | Pending |
+| READ-05 | Phase 3 | Pending |
+| READ-06 | Phase 3 | Pending |
+| READ-07 | Phase 3 | Pending |
+| READ-08 | Phase 3 | Pending |
+| MOVE-01 | Phase 4 | Pending |
+| MOVE-02 | Phase 4 | Pending |
+| MOVE-03 | Phase 4 | Pending |
+| MOVE-04 | Phase 4 | Pending |
+| MOVE-05 | Phase 4 | Pending |
+| MOVE-06 | Phase 4 | Pending |
+| MOVE-07 | Phase 4 | Pending |
+| MOVE-08 | Phase 4 | Pending |
+| MOVE-09 | Phase 4 | Pending |
+| FRD-01 | Phase 5 | Pending |
+| FRD-02 | Phase 5 | Pending |
+| FRD-03 | Phase 5 | Pending |
+| FRD-04 | Phase 5 | Pending |
+| FRD-05 | Phase 5 | Pending |
+| FRD-06 | Phase 5 | Pending |
+| FRD-07 | Phase 5 | Pending |
+| NEM-01 | Phase 6 | Pending |
+| NEM-03 | Phase 6 | Pending |
+| NEM-04 | Phase 6 | Pending |
+| NEM-05 | Phase 6 | Pending |
+| NEM-06 | Phase 6 | Pending |
+| UI-06 | Phase 7 | Pending |
+| UI-07 | Phase 7 | Pending |
+| DEMO-01 | Phase 7 | Pending |
+| DEMO-02 | Phase 7 | Pending |
+| DEMO-03 | Phase 7 | Pending |
+
+**Coverage:**
+- v1 requirements: 48 total
+- Mapped to phases: 48
+- Unmapped: 0
+
+**By phase:** Phase 1: 9 (Both) · Phase 2: 5 (Jesse) · Phase 3: 8 (Ezekiel) · Phase 4: 9 (Ezekiel) · Phase 5: 7 (Ezekiel) · Phase 6: 5 (Ezekiel) · Phase 7: 5 (Jesse lead, DEMO-01 Ezekiel). Owners per requirement are the E/J tags above.
+
+NEM-02 (Nemotron smoke test) maps to Phase 1 instead of Phase 6, so hosted tool calling is proven before the agent phase depends on it.
 
 ---
 *Requirements defined: 2026-11-07*
+*Last updated: 2026-11-07 after roadmap creation (traceability filled)*
