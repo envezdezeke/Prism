@@ -1,8 +1,8 @@
-# Roadmap: DealPilot
+# Roadmap: Prism
 
 ## Overview
 
-Two people build DealPilot in 20 hours (Sat 15:55 → Sun 12:00 CT) on two parallel tracks. Ezekiel builds the deterministic engine in the order the data flows: foundations and the API contract first, then reading the folder, moving the deal and catching the fakes. That engine is frozen as the scored baseline at H10. He then adds the Nemotron agents around it, working by H15.5. Jesse writes the golden labels for the 13 sample deals by H2 and builds the pipeline cockpit UI against mock fixtures from H1, then builds the fraud-graph hero view and leads the demo and pitch. The tracks meet at fixed hand-offs: the contract at H1, the golden labels at H2, the switch from mock to live data at H10 and the agent endpoints at H15.5. After the H18 feature freeze, both run a dry run on a simulated weekend drop, record the demo and rehearse the pitch.
+Two people build Prism in 20 hours (Sat 15:55 → Sun 12:00 CT) on two parallel tracks. Ezekiel builds the deterministic engine in the order the data flows: foundations and the API contract first, then reading the folder, moving the deal and catching the fakes. That engine is frozen as the scored baseline at H10. He then adds the Nemotron agents around it, working by H15.5. Jesse writes the golden labels for the 13 sample deals by H2 and builds the pipeline cockpit UI against mock fixtures from H1, then builds the fraud-graph hero view and leads the demo and pitch. The tracks meet at fixed hand-offs: the contract at H1, the golden labels at H2, the switch from mock to live data at H10 and the agent endpoints at H15.5. After the H18 feature freeze, both run a dry run on a simulated weekend drop, record the demo and rehearse the pitch.
 
 **Clock:** H0 = Sat 2026-11-07 15:55 CT. **Hard deadline Sun 2026-11-08 12:00 CT (H20.1).** Submit target is H19.75 (Sun 11:40), which leaves 20 minutes of buffer. Engine windows are unchanged from the first draft. The lost hour came out of Nemotron (−30 min) and the late reserve (−30 min), following Goldman > Nemotron > UI.
 
@@ -190,7 +190,7 @@ Cut in this order when a gate is at risk.
 - The report feeds the pitch line: "Tested on fraud types it never saw … caught X, with Y false alarms."
 
 ### Phase 7: Fraud Graph, Dry Run and Pitch
-**Goal**: Judges watch the fraud ring light up as the clock advances, see why each link matters and what the agents found, and see DealPilot handle a fresh drop with no code changes. All of it is captured in a recorded demo and a 3-minute pitch.
+**Goal**: Judges watch the fraud ring light up as the clock advances, see why each link matters and what the agents found, and see Prism handle a fresh drop with no code changes. All of it is captured in a recorded demo and a 3-minute pitch.
 **Depends on**: Phase 2, Phase 5 and Phase 6 (the graph view starts on Phase 1's mock graph fixture at H9; live engine and graph data from Phase 5 at H10; trace and red-team endpoints from Phase 6 at H15.5)
 **Owner**: Jesse lead (graph view, red-team view, clean checkout, demo, pitch); Ezekiel at the H10 switch and from H15.5 (synthetic weekend drop, dry run)
 **Window**: H9–H19.75 (Sun 00:55–11:40 CT). Mock-to-live switch H10–H10.5; feature freeze H18; dry run, recording and pitch H18–H19.75; buffer to the 12:00 deadline.

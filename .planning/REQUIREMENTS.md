@@ -1,4 +1,4 @@
-# Requirements: DealPilot
+# Requirements: Prism
 
 **Defined:** 2026-11-07
 **Core Value:** Catch the cross-deal fraud ring before money goes out, without blocking good deals, using a method that carries over to the hidden set's different trick.

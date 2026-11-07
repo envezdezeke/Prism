@@ -1,8 +1,8 @@
-# DealPilot (team Goldman-I)
+# Prism
 
 ## What This Is
 
-DealPilot is our HackUTD 2026 entry for the Goldman Sachs challenge, also entered in the NVIDIA Nemotron prize track. It reads a bank's shared loan folder and pulls out the deal facts. It moves each deal through the six-stage lending pipeline on a simulated clock, asks the right person at every sign-off, and raises alerts and escalations when a deal is stuck. Its core job is catching fake deals by looking **across** deals: an entity graph of deals and the parties, documents and accounts they share. A deterministic Python engine produces every scored output. Nemotron agents investigate, red-team and read hard documents around it. A clean fintech web UI shows the pipeline and the fraud graph.
+Prism (team Prism) is our HackUTD 2026 entry for the Goldman Sachs challenge, also entered in the NVIDIA Nemotron prize track. It reads a bank's shared loan folder and pulls out the deal facts. It moves each deal through the six-stage lending pipeline on a simulated clock, asks the right person at every sign-off, and raises alerts and escalations when a deal is stuck. Its core job is catching fake deals by looking **across** deals: an entity graph of deals and the parties, documents and accounts they share. A deterministic Python engine produces every scored output. Nemotron agents investigate, red-team and read hard documents around it. A clean fintech web UI shows the pipeline and the fraud graph.
 
 ## Core Value
 
@@ -51,7 +51,7 @@ DealPilot is our HackUTD 2026 entry for the Goldman Sachs challenge, also entere
 
 ## Context
 
-**Event.** HackUTD 2026, Goldman Sachs "DealPilot — Move the Deal. Stop the Fraud." challenge, stacked with the NVIDIA Nemotron prize track. 2 people (Ezekiel: quant/engine/pipeline; teammate: finance/UI/pitch), ~20 hours (Sat 15:55 → Sun 12:00 CT deadline) as of 2026-11-07. Repo: github.com/envezdezeke/Goldman-I (remote already has one commit, so pull before the first push).
+**Event.** HackUTD 2026, Goldman Sachs "DealPilot — Move the Deal. Stop the Fraud." challenge, stacked with the NVIDIA Nemotron prize track. 2 people (Ezekiel: quant/engine/pipeline; teammate: finance/UI/pitch), ~20 hours (Sat 15:55 → Sun 12:00 CT deadline) as of 2026-11-07. Repo: github.com/envezdezeke/Prism (remote already has one commit, so pull before the first push).
 
 **Judging (Goldman).** READ = correct facts plus spotting what's missing or doesn't match, with no false alarms. MOVE = stages in order, the right human asked, alerts and escalations, no advancing while waiting on docs, needed-by dates met. FRAUD = held before Closed (earlier scores more), pattern spotted in the first few deals, each false flag costs a lot, linked deals and history found. A **hidden set with a different trick** is run too: "build for the idea, not the examples."
 

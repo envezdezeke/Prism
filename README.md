@@ -1,8 +1,8 @@
-# DealPilot — Goldman-I
+# Prism
 
-HackUTD 2026 entry (Goldman Sachs challenge + NVIDIA Nemotron track).
+**Prism** is team Prism's HackUTD 2026 build of the Goldman Sachs **DealPilot** challenge, also entered in the NVIDIA Nemotron track.
 
-DealPilot reads a bank's shared loan folder, extracts the deal facts, moves each deal through the lending pipeline
+Prism reads a bank's shared loan folder, extracts the deal facts, moves each deal through the lending pipeline
 (Intake → Credit → Committee → Product → Committed → Closed) on a simulated clock, asks the right human at every
 sign-off, alerts and escalates when a deal is stuck, and catches fraud rings by looking **across** deals — an entity
 graph of deals and the parties, documents, and accounts they share.

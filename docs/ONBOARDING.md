@@ -1,10 +1,10 @@
 # Onboarding: start here, Jesse
 
-This is everything you need to pick up DealPilot without having been in the planning chat. It takes about 10 minutes to read.
+This is everything you need to pick up Prism without having been in the planning chat. It takes about 10 minutes to read.
 
 ## 1. What we're building (30 seconds)
 
-**DealPilot** is a helper for a fictional bank (Trinity Commercial Bank). It does five things:
+**Prism** (our build of the Goldman Sachs "DealPilot" challenge) is a helper for a fictional bank (Trinity Commercial Bank). It does five things:
 
 1. **Reads** each borrower's loan folder (PDFs, CSVs, one phone photo) and pulls out the facts.
 2. **Moves** each deal through 6 stages, in order: Intake → Credit → Committee → Product → Committed → Closed. Entering Closed means the money goes out.
@@ -51,13 +51,13 @@ The full timeline, with hour-by-hour windows, is in **[`.planning/ROADMAP.md`](.
 ## 4. Setup (Windows)
 
 ```bash
-git clone https://github.com/envezdezeke/Goldman-I.git
-cd Goldman-I
+git clone https://github.com/envezdezeke/Prism.git
+cd Prism
 ```
 
 **Get the data (it is NOT in git; the challenge material is participant-only):**
 1. Download `participant.zip` from https://github.com/SushmaEati/HackUTD/tree/main/datasets
-2. Unzip it so you have `Goldman-I/data/participant/` (containing `shared_folder/`, `history/`, `rules/`, `sim/`, ...).
+2. Unzip it so you have `Prism/data/participant/` (containing `shared_folder/`, `history/`, `rules/`, `sim/`, ...).
 
 **Python:** use 3.13. Plain `python` in Git Bash may open the Microsoft Store stub, so use `py -3.13` or the full path.
 ```bash
