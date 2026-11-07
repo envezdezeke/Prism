@@ -48,6 +48,7 @@ Prism (team Prism) is our HackUTD 2026 entry for the Goldman Sachs challenge, al
 - Hard-coding sample-specific signals (the literal "DocuForge", "Delacroix" or account 4471): the hidden set uses a different trick. Signals must be generic (rarity, lookalikes, forensics, distributional anomalies).
 - Real auth, multi-user accounts, persistence beyond local files: this is a hackathon demo.
 - Committing the data pack or challenge PDF to git: the challenge statement is for participants only. `data/` is gitignored.
+- Double-pledge / collateral-registry checks (same asset pledged to another lender): the data pack has no asset identifiers (no serials or VINs, applications state only the collateral type), no UCC or lien registry, and no collateral column in history. The in-bank proxy is a reused equipment quote, caught by F1 (shared entity) and F4 (document forensics). Production next step for the pitch: a UCC-1 search via the Secretary of State, matched on serial or VIN.
 
 ## Context
 
