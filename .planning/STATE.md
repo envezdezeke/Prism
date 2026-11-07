@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 1 of 7 (Foundations, Contract and Golden Labels)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-11-07 15:40 CT (H0): roadmap created, 7 phases, 48/48 v1 requirements mapped
+Last activity: 2026-11-07 15:55 CT (H0): roadmap created, 7 phases, 48/48 v1 requirements mapped
 
 Progress: [░░░░░░░░░░] 0%
 
-Clock: H0 = Sat 2026-11-07 15:40 CT. H21 = Sun 2026-11-08 12:40 CT. Full hour-by-hour table: ROADMAP.md "Who's doing what, when".
+Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; submit target 11:40 (H19.75). Full hour-by-hour table: ROADMAP.md "Who's doing what, when".
 
 ## Who Owns What
 
@@ -38,22 +38,22 @@ Clock: H0 = Sat 2026-11-07 15:40 CT. H21 = Sun 2026-11-08 12:40 CT. Full hour-by
 | 3. Read the Folder | Ezekiel | H2–H5 | Not started |
 | 4. Move the Deal | Ezekiel | H5–H7.5 | Not started |
 | 5. Catch the Fakes | Ezekiel | H7.5–H10 | Not started |
-| 6. Nemotron Agents | Ezekiel | H10.5–H16 | Not started |
-| 7. Fraud Graph, Dry Run and Pitch | Jesse lead, Ezekiel from H16 | H9–H21 | Not started |
+| 6. Nemotron Agents | Ezekiel | H10.5–H15.5 | Not started |
+| 7. Fraud Graph, Dry Run and Pitch | Jesse lead, Ezekiel from H15.5 | H9–H19.75 | Not started |
 
 ## Right Now and Next
 
-**Ezekiel, now:** plan and start Phase 1. The first deliverable is the API contract plus mock fixtures, due to Jesse at H1 (Sat 16:40).
+**Ezekiel, now:** plan and start Phase 1. The first deliverable is the API contract plus mock fixtures, due to Jesse at H1 (Sat 16:55).
 
-**Jesse, now:** write the golden labels for the 13 sample deals into `eval/gold.json`, due at H2 (Sat 17:40). Per deal: expected facts, issues, who each sign-off goes to, hold or no hold, linked deals, `history_flags`. The exact file shape comes with the Phase 1 plan; start with per-deal notes. You need the data pack at `data/participant/` on your machine; it is not in git, so get it from Ezekiel. From H1, start Phase 2 against the mock fixtures; it does not wait on the engine.
+**Jesse, now:** write the golden labels for the 13 sample deals into `eval/gold.json`, due at H2 (Sat 17:55). Per deal: expected facts, issues, who each sign-off goes to, hold or no hold, linked deals, `history_flags`. The exact file shape comes with the Phase 1 plan; start with per-deal notes. You need the data pack at `data/participant/` on your machine; it is not in git, so get it from Ezekiel. From H1, start Phase 2 against the mock fixtures; it does not wait on the engine.
 
 **Next hand-offs and gates:**
-- H1 (Sat 16:40): contract + mock fixtures, Ezekiel to Jesse
-- H2 (Sat 17:40): golden labels, Jesse to Ezekiel
-- H10 (Sun 01:40): engine baseline frozen; UI flips from mock to live by H10.5; live graph endpoint
-- H16 (Sun 07:40): Nemotron investigator + red-team working; trace and red-team endpoints live
-- H19 (Sun 10:40): feature freeze
-- H19–H21: dry run on a simulated weekend drop, demo recording, pitch; H21 (Sun 12:40) submit
+- H1 (Sat 16:55): contract + mock fixtures, Ezekiel to Jesse
+- H2 (Sat 17:55): golden labels, Jesse to Ezekiel
+- H10 (Sun 01:55): engine baseline frozen; UI flips from mock to live by H10.5; live graph endpoint
+- H15.5 (Sun 07:25): Nemotron investigator + red-team working; trace and red-team endpoints live
+- H18 (Sun 09:55): feature freeze
+- H18–H19.75: dry run on a simulated weekend drop, demo recording, pitch; H19.75 (Sun 11:40) submit; hard deadline 12:00
 - Weekend drop: arrival time unknown; 90-minute drop-response slot (ROADMAP.md "Drop response slot")
 
 **If a gate slips, cut in this order:** UI polish, then Nemotron prose/VL, then red-team, then investigator. Never cut the engine, validator, determinism harness or trap suite.
@@ -105,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-07 15:40 CT
+Last session: 2026-11-07 15:55 CT
 Stopped at: Roadmap and state created; next is `/gsd-plan-phase 1`
 Resume file: None

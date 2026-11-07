@@ -51,7 +51,7 @@ DealPilot is our HackUTD 2026 entry for the Goldman Sachs challenge, also entere
 
 ## Context
 
-**Event.** HackUTD 2026, Goldman Sachs "DealPilot — Move the Deal. Stop the Fraud." challenge, stacked with the NVIDIA Nemotron prize track. 2 people (Ezekiel: quant/engine/pipeline; teammate: finance/UI/pitch), ~21 hours left as of 2026-11-07. Repo: github.com/envezdezeke/Goldman-I (remote already has one commit, so pull before the first push).
+**Event.** HackUTD 2026, Goldman Sachs "DealPilot — Move the Deal. Stop the Fraud." challenge, stacked with the NVIDIA Nemotron prize track. 2 people (Ezekiel: quant/engine/pipeline; teammate: finance/UI/pitch), ~20 hours (Sat 15:55 → Sun 12:00 CT deadline) as of 2026-11-07. Repo: github.com/envezdezeke/Goldman-I (remote already has one commit, so pull before the first push).
 
 **Judging (Goldman).** READ = correct facts plus spotting what's missing or doesn't match, with no false alarms. MOVE = stages in order, the right human asked, alerts and escalations, no advancing while waiting on docs, needed-by dates met. FRAUD = held before Closed (earlier scores more), pattern spotted in the first few deals, each false flag costs a lot, linked deals and history found. A **hidden set with a different trick** is run too: "build for the idea, not the examples."
 
@@ -98,7 +98,7 @@ The answer key is `eval/gold.json`. The repo is private.
 
 ## Constraints
 
-- **Timeline**: ~21 hours, 2 people. Priority order when cutting: Goldman score > Nemotron > UI.
+- **Timeline**: ~20 hours, 2 people; hard deadline Sun 2026-11-08 12:00 CT. Priority order when cutting: Goldman score > Nemotron > UI.
 - **Tech stack**: Python (pandas, networkx, pypdf) engine behind FastAPI; React + Vite + Tailwind frontend with a force-graph library. Nemotron via the build.nvidia.com API / Brev. Python at `C:/Users/ezeki/AppData/Local/Programs/Python/Python313/python.exe` (plain `python` is the Microsoft Store stub).
 - **No Claude in product**: the team chose Nemotron + deterministic code.
 - **Determinism**: every scored field in the submission JSON must come from deterministic code. Nemotron output is advisory or validated before it can affect a score (a hold, an extraction, a linked deal).
@@ -126,7 +126,7 @@ The answer key is `eval/gold.json`. The repo is private.
 | `issues` = open at end of run; resolved go in `resolved_issues` | Format is ambiguous; extra keys ignored | — Pending |
 | Missing statement at Credit → `info_request` first; no `credit_decision` on an incomplete file | Rule: never advance while waiting on a document | — Pending |
 | Ask organizers now how human answers and drops arrive; build inbox + scripted personas meanwhile | Unknown judging mechanics | — Pending |
-| Hard gates: H10 engine baseline frozen, H16 Nemotron agents working, H19 feature freeze; cut UI first | 21h budget, Goldman > Nemotron > UI | — Pending |
+| Hard gates: H10 engine baseline frozen, H15.5 Nemotron agents working, H18 feature freeze, submit 11:40 (deadline Sun 12:00 CT); cut UI first | 20h budget (Sat 15:55 → Sun 12:00), Goldman > Nemotron > UI | — Pending |
 
 ## Evolution
 

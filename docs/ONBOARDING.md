@@ -96,7 +96,7 @@ If you use Claude Code, open the repo and run `/gsd-progress`. It reads STATE.md
 - A flagged deal is frozen immediately, and Fraud Ops (victor.hale, backup monica.salas) is asked to confirm.
 - Nemotron runs through the hosted API (build.nvidia.com). Runs are recorded so the demo can replay them if the API is slow.
 - UI style is **clean, light fintech** (think Stripe or Ramp). We're aiming for best design.
-- **Gates:** H10 engine baseline frozen · H16 Nemotron agents working · H19 feature freeze → dry run, demo recording, pitch.
+- **Gates:** H10 (Sun 01:55) engine baseline frozen · H15.5 (07:25) Nemotron agents working · H18 (09:55) feature freeze → dry run, demo recording, pitch · submit by 11:40, hard deadline **Sun 12:00 CT**.
 
 ## 8. Open questions for the organizers (whoever is near the help desk)
 
