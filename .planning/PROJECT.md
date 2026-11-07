@@ -110,6 +110,15 @@ DealPilot is our HackUTD 2026 entry for the Goldman Sachs challenge, also entere
 | Human loop = interactive inbox UI + scripted responder personas | How judges answer during judging is unknown; supports both live and headless runs | — Pending |
 | Engine takes `--folder` / `--arrivals` so new drops run with no code changes | Weekend drop and hidden set arrive late | — Pending |
 | Data pack gitignored under `data/` | Challenge material is participant-only | ✓ Good |
+| Engine freezes a deal the moment it flags, sends `fraud_hold` to victor.hale (backup monica.salas); resumes only on `fraud_release` | Some judges never answer; fakes reaching Closed is the costliest error | — Pending |
+| Hold = F1 shared-rare entity (history matches count) + ≥2 other families; 1–2 families = watch tier; OLD_TRICK → Fraud Ops | Ridgeway lands first and must flag from history alone; false flags cost a lot | — Pending |
+| Ezekiel owns engine + Nemotron; Jesse owns golden labels, UI, pitch | Agents depend on the engine tool API; finance judgment fits labels/pitch | — Pending |
+| Hosted build.nvidia.com API with record/replay cache; Brev break-glass only | Super needs 8×H100; demo can't depend on live API | — Pending |
+| 30-sim-minute quiescence before MISSING_DOC / info_request; advance immediately when requirements met | Files trickle in over ~20 min per folder | — Pending |
+| `issues` = open at end of run; resolved go in `resolved_issues` | Format is ambiguous; extra keys ignored | — Pending |
+| Missing statement at Credit → `info_request` first; no `credit_decision` on an incomplete file | Rule: never advance while waiting on a document | — Pending |
+| Ask organizers now how human answers and drops arrive; build inbox + scripted personas meanwhile | Unknown judging mechanics | — Pending |
+| Hard gates: H10 engine baseline frozen, H16 Nemotron agents working, H19 feature freeze; cut UI first | 21h budget, Goldman > Nemotron > UI | — Pending |
 
 ## Evolution
 
