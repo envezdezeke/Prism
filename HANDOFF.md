@@ -1,7 +1,9 @@
-# DealPilot — Session Handoff (Jesse's side)
+# Prism — Session Handoff (Jesse's side)
 
 > **Source of truth is [`.planning/PROJECT.md`](.planning/PROJECT.md)** (Zeke's plan: stack, requirements, decisions, sample-trick analysis). This file doesn't repeat it. It adds the context, strategy and checklists from Jesse's planning session that PROJECT.md doesn't cover yet. If the two conflict, PROJECT.md wins; flag the conflict to the team.
-> Last updated: Sat 2026-11-07, HackUTD 2026.
+> Prism is our build of the Goldman Sachs "DealPilot" challenge. Hard deadline **Sun 2026-11-08 12:00 CT** (submit 11:40); gates per ROADMAP.md: H10 engine frozen (Sun 01:55), H15.5 Nemotron (07:25), H18 feature freeze (09:55).
+> **Every scored rule, as a pass/fail list, plus the open judgment calls: [`docs/DETAILS_CHECKLIST.md`](docs/DETAILS_CHECKLIST.md).**
+> Last updated: Sat 2026-11-07 ~17:45 CT, HackUTD 2026.
 > **Confidential:** the repo must stay **private** (it was briefly public on 11/07 and was switched to private). Never commit the data pack or the challenge PDF.
 
 ---
@@ -40,8 +42,8 @@ The sample trick is already analyzed (PROJECT.md → Context), so the sample is 
    - timing burst
 3. **Real-data blind checks.** Without coding DUP_EIN/SHELL_ADDRESS as rules, does the generic detector still surface those labeled history deals as cross-deal anomalies?
 4. **Replay history in time order.** Measure how many deals into a scheme the first flag fires. Never use a random split, because it leaks the future.
-5. **False positives on real good deals: the key metric.** Flags on history deals that are `funded`, `fraud_label=none` and `current`/`paid_off` are near-certain false positives. Also check the persona traps from PROJECT.md: Tyler, James, Maria, Priya, Westfield, Harbor Tea, LSFD_docs, Oakline Auto.
-6. **Freeze thresholds before the Saturday drop** and treat the drop as a blind test. Log the score before and after any change.
+5. **False positives on real good deals: the key metric.** The "good set" is history deals that are `funded`, `fraud_label=none` and `current`/`paid_off`. Every flag on one gets a **written finance review**: either a hidden scheme member, with evidence, or a false positive. Report both counts. (The labels can't see the new trick: `fraud_label=none` means "no known trick found", not "proven clean" (SCHEMA.md), so a flag there isn't automatically wrong. One of the sample's history targets is exactly such a deal.) Also check the persona traps from PROJECT.md: Tyler, James, Maria, Priya, Westfield, Harbor Tea, LSFD_docs, Oakline Auto.
+6. **Freeze thresholds before the Saturday drop** and treat the drop as a blind test. **Run the frozen engine on the drop and record that first score (with the commit) before anyone opens the drop's files.** After that, log the score before and after any change; the pitch quotes the first-run number.
 7. **Report:**
    - false flags on good deals
    - fakes held before Closed
@@ -51,7 +53,15 @@ The sample trick is already analyzed (PROJECT.md → Context), so the sample is 
 
 Pitch line: *"Tested on fraud types it never saw and on real history it was never told about. Caught X, with Y false alarms."*
 
+**Decided 2026-11-07 (Jesse; Zeke to confirm):**
+- Pitch centerpiece = **measured validation**. Banks trust a model with a measured false-flag rate, and teams that prompt their way through won't have one.
+- Headline number = the **blind weekend-drop result**. History replay (false-flag rate on the good set) and the synthetic tricks back it up. If the drop arrives too late, the history replay becomes the headline.
+- **Accuracy and sturdiness beat looks** on the Goldman track: judges grade the output file against a rubric. Screens matter for the NVIDIA track and the pitch, not the Goldman score.
+- Double-pledge / collateral-registry checks are out of scope (no asset IDs or lien registry in the data; see PROJECT.md).
+
 ## 4. Execution checklist (where points are usually lost)
+
+Short version below. The full rule-by-rule list is [`docs/DETAILS_CHECKLIST.md`](docs/DETAILS_CHECKLIST.md).
 
 - [ ] Only see files after `arrive_at` (read time from the clock / `GET /now`).
 - [ ] The clock can jump 6h+ at once. Emit **every** crossed SLA threshold (100/150/200%) with correct timestamps.
@@ -84,7 +94,7 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 - **Sell the consequence, not the control.** Lead with what it caught or saved; keep the technical name as a small label.
 - **Speak engineer:** lending rules are unit tests on a deal; the audit trail is an append-only event log; gates are authorization; evidence on every flag is traceability.
 - **Show, don't tell:**
-  - side by side, the old checks approve the ring and DealPilot holds it
+  - side by side, the old checks approve the ring and Prism holds it
   - "try to fool it": let a judge edit a deal to hide fraud
   - one honest score line (§3)
 - **Show detail on demand:** the first screen shows the verdict, 3 plain-English reasons and dollars at risk. A click shows the math.
@@ -104,7 +114,7 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 ## 7. Jesse's work items (finance)
 
 1. **Answer key `eval/gold.json`** for all 13 sample folders: the true extracted fields plus the true `issues`. This is the highest-value finance task; every READ result gets scored against it.
-2. Domain rules: per-field mismatch tolerances and the nickname list; required docs per stage; vendor and disbursement verification; the 7004 rule (business under 2 years old).
+2. Domain rules: per-field mismatch tolerances and the nickname list; required docs per stage; vendor and disbursement verification; the 7004 rule (business under 2 years old). **Started:** `docs/DETAILS_CHECKLIST.md` (rules plus judgment calls J1–J20 awaiting Jesse's sign-off).
 3. Credit memo template (Committee requires one): the 5 Cs, risk rating, flags with evidence, approval conditions. Nemotron fills it; deterministic facts only.
 4. Plain-English templates for human requests and SLA alerts (each must say: whose deal + RM, stage + duration, waiting on, what unblocks it).
 5. UI per PROJECT.md (pipeline board, inbox, alert feed, deal detail, fraud graph), and the pitch and Devpost.
@@ -113,3 +123,21 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 
 - Jesse's earlier local session built a generic finance/actuarial Streamlit starter (VaR/CVaR, Monte Carlo, credit loss), written before the tracks were known. It's **not** in this repo (it conflicts with the FastAPI/React stack and the no-Claude rule) and lives only on Jesse's machine (local branch `starter-local`). Ignore it unless a specific function is useful.
 - That session went through several red-team passes. The conclusions are captured above and agree with PROJECT.md's key decisions: the deterministic engine owns the score, multi-signal agreement before a hold, nothing sample-specific hard-coded, and the data stays out of git.
+
+## 9. Open items for Jesse + Zeke (as of Sat ~17:45 CT)
+
+Settle these together; each blocks clean hand-offs.
+
+| # | Item | Why it matters | Proposed answer |
+|---|---|---|---|
+| 1 | **Contract + mock data (due H1, 16:55) is not on GitHub yet** | The screen work can't start against real shapes | Zeke posts an ETA |
+| 2 | **Answer key `eval/gold.json` (due H2, 17:55) not started; file shape undefined** | The self-score and the H10 gate depend on it | New due time (proposed 19:00). Zeke names the shape, or it mirrors SUBMISSION_FORMAT's keys plus an "acceptable answers" note for ambiguous fields |
+| 3 | **The answer key must be labelled blind.** ROADMAP Phase 3 already lists research-expected issues | If labels copy the research, the score checks the research against itself | Jesse labels from the raw files without reading those expectations, then we diff and discuss every disagreement |
+| 4 | **Jesse's role.** The plan has Jesse coding the UI for ~8h (H1–H9) plus the graph view; Jesse is finance, not a developer | Biggest schedule risk on Jesse's track | Jesse owns: the details checklist and judgment calls, answer key, credit-memo and alert wording, false-flag review, pitch. The UI gets built with Claude Code under Jesse's direction, kept plain (accuracy > looks) |
+| 5 | **Finance items aren't in the ROADMAP**: domain rules / judgment calls, credit-memo template, alert and request wording (§7 items 2–4) | The Committee stage can't exit without a credit memo; alerts must say 4 specific things | Add them to Jesse's track, ahead of UI polish |
+| 6 | **Judgment calls J1–J20** in `docs/DETAILS_CHECKLIST.md` | Zeke would otherwise guess at 2am | Jesse confirms or changes each; Zeke builds to them |
+| 7 | **Organizer questions** live in two places (§5 here, ONBOARDING §8) with different lists, and nobody owns asking them | Who answers human requests during judging, and how `issues` is scored, both change the build | Jesse owns asking Vijay; record the answers in PROJECT.md Key Decisions |
+| 8 | **Jesse's machine is a Mac**; setup docs and DEMO-02 (clean-checkout run "on Jesse's machine") assume Windows | The clean-checkout test would fail on setup, not on our code | Mac notes added to ONBOARDING §4; Zeke keeps scripts cross-platform |
+| 9 | **Push access**: is Jesse (`FroyoMojo`) a collaborator on `envezdezeke/Prism`? | Jesse can't share the checklist or answer key otherwise | Zeke confirms or adds |
+| 10 | **ONBOARDING §7 says "we're aiming for best design"**, but the agreed priority is Goldman > Nemotron > UI | Mixed signals on where hours go | Change to "clean and plain; accuracy first" |
+| 11 | **Drop-day fixes vs. the blind headline.** ROADMAP's drop slot allows generic fixes, then a re-tagged baseline | Fixing before recording makes the "blind" number not blind | Record the first-run score and commit first (§3 item 6), then fix |

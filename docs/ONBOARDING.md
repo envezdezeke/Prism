@@ -57,11 +57,17 @@ cd Prism
 
 **Get the data (it is NOT in git; the challenge material is participant-only):**
 1. Download `participant.zip` from https://github.com/SushmaEati/HackUTD/tree/main/datasets
-2. Unzip it so you have `Prism/data/participant/` (containing `shared_folder/`, `history/`, `rules/`, `sim/`, ...).
+2. Unzip it **into `Prism/data/`** so you have `Prism/data/participant/` (containing `shared_folder/`, `history/`, `rules/`, `sim/`, ...). The zip already contains a `participant/` folder: unzipping it *into* `data/participant/` gives `data/participant/participant/`, which the engine won't find. Delete `__MACOSX/` if it appears.
 
-**Python:** use 3.13. Plain `python` in Git Bash may open the Microsoft Store stub, so use `py -3.13` or the full path.
+**Python (Windows):** use 3.13. Plain `python` in Git Bash may open the Microsoft Store stub, so use `py -3.13` or the full path.
 ```bash
 py -3.13 -m venv .venv && .venv/Scripts/activate
+pip install -r requirements.txt        # once the engine scaffold lands
+```
+
+**Python (Mac, Jesse's machine):** the system `python3` has no pandas. Use a venv:
+```bash
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt        # once the engine scaffold lands
 ```
 
