@@ -135,29 +135,29 @@ At 100% of the limit: alert the stage owner **and the deal's RM**. At 150%: esca
 - [ ] Only the allowed values in every list (stages, purposes, products, request types, alert levels, issue labels). [F]
 - [ ] Extra fields are allowed and ignored, so we can add evidence for the demo. [F]
 
-## 8. Judgment calls (Jesse decides; Zeke builds to the answer)
+## 8. Judgment calls (decided by Jesse, 2026-11-07)
 
-Each has a recommended default so nobody guesses at 2am. Status: **open** until Jesse confirms.
+Zeke builds to these. **Vijay?** = we've decided, but ask the organizers to confirm; change only if they say otherwise.
 
-| # | Question | Recommended default | Status |
+| # | Question | Decision | Confirm |
 |---|---|---|---|
-| J1 | When does a deal "enter" Intake and start its 8h clock? | When the deal's first document arrives | open |
-| J2 | Intake round-robin order? | Alternate by deal arrival order, olivia.chen first | open |
-| J3 | Owner + RM at 100%: one alert or two? | Two alert entries, one to each | open |
-| J4 | When the owner's manager is already lauren.kim (Product, Committed, Closed), what happens at 200%? | Still send the 200% second escalation to lauren.kim, labelled as the second escalation | open |
-| J5 | Fraud Ops never answers our hold request: is the deal "held"? | Yes. We freeze it ourselves and money never goes out; `held: true`, and the log says we're awaiting Fraud Ops | open |
-| J6 | Guarantor name: the application's version or the ID's? | The application's; ID differences beyond nicknames → ID_MISMATCH | open |
-| J7 | Revenue stated as a range ("approx 400–500k")? | Midpoint, marked low confidence, with the original text kept as evidence | open |
-| J8 | "No specific date" → ? | `null` | open |
-| J9 | Product stage needs "pricing chosen", but we don't price loans | Log "standard pricing for <product>" as the decision; no pricing engine | open |
-| J10 | The commitment letter needs the borrower's signature too | Send `commitment_signoff` to the RM plus an `info_request` to the borrower for the signed letter | open |
-| J11 | When is a document reported missing? | After the folder has been quiet for 30 sim-minutes. The equipment quote is reported at Intake but only blocks at Product | open |
-| J12 | "6 most recent full months" counted from when? | The 6 full calendar months before the application date | open |
-| J13 | Mismatch tolerances | Names: ignore nicknames, suffixes, case and punctuation. Addresses: ignore Ave/Avenue, Ste/#. EIN: digits must match exactly. Amounts: exact to the cent. Bank balance: within $1 | open |
-| J14 | `issues`: open at the end of the run, or everything ever raised? | Open at the end in `issues`, resolved ones in an extra `resolved_issues` field. **Ask organizers** | open |
-| J15 | Application and request letter disagree on amount: which routes Committee? | Neither. Raise the mismatch, ask the borrower, route once resolved | open |
-| J16 | Request goes out after 18:00 or on a weekend | Send anyway, expect the answer next business morning; the timer keeps running | open |
-| J17 | Old-trick hit: flagged + hold request, or just a Fraud Ops notice? | `flagged: true` plus a `fraud_hold` request to Fraud Ops | open |
-| J18 | When does a deadline-risk alert fire? | As soon as the remaining stages can't fit before needed_by at normal speed | open |
-| J19 | A Collections notice on a funded deal | Re-check its links; add matching past deals to history_flags only if they share the scheme's multiple signs | open |
-| J20 | Who answers human requests during judging (our screen, files, or their system)? | Unknown. Support both our inbox and scripted answers. **Ask organizers** | open |
+| J1 | When does a deal "enter" Intake and start its 8h clock? | When the deal's first document arrives | |
+| J2 | Intake round-robin order? | Alternate by deal arrival order, olivia.chen first | |
+| J3 | Owner + RM at 100%: one alert or two? | Two alert entries, one to each | |
+| J4 | When the owner's manager is already lauren.kim (Product, Committed, Closed), what happens at 200%? | Still send the 200% escalation to lauren.kim, labelled "second escalation" | |
+| J5 | Fraud Ops never answers our hold request: is the deal "held"? | Yes. We freeze it ourselves and money never goes out: `held: true`, log "awaiting Fraud Ops", and escalate the unanswered request to monica.salas | **Vijay?** |
+| J6 | Guarantor name: the application's version or the ID's? | The application's ("Bob Kline"); the ID's version is kept as evidence. ID differences beyond nicknames → ID_MISMATCH | |
+| J7 | Revenue stated as a range ("approx 400–500k")? | Midpoint, marked low confidence, with the original wording kept as evidence | |
+| J8 | "No specific date" → ? | `null` | |
+| J9 | Product stage needs "pricing chosen", but we don't price loans | Log "standard pricing for <product>" as the decision; no pricing model | |
+| J10 | The commitment letter needs the borrower's signature too | `commitment_signoff` to the RM, asking them to confirm the borrower has countersigned. **No separate borrower request that could stall the deal** | **Vijay?** |
+| J11 | When is a document reported missing? | After the deal's folder has been quiet for 30 sim-minutes. Report everything missing at once (including later-stage docs); block only at the stage that needs it. A late arrival resolves the issue | |
+| J12 | "6 most recent full months" counted from when? | The 6 full calendar months before the application date | |
+| J13 | Mismatch tolerances | Names: ignore nicknames, suffix punctuation (LLC/L.L.C.), case. Addresses: ignore Ave/Avenue, Ste/#, ZIP+4. EIN and DOB: exact. Amounts: read "$1.2M" as 1,200,000, then exact to the cent. Bank balance: within $1. Revenue: same year and source type, within 1%; different years never compared | |
+| J14 | `issues`: open at the end of the run, or everything ever raised? | Open at the end in `issues`; resolved ones in an extra `resolved_issues` field | **Vijay?** |
+| J15 | Application and request letter disagree on amount | Report the application's amount, raise `MISMATCH:amount_requested`, ask the borrower, and keep the deal in Intake until resolved (which also decides the Committee approver) | |
+| J16 | Request goes out after 18:00 or on a weekend | Send anyway, expect the answer next business morning; the timer keeps running | |
+| J17 | Old-trick hit | `flagged: true` plus a `fraud_hold` request to Fraud Ops | |
+| J18 | When does a deadline-risk alert fire? | As soon as the remaining stages can't fit before needed_by, using each stage's **typical duration from the bank's history** (`stage_events.csv`) and counting business hours for human sign-offs | |
+| J19 | A Collections notice on a funded deal | Re-check its links; add past deals to history_flags only if they share several of the scheme's signs, never just one | |
+| J20 | Who answers human requests during judging (our screen, files, or their system)? | Unknown. Support both our inbox and scripted answers | **Vijay? (top priority)** |
