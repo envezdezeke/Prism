@@ -55,7 +55,7 @@ DealPilot is our HackUTD 2026 entry for the Goldman Sachs challenge, also entere
 
 **Judging (Goldman).** READ = correct facts plus spotting what's missing or doesn't match, with no false alarms. MOVE = stages in order, the right human asked, alerts and escalations, no advancing while waiting on docs, needed-by dates met. FRAUD = held before Closed (earlier scores more), pattern spotted in the first few deals, each false flag costs a lot, linked deals and history found. A **hidden set with a different trick** is run too: "build for the idea, not the examples."
 
-**Judging (NVIDIA).** The project must use Nemotron beyond a chatbot: multi-step workflows, agents that plan and execute, tool integration, real-world use. The track rewards multi-agent systems, ReAct, tool calling, multi-modal (VL) work and agent simulation/eval. $60 of Brev credits per team. API is OpenAI-compatible at `integrate.api.nvidia.com/v1` (e.g. `nvidia/nvidia-nemotron-nano-9b-v2`).
+**Judging (NVIDIA).** The project must use Nemotron beyond a chatbot: multi-step workflows, agents that plan and execute, tool integration, real-world use. The track rewards multi-agent systems, ReAct, tool calling, multi-modal (VL) work and agent simulation/eval. $60 of Brev credits per team. API is OpenAI-compatible at `integrate.api.nvidia.com/v1`. Live model IDs (verified 2026-11-07): `nvidia/nemotron-3-super-120b-a12b` (agents), `nvidia/nemotron-nano-3-30b-a3b` (fast text), `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` (VL). Keep IDs in env vars.
 
 **Data pack (`data/participant/`, gitignored).**
 - 13 borrower folders in `shared_folder/`.
