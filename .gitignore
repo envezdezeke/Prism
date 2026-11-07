@@ -1,0 +1,10 @@
+data/
+.env
+__pycache__/
+*.pyc
+node_modules/
+dist/
+.venv/
+sim/.clock_state.json
+live_inbox/
+out/
