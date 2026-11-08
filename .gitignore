@@ -14,3 +14,4 @@ docs/model/build/
 *.aux
 *.log
 *.out
+.claude/worktrees/
