@@ -9,11 +9,13 @@ import { fmtSimTime } from '../../lib/format.ts'
 import { buildHash } from '../../route.ts'
 import { useClockStore } from '../../state/clockStore.ts'
 import { nextEventAfter, simToMs } from '../../time/timeview.ts'
-import { Caption, ErrorState, LoadingState } from './Primitives.tsx'
+import { ErrorState, LoadingState } from './Primitives.tsx'
 
 const HOLD_LINE_MS = 24 * 3600_000
 
-const barClass ='flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-6 py-2'
+// Navy band with a sky rule beneath it (sponsor palette, D-03 amended).
+const barClass = 'flex min-h-16 flex-wrap items-center gap-x-4 gap-y-1 border-b-4 border-sky bg-navy px-6 py-2 text-surface'
+const barLabel = 'text-xs font-medium uppercase tracking-wide text-surface/75'
 
 // Top bar: the sim clock and nothing else. Every control updates the client clock first (clamped),
 // then the store confirms an absolute target to the API (D-21).
@@ -74,8 +76,8 @@ export function ClockBar() {
   return (
     <div className={barClass}>
       <div className="flex items-baseline gap-2">
-        <Caption>Sim time (CT)</Caption>
-        <span className="text-sm font-semibold tabular-nums">{fmtSimTime(now)}</span>
+        <span className={barLabel}>Sim time (CT)</span>
+        <span className="text-base font-bold tabular-nums">{fmtSimTime(now)}</span>
       </div>
       {freshHold !== null && (
         <p key={freshHold.folder} role="status" className="order-last flex basis-full animate-fade-in flex-wrap items-baseline gap-x-2 text-sm">
@@ -120,12 +122,12 @@ export function ClockBar() {
             Play
           </Button>
         )}
-        <Button onClick={replay}>
+        <Button onClick={replay} className="bg-sky font-bold text-navy hover:bg-sky/85 focus-visible:outline-sky">
           <RotateCcw aria-hidden="true" />
           Replay from start
         </Button>
         <label className="flex items-center gap-2">
-          <Caption>Go to</Caption>
+          <span className={barLabel}>Go to</span>
           <Input
             type="datetime-local"
             step={60}
@@ -142,18 +144,18 @@ export function ClockBar() {
       </div>
       {(nextEvent === null && !isLoading) || rangeMessage || syncError !== '' ? (
         <div className="flex basis-full flex-wrap justify-end gap-x-4">
-          {nextEvent === null && !isLoading && <Caption>No later event</Caption>}
+          {nextEvent === null && !isLoading && <span className={barLabel}>No later event</span>}
           {rangeMessage && (
-            <Caption>
+            <span className={barLabel}>
               Enter a time between {fmtSimTime(start)} and {fmtSimTime(end)}.
-            </Caption>
+            </span>
           )}
           {syncError !== '' && (
-            <Caption>
+            <span className={barLabel}>
               <span title={syncError}>
                 The clock could not be set on the server. The screen shows {fmtSimTime(now)}.
               </span>
-            </Caption>
+            </span>
           )}
         </div>
       ) : null}

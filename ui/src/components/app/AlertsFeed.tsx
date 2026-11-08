@@ -23,8 +23,8 @@ export function AlertsFeedView({ alerts, now }: { alerts: AlertFeedItem[]; now: 
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
+            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+              <TableRow className="border-navy hover:bg-transparent">
                 <TableHead className="border-l-2 border-transparent">Time</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>Deal</TableHead>

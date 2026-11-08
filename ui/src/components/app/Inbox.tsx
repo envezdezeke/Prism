@@ -50,10 +50,10 @@ function Item({ item, now }: { item: InboxItem; now: string }) {
   }
 
   return (
-    <li className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4">
+    <li className="flex flex-col gap-2 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="flex flex-wrap items-baseline gap-2">
-          <span className="text-base font-semibold">{requestTypeLabel(item.type)}</span>
+          <span className="text-base font-bold text-navy">{requestTypeLabel(item.type)}</span>
           <DealLink folder={item.deal}>{item.deal}</DealLink>
         </div>
         <Caption>
@@ -113,7 +113,7 @@ export function InboxView({ items, now }: { items: InboxItem[]; now: string }) {
   return (
     <section aria-label="Inbox" className="flex max-w-3xl flex-col gap-4">
       <PageTitle>Inbox</PageTitle>
-      <h2 className="text-base font-semibold">
+      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">
         Pending <span className="font-normal text-ink-2 tabular-nums">{pending.length}</span>
       </h2>
       {pending.length === 0 ? (
@@ -125,7 +125,7 @@ export function InboxView({ items, now }: { items: InboxItem[]; now: string }) {
           ))}
         </ul>
       )}
-      <h2 className="pt-4 text-base font-semibold">
+      <h2 className="pt-4 border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">
         Answered <span className="font-normal text-ink-2 tabular-nums">{done.length}</span>
       </h2>
       {done.length === 0 ? (
