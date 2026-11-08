@@ -1,6 +1,6 @@
 import { afterEach, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { ApiError, describeError, getDeal, getDeals, postAdvance, postReplay, setApiBase } from './client.ts'
+import { ApiError, describeError, getAlerts, getDeal, getDeals, getInbox, postAdvance, postReplay, postReply, setApiBase } from './client.ts'
 
 interface Call {
   url: string
@@ -89,4 +89,54 @@ test('describeError: a thrown network TypeError is "not reachable"', async () =>
 test('describeError: a non-JSON 500 body is a fixed HTTP message, never the raw body', async () => {
   stub(() => new Response('<html>Traceback boom</html>', { status: 500 }))
   assert.equal(describeError(await errorFrom(getDeals())), 'Request failed (HTTP 500)')
+})
+
+test('postReply sends POST to the encoded item id with a body that is exactly the single key option', async () => {
+  const calls = stub(() => json({ id: 'inbox-001' }))
+  await postReply('inbox-001', 'approve')
+  assert.equal(calls[0].url, '/api/inbox/inbox-001/reply')
+  assert.equal(calls[0].init?.method, 'POST')
+  assert.equal(new Headers(calls[0].init?.headers).get('content-type'), 'application/json')
+  const body = JSON.parse(String(calls[0].init?.body))
+  assert.deepEqual(body, { option: 'approve' })
+  assert.deepEqual(Object.keys(body), ['option'])
+})
+
+test('postReply sends a trimmed note, omits an empty or whitespace note and caps a note at 500 characters', async () => {
+  const calls = stub(() => json({ id: 'x' }))
+  await postReply('inbox-001', 'approve', '  call me  ')
+  await postReply('inbox-001', 'approve', '')
+  await postReply('inbox-001', 'approve', '   \n ')
+  await postReply('inbox-001', 'approve', 'x'.repeat(600))
+  assert.deepEqual(JSON.parse(String(calls[0].init?.body)), { option: 'approve', note: 'call me' })
+  assert.deepEqual(JSON.parse(String(calls[1].init?.body)), { option: 'approve' })
+  assert.deepEqual(JSON.parse(String(calls[2].init?.body)), { option: 'approve' })
+  const capped = JSON.parse(String(calls[3].init?.body))
+  assert.deepEqual(Object.keys(capped).sort(), ['note', 'option'])
+  assert.equal(capped.note.length, 500)
+})
+
+test('postReply encodes the item id with encodeURIComponent', async () => {
+  const calls = stub(() => json({}))
+  await postReply('a/b c?d', 'approve')
+  assert.equal(calls[0].url, `/api/inbox/${encodeURIComponent('a/b c?d')}/reply`)
+  assert.equal(calls[0].url, '/api/inbox/a%2Fb%20c%3Fd/reply')
+})
+
+test('postReply 409 keeps the status for the caller; the detail text is available too', async () => {
+  stub(() => json({ detail: 'already answered' }, 409))
+  const e = await errorFrom(postReply('inbox-001', 'approve'))
+  assert.ok(e instanceof ApiError)
+  assert.equal(e.status, 409)
+  assert.equal(describeError(e), 'already answered')
+})
+
+test('getInbox and getAlerts are plain GETs', async () => {
+  const calls = stub(() => json([]))
+  await getInbox()
+  await getAlerts()
+  assert.equal(calls[0].url, '/api/inbox')
+  assert.equal(calls[1].url, '/api/alerts')
+  assert.equal(calls[0].init, undefined)
+  assert.equal(calls[1].init, undefined)
 })

@@ -37,6 +37,8 @@ function decodeTail(hash: string, prefix: string): string | null {
 
 // Anything unknown or malformed goes to the pipeline; this never throws (T-02-10).
 export function parseHash(hash: string): Route {
+  if (hash === '#/inbox') return { view: 'inbox' }
+  if (hash === '#/alerts') return { view: 'alerts' }
   if (hash.startsWith(DEAL_PREFIX)) {
     const folder = decodeTail(hash, DEAL_PREFIX)
     if (folder !== null) return { view: 'deal', folder }

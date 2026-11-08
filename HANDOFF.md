@@ -83,6 +83,8 @@ Short version below. The full rule-by-rule list is [`docs/DETAILS_CHECKLIST.md`]
 
 ## 5. Open questions for Vijay (the one list; post in the GS channel ASAP)
 
+> **Sun 11/08 ~02:45 (Jesse): not asking.** We build to the most likely answer for each; the assumed answers are logged in PROJECT.md Key Decisions ("Organizer questions ... will not be asked").
+
 Owner: Jesse. Record each answer in PROJECT.md Key Decisions. Ordered by how much score rides on the answer.
 
 1. **During judging, how do the "staff" answer our sign-off requests:** our UI, chat, email, a file, or an API they call? (Our build supports an inbox screen and scripted answers; the answer decides which to polish.)
@@ -94,6 +96,9 @@ Owner: Jesse. Record each answer in PROJECT.md Key Decisions. Ordered by how muc
 7. **Does submission require a public GitHub repo,** given the data is confidential?
 8. **What team name goes in the output file's `team` field?**
 9. **At what sim time does a judged run end?** The sample arrivals stop Fri 11/06 18:00; we currently run to the last arrival + 30 sim-minutes (quiet window). Should alerts/escalations past that (e.g. over the weekend) be emitted? Also: **who runs the hidden set** (does their run have an NVIDIA key)?
+
+10. **Do extra alerts cost points?** For example a needed-by "deadline at risk" alert raised early that turns out unnecessary, or alerts beyond the 100/150/200% ladder. (Decides how cautious our deadline alerts should be; MOVE audit 2026-11-08.)
+11. **May the public demo video and Devpost show sample deal or company names** from the data pack, or should we use generic labels only? (We default to generic labels.)
 
 NVIDIA table: confirm which Nemotron model they recommend for tool calling and for vision (VL), the rate limits, and how the Brev credits work.
 

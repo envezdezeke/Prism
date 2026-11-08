@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { AlertsFeed } from '@/components/app/AlertsFeed'
 import { Board } from '@/components/app/Board'
 import { ClockBar } from '@/components/app/ClockBar'
+import { AlertsFeed } from '@/components/app/AlertsFeed'
 import { DealDetail } from '@/components/app/DealDetail'
 import { FraudGraph } from '@/components/app/FraudGraph'
 import { Inbox } from '@/components/app/Inbox'
@@ -9,7 +10,9 @@ import { usePendingCount } from './state/pendingCount.ts'
 import { buildHash } from './route.ts'
 import type { Route } from './route.ts'
 import { useClockStore } from './state/clockStore.ts'
+import { useAnswersStore } from './state/answersStore.ts'
 import { useUiStore } from './state/uiStore.ts'
+import { inboxAt, pendingCount, simToMs } from './time/timeview.ts'
 
 // The rail lists only views that exist (D-11).
 const NAV_ITEMS: { id: Route['view']; label: string; route: Route }[] = [
@@ -19,6 +22,12 @@ const NAV_ITEMS: { id: Route['view']; label: string; route: Route }[] = [
   { id: 'graph', label: 'Fraud graph', route: { view: 'graph', clusterId: null } },
 ]
 
+const PAGE_TITLES: Partial<Record<Route['view'], string>> = {
+  pipeline: 'Pipeline · Prism',
+  inbox: 'Inbox · Prism',
+  alerts: 'Alerts · Prism',
+}
+
 // Pipeline stays the active item while one of its deals is open.
 const isActive = (item: Route['view'], current: Route['view']): boolean =>
   item === current || (item === 'pipeline' && current === 'deal')
@@ -27,8 +36,11 @@ function Rail() {
   const current = useUiStore((s) => s.route.view)
   const pending = usePendingCount()
   return (
-    <aside aria-label="Primary" className="w-50 shrink-0 border-r border-line bg-surface">
-      <p className="px-4 py-4 text-sm font-semibold text-ink">Prism</p>
+    <aside aria-label="Primary" className="min-h-screen w-50 shrink-0 bg-navy">
+      <p className="flex items-center gap-2.5 border-b border-surface/15 px-4 py-4 text-base font-bold tracking-wide text-surface">
+        <img src="/prism.svg" alt="" className="size-7" />
+        Prism
+      </p>
       <nav aria-label="Views">
         <ul className="flex flex-col">
           {NAV_ITEMS.map((item) => {
@@ -85,7 +97,8 @@ export default function App() {
 
   // The document title is the current page name (other views set their own).
   useEffect(() => {
-    if (route.view === 'pipeline') document.title = 'Pipeline · Prism'
+    const title = PAGE_TITLES[route.view]
+    if (title !== undefined) document.title = title
   }, [route])
 
   return (

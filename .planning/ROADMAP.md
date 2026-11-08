@@ -214,7 +214,19 @@ Plans:
   3. A red-team view shows per-trick catch rate, time-to-hold and false flags.
   4. A synthetic weekend drop (new deals plus new papers on in-flight deals) runs end to end with no code changes and passes the validator, the determinism check and the trap suite. A clean checkout following the README runs on Jesse's machine.
   5. By H19.75 (Sun 11:40) there is a recorded demo path with Nemotron in replay mode, a 3-minute pitch and slides.
-**Plans**: TBD
+**Plans**: 0/11 plans executed
+Plans:
+- [ ] 07-01-PLAN.md — Tracer: package checkpoint, seeded force-layout fraud graph on the mock, clock replay and server parity check (UI-06)
+- [ ] 07-02-PLAN.md — Live switch (I3, I4): read-only live probe, data refetch after writes, backward clock moves, paired switch session (UI-06, DEMO-03)
+- [ ] 07-03-PLAN.md — Replay, evidence panel, signal-family checklist, links table, Next event stops at link times (UI-06)
+- [ ] 07-04-PLAN.md — Investigation trace panel under the graph (I5) (UI-06; cut tier 4)
+- [ ] 07-05-PLAN.md — Red-team results view (I5) (UI-07; cut tier 3)
+- [ ] 07-06-PLAN.md — Synthetic weekend drop, fuzz copy and dry-run record (DEMO-01)
+- [ ] 07-07-PLAN.md — Guarded sealed first run on the real drop, blind labels and score (DEMO-01, DEMO-03)
+- [ ] 07-08-PLAN.md — Clean-checkout run from the README (I6) (DEMO-02)
+- [ ] 07-09-PLAN.md — Pitch cut to 3 minutes, built-feature demo script, slides, repository decision (DEMO-03)
+- [ ] 07-10-PLAN.md — Post-freeze verification, sourced numbers, recording and submission (DEMO-03)
+- [ ] 07-11-PLAN.md — Deal-page signal-family mirror and link into the graph (UI-06; cut tier 1)
 **UI hint**: yes
 **Notes**: UI-06 (the fraud graph view, criterion 2) was delivered early in Phase 2 (plans 02-05 and 02-06, on `fixtures/graph.json`); Phase 7 only re-checks it on live `/api/graph` data after the switch. Ezekiel can build the synthetic drop with Phase 6's deterministic synthesizer (or a small script if the red-team was cut). If the real weekend drop has already arrived, the dry run uses it instead.
 
@@ -230,4 +242,4 @@ Plans:
 | 4. Move the Deal | 0/0 | Not started | - |
 | 5. Catch the Fakes | 0/0 | Not started | - |
 | 6. Nemotron Agents | 0/0 | Not started | - |
-| 7. Fraud Graph, Dry Run and Pitch | 0/0 | Not started | - |
+| 7. Fraud Graph, Dry Run and Pitch | 0/11 | Planned | - |

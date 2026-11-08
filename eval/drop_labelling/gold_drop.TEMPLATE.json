@@ -1,0 +1,60 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "set": "drop",
+    "labelled_by": "Jesse",
+    "blind": true,
+    "how_to": "Copy this file to eval/gold_drop.json ONLY after the seal commit exists. Follow eval/drop_labelling/LABELLING_GUIDE.md. Delete the X-Example Deal entry, add one entry per new or changed deal (key = exact folder name). Check with: .venv/bin/python eval/drop_labelling/check_labels.py eval/gold_drop.json",
+    "history_notes": "Free text: which H- ids you flagged and the 2+ links you saw for each; which look-alikes you refused to flag and why.",
+    "_field_help": {
+      "status": "todo | draft | done. Only draft/done are scored. Set done when finished.",
+      "extracted": "The 9 facts. ein as 12-3456789; money as a plain number; needed_by as 2026-11-06T15:00-06:00 or null; anything you cannot read = null (never guess). purpose_category, product from the enum lists in the guide.",
+      "extracted_accept": "Optional. {\"field\": [other fair answers]} when more than one answer is defensible (J7 revenue range). Else {}.",
+      "sources": "Optional. {\"field\": \"file name\"}. Not scored. Else {}.",
+      "issues": "Issues still OPEN at the end of the week (J14). Grammar: MISSING_DOC:<doc>, MISSING_PAGE:<doc>, MISMATCH:<field>, OLD_TRICK:<code>.",
+      "issues_optional": "Defensible either way; neither rewarded nor penalised.",
+      "routing": "Who signs each gate (an id from contacts/teams.json, e.g. firstname.lastname). null for a gate the deal should never reach.",
+      "final_stage": "Furthest stage reached by end of week if every human approves promptly: Intake | Credit | Committee | Product | Committed | Closed.",
+      "fraud.flagged_held": "flagged and held are both true only for a hold (J17 old trick, or ring member). Both false for watch and clear.",
+      "fraud.latest_ok_stage": "Latest stage at which a hold still counts as on time. null if not flagged.",
+      "fraud.linked_deals": "Other current folder names and H- history ids in the same scheme. [] if none.",
+      "notes": "Your reasoning in one or two lines. Not scored."
+    }
+  },
+  "deals": {
+    "X-Example Deal": {
+      "status": "draft",
+      "extracted": {
+        "legal_name": "X-Example Widgets LLC",
+        "ein": "00-0000001",
+        "amount_requested": 120000,
+        "purpose_category": "equipment",
+        "product": "Equipment Loan",
+        "term_months": 60,
+        "guarantor_name": "Jane Q. Example",
+        "annual_revenue_stated": 1500000,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": ["MISSING_DOC:equipment_quote", "MISMATCH:guarantor_dob"],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": "Intake",
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": "Fake example. Delete this whole entry."
+    }
+  },
+  "history_flags": [],
+  "history_must_not_flag": []
+}

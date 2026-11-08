@@ -109,7 +109,7 @@ test('boardAt at the snapshot: Intake 3, Credit 1, Committee 1, Bayou held', () 
   assert.ok(held.includes('Bayou Bistro & Grill'))
   for (const r of rows) {
     const s = deals.find((d) => d.folder === r.deal.folder)
-    assert.equal(roundPct(r.slaFraction), s.sla_pct, r.deal.folder)
+    assert.equal(roundPct(r.slaFraction!), s.sla_pct, r.deal.folder)
     assert.equal(r.held, s.held, r.deal.folder)
   }
 })
@@ -165,6 +165,8 @@ test('sortBoardRows: held first, then soonest needed-by (none last), then longes
     deal: { folder, needed_by },
     stage: 'Intake',
     enteredAt,
+    dwellMs: 0,
+    limitHours: 8,
     slaFraction: 0,
     held,
   })

@@ -8,7 +8,7 @@ import type { GGraph } from '../../graph/graphview.ts'
 import { buildHash } from '../../route.ts'
 import { fmtHours, fmtMoney, fmtPct, fmtSimTime, fmtSla } from '../../lib/format.ts'
 import { useClockStore } from '../../state/clockStore.ts'
-import { boardAt, simToMs, sortBoardRows } from '../../time/timeview.ts'
+import { boardAt, simToMs, sortBoardRows, stageLimitsFrom } from '../../time/timeview.ts'
 import type { BoardRow } from '../../time/timeview.ts'
 import { NeededByBadge, SlaBar, StatusBadge } from './Badges.tsx'
 import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle } from './Primitives.tsx'
@@ -18,7 +18,8 @@ function DealCard({ row, clusterId, pulse }: { row: BoardRow<DealDetail>; cluste
   const { deal } = row
   const name = deal.legal_name ?? deal.folder
   // Amber follows the displayed value: above 100 percent once rounded.
-  const over = Math.round(row.slaFraction * 100) > 100
+  const frac = row.slaFraction
+  const over = frac !== null && Math.round(frac * 100) > 100
   const showFolder = deal.legal_name != null && deal.legal_name !== deal.folder
   const slaText = fmtSla(row.slaFraction, deal.sla_hours)
   const linked = row.held ? (deal.fraud.linked_deals ?? []).length : 0
@@ -56,9 +57,15 @@ function DealCard({ row, clusterId, pulse }: { row: BoardRow<DealDetail>; cluste
           className={`text-xs tabular-nums ${over ? 'text-risk' : 'text-ink-2'}`}
           title={row.held ? 'SLA clock stopped at the hold' : undefined}
         >
-          {slaText}
+          {frac === null || row.limitHours === null ? (
+            <>
+              {fmtDuration(row.dwellMs)} / <NullValue title="The limit for this stage is not in the data" />
+            </>
+          ) : (
+            fmtSla(frac, row.limitHours)
+          )}
         </span>
-        <SlaBar pct={row.slaFraction} label={`SLA ${fmtPct(row.slaFraction)} of the stage limit`} />
+        {frac !== null && <SlaBar pct={frac} label={`SLA ${fmtPct(frac)} of the stage limit`} />}
       </DealLink>
       {row.held && (
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-line px-3 py-2 text-xs whitespace-nowrap">
@@ -94,8 +101,8 @@ function useHoldPulse(rows: BoardRow<DealDetail>[]): Set<string> {
 // The stage limit is shown only when every deal in the column shares it (UI-SPEC row 8).
 function stageLimit(col: BoardRow<DealDetail>[]): string | null {
   if (col.length === 0) return null
-  const first = col[0].deal.sla_hours
-  return col.every((r) => r.deal.sla_hours === first) ? fmtHours(first) : null
+  const first = col[0].limitHours
+  return first !== null && col.every((r) => r.limitHours === first) ? fmtHours(first) : null
 }
 
 export function BoardView({
@@ -143,9 +150,9 @@ export function BoardView({
             const limit = stageLimit(col)
             return (
               <div key={stage} className="flex min-w-0 flex-col gap-2 bg-page">
-                <h2 className="flex items-baseline justify-between gap-2 text-xs font-semibold text-ink-2">
+                <h2 className="flex items-baseline justify-between gap-2 rounded-sm bg-navy px-2.5 py-2 text-xs font-bold uppercase tracking-wide text-surface">
                   <span>{stage}</span>
-                  <span className="font-normal tabular-nums">
+                  <span className="font-bold tabular-nums text-sky">
                     {col.length}
                     {limit ? ` · ${limit}` : ''}
                   </span>
