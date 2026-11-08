@@ -83,10 +83,10 @@ def test_names():
 
 
 def test_person_names():
-    assert person_names_match("Bob Kline", "Robert Allen Kline")
+    assert person_names_match("Bob Marlowe", "Robert Allen Marlowe")
     assert person_names_match("Bill", "William")
-    assert person_names_match("Robert Allen Kline", "Bob Kline")
-    assert not person_names_match("Bob Kline", "Rob Cline")
+    assert person_names_match("Robert Allen Marlowe", "Bob Marlowe")
+    assert not person_names_match("Bob Marlowe", "Rob Marlow")
     assert not person_names_match("Ada Smith", "Ada Jones")
     assert not person_names_match("Ada Smith", "Bea Smith")
     assert not person_names_match("", "Ada")

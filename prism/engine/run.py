@@ -23,6 +23,7 @@ from prism.move import stage as move_stage
 from prism.read import classify as read_classify
 from prism.read import extract as read_extract
 from prism.read import issues as read_issues
+from prism.read import settings as read_settings
 
 log = logging.getLogger("prism")
 
@@ -83,6 +84,13 @@ def _ingest(state: DealState, new: list[Arrival], folder: Path, rules: Rules, no
     entities = _guard(state, "extract_entities", read_extract.extract_entities, state, rules)
     if entities is not _SKIP:
         state.entities = entities
+    features = _guard(state, "extract_features", read_extract.extract_features, state, rules)
+    if isinstance(features, dict):
+        state.features.update(features)  # merge, never replace (Move's profile may already be there)
+
+
+def _refresh_issues(state: DealState, rules: Rules, now: datetime) -> None:
+    """Recompute the open issue set for one live deal and record issues that disappeared (D-11)."""
     issues = _guard(state, "detect_issues", read_issues.detect_issues, state, rules, now)
     if issues is not _SKIP:
         open_now = sorted(set(issues))
@@ -90,6 +98,30 @@ def _ingest(state: DealState, new: list[Arrival], folder: Path, rules: Rules, no
             if old not in open_now and old not in state.resolved_issues:
                 state.resolved_issues.append(old)
         state.issues = open_now
+
+
+def _quiet_expiry_ticks(alog: ArrivalLog, quiet: timedelta, end: Optional[datetime]) -> list[datetime]:
+    """Ticks exactly ``quiet`` after each arrival that begins a quiet gap in its folder (D-16).
+
+    Move evaluates quiet-gated events strictly before ``now`` with the previous issue view, so a
+    quiet-gated issue must be visible at a tick exactly at ``last arrival + quiet``.
+    """
+    by_folder: dict[str, list[datetime]] = {}
+    for a in alog.arrivals:
+        if "/" in a.path:
+            by_folder.setdefault(a.folder, []).append(a.arrive_at)
+    times = alog.times()
+    limit = end if end is not None else (max(times) if times else None)
+    out: set[datetime] = set()
+    for _folder, stamps in by_folder.items():
+        stamps.sort()
+        for t in stamps:
+            if any(t < other < t + quiet for other in stamps):
+                continue
+            expiry = t + quiet
+            if limit is not None and expiry <= limit:
+                out.add(expiry)
+    return sorted(out)
 
 
 def run_sim(
@@ -124,9 +156,12 @@ def run_sim(
     arrival_times = list(alog.times())
     if end is None and end_grace_minutes > 0 and arrival_times:
         end = max(arrival_times) + timedelta(minutes=end_grace_minutes)
-    ticks = [t for t in arrival_times if end is None or t <= end]
-    if end is not None and (not ticks or ticks[-1] != end):
-        ticks.append(end)
+    quiet = timedelta(minutes=read_settings.get_config().quiet_minutes)
+    tick_set = {t for t in arrival_times if end is None or t <= end}
+    tick_set.update(_quiet_expiry_ticks(alog, quiet, end))
+    if end is not None:
+        tick_set.add(end)
+    ticks = sorted(tick_set)
 
     seen: set[str] = set()
     for now in ticks:
@@ -145,6 +180,12 @@ def run_sim(
             state = states[name]
             if state.error is None:
                 _ingest(state, fresh[name], folder, rules, now)
+
+        # (a2) issues, every tick for every live deal (D-11): the quiet rule lives inside Read
+        for name in sorted(states):
+            state = states[name]
+            if state.error is None and state.docs:
+                _refresh_issues(state, rules, now)
 
         # (b) fraud, one pass over every deal
         try:

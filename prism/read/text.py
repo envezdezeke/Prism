@@ -47,6 +47,7 @@ _CACHE: dict[tuple[str, int, int], DocText] = {}
 
 def clear_cache() -> None:
     _CACHE.clear()
+    _TABLE_CACHE.clear()
 
 
 def page_markers(text: str) -> list[tuple[int, int]]:
@@ -66,15 +67,61 @@ def _meta_str(v: Any) -> Optional[str]:
     return s or None
 
 
+def _embedded_images(page: Any, cap: int) -> list[bytes]:
+    """Raw bytes of up to ``cap`` images embedded in a pypdf page (never raises)."""
+    out: list[bytes] = []
+    try:
+        for img in page.images:
+            if len(out) >= cap:
+                break
+            data = getattr(img, "data", None)
+            if data:
+                out.append(bytes(data))
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
+def _plumber_pages(data: bytes, wanted: Optional[set[int]], max_pages: int) -> dict[int, str]:
+    """pdfplumber layout text for the wanted page indexes (all when None). Never raises."""
+    out: dict[int, str] = {}
+    try:
+        import pdfplumber
+
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            for i, page in enumerate(pdf.pages[:max_pages]):
+                if wanted is not None and i not in wanted:
+                    continue
+                try:
+                    out[i] = page.extract_text(layout=True) or ""
+                except Exception:  # noqa: BLE001
+                    out[i] = ""
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 def _read_pdf(data: bytes, limits: dict[str, int]) -> DocText:
     import pypdf
 
-    reader = pypdf.PdfReader(io.BytesIO(data), strict=False)
-    if reader.is_encrypted:
-        try:
-            reader.decrypt("")
-        except Exception:  # noqa: BLE001
-            return DocText(kind="error", error="encrypted")
+    max_pages = limits["max_pages"]
+    reader = None
+    try:
+        reader = pypdf.PdfReader(io.BytesIO(data), strict=False)
+        if reader.is_encrypted:
+            try:
+                reader.decrypt("")
+            except Exception:  # noqa: BLE001
+                return DocText(kind="error", error="encrypted")
+        pages = list(reader.pages)
+    except Exception as e:  # noqa: BLE001
+        # pypdf could not open it: let pdfplumber have a go before giving up
+        got = _plumber_pages(data, None, max_pages)
+        text = "\n".join(got[i] for i in sorted(got))[: limits["max_chars"]]
+        if text.strip():
+            return DocText(kind="pdf", plain=text, layout=text, pages=tuple(got[i] for i in sorted(got)),
+                           n_pages=len(got))
+        return DocText(kind="error", error=f"pdf: {type(e).__name__}")
     producer = creator = None
     try:
         md = reader.metadata
@@ -82,10 +129,10 @@ def _read_pdf(data: bytes, limits: dict[str, int]) -> DocText:
             producer, creator = _meta_str(md.producer), _meta_str(md.creator)
     except Exception:  # noqa: BLE001
         pass
-    total = len(reader.pages)
+    total = len(pages)
     plain_pages: list[str] = []
     layout_pages: list[str] = []
-    for page in list(reader.pages)[: limits["max_pages"]]:
+    for page in pages[:max_pages]:
         try:
             plain = page.extract_text() or ""
         except Exception:  # noqa: BLE001
@@ -96,11 +143,62 @@ def _read_pdf(data: bytes, limits: dict[str, int]) -> DocText:
             layout = ""
         plain_pages.append(plain)
         layout_pages.append(layout)
+    ocr_used = False
+    empty = {i for i, (a, b) in enumerate(zip(plain_pages, layout_pages)) if not (a.strip() or b.strip())}
+    if empty:
+        for i, txt in _plumber_pages(data, empty, max_pages).items():
+            if txt.strip():
+                plain_pages[i] = layout_pages[i] = txt
+                empty.discard(i)
+    budget = int(limits.get("max_images", 6))
+    for i in sorted(empty):
+        if budget <= 0:
+            break
+        found: list[str] = []
+        for blob in _embedded_images(pages[i], budget):
+            budget -= 1
+            got = _ocr.read_image_text(blob)
+            if got and got.strip():
+                found.append(got.strip())
+        if found:
+            plain_pages[i] = layout_pages[i] = "\n".join(found)
+            ocr_used = True
     plain_all = "\n".join(plain_pages)[: limits["max_chars"]]
     layout_all = "\n".join(layout_pages)[: limits["max_chars"]]
-    pages = tuple((lp if lp.strip() else pp) for lp, pp in zip(layout_pages, plain_pages))
-    return DocText(kind="pdf", plain=plain_all, layout=layout_all, pages=pages,
-                   producer=producer, creator=creator, n_pages=total)
+    out_pages = tuple((lp if lp.strip() else pp) for lp, pp in zip(layout_pages, plain_pages))
+    return DocText(kind="pdf", plain=plain_all, layout=layout_all, pages=out_pages,
+                   producer=producer, creator=creator, n_pages=total, ocr_used=ocr_used)
+
+
+_TABLE_CACHE: dict[tuple[str, int, int], tuple] = {}
+
+
+def pdf_tables(path: Any) -> tuple:
+    """Tables per pdfplumber, flattened: a tuple of tables, each a tuple of rows of cell text.
+    Lazy and cached by file version; returns ``()`` on any error."""
+    try:
+        p = _path_of(path)
+        st = os.stat(p)
+        key = (str(p.resolve()), st.st_mtime_ns, st.st_size)
+        if key in _TABLE_CACHE:
+            return _TABLE_CACHE[key]
+        limits = get_config().limits
+        if st.st_size > limits["max_bytes"]:
+            return ()
+        import pdfplumber
+
+        tables: list[tuple] = []
+        with pdfplumber.open(str(p)) as pdf:
+            for page in pdf.pages[: limits["max_pages"]]:
+                for tbl in page.extract_tables() or []:
+                    tables.append(tuple(tuple("" if c is None else str(c) for c in row) for row in tbl))
+        result = tuple(tables)
+    except Exception:  # noqa: BLE001
+        return ()
+    if len(_TABLE_CACHE) >= _CACHE_MAX:
+        _TABLE_CACHE.pop(next(iter(_TABLE_CACHE)))
+    _TABLE_CACHE[key] = result
+    return result
 
 
 def _read_textual(data: bytes, limits: dict[str, int]) -> DocText:

@@ -16,6 +16,7 @@ limits:
   max_bytes: 26214400     # 25 MB
   max_pages: 80
   max_chars: 400000
+  max_images: 6           # embedded images OCR'd per file
 
 confidence:
   label: 0.95
@@ -30,11 +31,64 @@ classify:
   title_lines: 6
   min_score: 3.0
   image_default_class: guarantor_id
+  period:                # statement period label synonyms (value holds the date range)
+    labels: ["Statement period", "Period", "Statement date range"]
   signals:
     application:
       - {kind: phrase, text: "small business loan application", weight: 3.0, where: title}
       - {kind: phrase, text: "legal business name", weight: 1.0, where: any}
       - {kind: phrase, text: "amount requested", weight: 1.0, where: any}
+      - {kind: phrase, text: "automatic extension", weight: -5.0, where: any}
+    guarantor_id:
+      - {kind: regex, pattern: 'driver''?s?\s+licen[cs]e', weight: 3.0, where: title}
+      - {kind: phrase, text: "dl number", weight: 1.0, where: any}
+      - {kind: phrase, text: "date of birth", weight: 0.5, where: any}
+      - {kind: phrase, text: "expires", weight: 0.5, where: any}
+      - {kind: phrase, text: "small business loan application", weight: -5.0, where: title}
+    certificate_of_formation:
+      - {kind: phrase, text: "certificate of formation", weight: 3.0, where: title}
+      - {kind: phrase, text: "filing acknowledgment", weight: 1.0, where: title}
+      - {kind: phrase, text: "secretary of state", weight: 1.0, where: any}
+      - {kind: phrase, text: "registered agent", weight: 1.0, where: any}
+      - {kind: phrase, text: "file number", weight: 0.5, where: any}
+    ein_letter:
+      - {kind: regex, pattern: 'irs\s+notice|\bcp\s?575\b', weight: 3.0, where: title}
+      - {kind: phrase, text: "ein assigned", weight: 1.0, where: title}
+      - {kind: phrase, text: "employer identification number", weight: 1.0, where: any}
+      - {kind: phrase, text: "date of notice", weight: 0.5, where: any}
+    bank_statement:
+      - {kind: phrase, text: "business checking statement", weight: 3.0, where: title}
+      - {kind: phrase, text: "opening balance", weight: 1.0, where: any}
+      - {kind: phrase, text: "closing balance", weight: 1.0, where: any}
+      - {kind: phrase, text: "statement period", weight: 1.0, where: any}
+      - {kind: phrase, text: "total deposits", weight: 0.5, where: any}
+      - {kind: csv_headers, tokens: ["date", "amount", "bal"], weight: 4.0}
+    financial_statements:
+      - {kind: phrase, text: "financial statements", weight: 3.0, where: title}
+      - {kind: phrase, text: "profit & loss", weight: 1.0, where: any}
+      - {kind: phrase, text: "balance sheet", weight: 1.0, where: any}
+      - {kind: phrase, text: "prepared by", weight: 0.5, where: any}
+    tax_return:
+      - {kind: phrase, text: "income tax return", weight: 3.0, where: title}
+      - {kind: phrase, text: "gross receipts", weight: 1.0, where: any}
+      - {kind: phrase, text: "ordinary business income", weight: 1.0, where: any}
+      - {kind: phrase, text: "paid preparer", weight: 0.5, where: any}
+      - {kind: phrase, text: "automatic extension", weight: -5.0, where: any}
+      - {kind: phrase, text: "extended due date", weight: -5.0, where: any}
+    form_7004:
+      - {kind: phrase, text: "form 7004", weight: 3.0, where: title}
+      - {kind: phrase, text: "automatic extension", weight: 1.0, where: title}
+      - {kind: phrase, text: "extended due date", weight: 1.0, where: any}
+      - {kind: phrase, text: "tax year", weight: 0.5, where: any}
+    request_letter:
+      - {kind: regex, pattern: '(?m)^\s*re:\s*loan request', weight: 3.0, where: title}
+      - {kind: phrase, text: "we are requesting", weight: 1.0, where: any}
+      - {kind: phrase, text: "small business loan application", weight: -5.0, where: title}
+    equipment_quote:
+      - {kind: regex, pattern: '(?m)^\s*(quotation|quote)\b', weight: 3.0, where: title}
+      - {kind: phrase, text: "remit to", weight: 1.5, where: any}
+      - {kind: phrase, text: "account ending", weight: 1.0, where: any}
+      - {kind: phrase, text: "total", weight: 0.5, where: any}
 
 stops:
   - "Section*"

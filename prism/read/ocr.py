@@ -4,7 +4,7 @@ Recognized text is never logged or printed (T-03-03).
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 _ENGINE: Any = None
 _BROKEN = False
@@ -31,13 +31,16 @@ def _engine() -> Any:
     return _ENGINE
 
 
-def read_image_text(path: str) -> Optional[str]:
-    """Recognized lines joined with newlines, or None on any failure or an empty result."""
+def read_image_text(source: Union[str, bytes]) -> Optional[str]:
+    """Recognized lines joined with newlines, or None on any failure or an empty result.
+
+    ``source`` is a file path or the raw bytes of an image.
+    """
     try:
         eng = _engine()
         if eng is None:
             return None
-        result, _elapsed = eng(str(path))
+        result, _elapsed = eng(source if isinstance(source, (bytes, bytearray)) else str(source))
         if not result:
             return None
         lines = [str(item[1]).strip() for item in result if len(item) >= 2 and str(item[1]).strip()]

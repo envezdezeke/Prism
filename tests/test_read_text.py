@@ -108,3 +108,49 @@ def test_touching_file_busts_cache(tmp_path, monkeypatch):
 def test_page_markers():
     assert page_markers("foo Page 2 of 3 bar page 1 of 3") == [(2, 3), (1, 3)]
     assert page_markers("no marker here") == []
+
+
+# ---- Task 3: fallbacks -------------------------------------------------------------------------
+
+def test_blank_page_with_embedded_images_is_ocrd_once_per_image_and_cached(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(text, "_embedded_images", lambda page, cap: [b"img-one", b"img-two"])
+    monkeypatch.setattr(ocr, "read_image_text", lambda src: calls.append(src) or "SCANNED LINE")
+    p = write_pdf(tmp_path / "scan.pdf", [[]])
+    dt = load_text(p)
+    assert dt.kind == "pdf" and dt.ocr_used and "SCANNED LINE" in dt.plain
+    assert len(calls) == 2
+    load_text(p)
+    assert len(calls) == 2
+
+
+def test_image_ocr_is_capped(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_images(page, cap):
+        seen["cap"] = cap
+        return [b"x"] * cap
+
+    monkeypatch.setattr(text, "_embedded_images", fake_images)
+    monkeypatch.setattr(ocr, "read_image_text", lambda src: "t")
+    load_text(write_pdf(tmp_path / "scan.pdf", [[], []]))
+    assert seen["cap"] <= 6
+
+
+def test_plumber_fallback_when_pypdf_page_text_is_empty(tmp_path, monkeypatch):
+    monkeypatch.setattr(text, "_plumber_pages", lambda data, wanted, max_pages: {0: "PLUMBER TEXT"})
+    monkeypatch.setattr(text, "_embedded_images", lambda page, cap: [])
+    dt = load_text(write_pdf(tmp_path / "blank.pdf", [[]]))
+    assert "PLUMBER TEXT" in dt.plain
+
+
+def test_pdf_tables_returns_empty_on_error(tmp_path):
+    bad = tmp_path / "bad.pdf"
+    bad.write_bytes(b"not a pdf at all")
+    assert text.pdf_tables(bad) == ()
+    assert text.pdf_tables(tmp_path / "missing.pdf") == ()
+
+
+def test_pdf_tables_on_a_real_pdf_never_raises(tmp_path):
+    p = write_pdf(tmp_path / "t.pdf", [["a", "b"]])
+    assert isinstance(text.pdf_tables(p), tuple)

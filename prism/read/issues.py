@@ -16,3 +16,8 @@ from prism.engine.state import DealState
 def detect_issues(state: DealState, rules: Rules, now: datetime) -> list[str]:
     """Return the sorted open issue set at ``now``. Stub: empty."""
     return []
+
+
+def mismatch_evidence(state: DealState, rules: Rules) -> dict[str, dict[str, str]]:
+    """Per mismatch field, the application and document wording for the credit memo. Stub: empty (03-03 fills it)."""
+    return {}

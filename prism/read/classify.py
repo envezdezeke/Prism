@@ -14,6 +14,8 @@ import re
 from typing import Any, Optional
 
 from prism.engine.state import Doc
+from prism.read.labels import extract_labeled
+from prism.read.normalize import parse_date
 from prism.read.settings import get_config
 from prism.read.text import DocText, load_text, page_markers
 
@@ -83,7 +85,7 @@ def score_classes(dt: DocText) -> list[tuple[str, float]]:
                     region = _title_region(body, title_n) if sig.get("where") == "title" else body
                     hit = bool(rx and rx.search(region[:200_000]))
                 elif kind == "csv_headers":
-                    hit = bool(headers) and all(_fold(str(t)) in headers for t in sig["tokens"])
+                    hit = bool(headers) and all(any(_fold(str(t)) in h for h in headers) for t in sig["tokens"])
                 else:
                     hit = False
             except (KeyError, TypeError, ValueError):
@@ -94,6 +96,50 @@ def score_classes(dt: DocText) -> list[tuple[str, float]]:
     order = {c: i for i, c in enumerate(DOC_CLASSES)}
     return sorted(((c, s) for c, s in scores.items() if c != "other"),
                   key=lambda cs: (-cs[1], order.get(cs[0], len(order))))
+
+
+_ISO_DATE = re.compile(r"(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)")
+_LINE_US_DATE = re.compile(r"(?m)^\s*(\d{1,2}/\d{1,2}/\d{2,4})\b")
+
+
+def _dominant_month(dates: list[str]) -> Optional[str]:
+    counts: dict[str, int] = {}
+    for d in dates:
+        counts[d[:7]] = counts.get(d[:7], 0) + 1
+    if not counts:
+        return None
+    return max(counts, key=lambda m: (counts[m], m))
+
+
+def statement_period(dt: DocText) -> Optional[str]:
+    """``YYYY-MM`` of a statement from CONTENT: the month of the printed period's end date (PDF) or the
+    dominant posted-date month (CSV). None when neither is readable."""
+    try:
+        if dt.kind == "csv":
+            idx = None
+            dates: list[str] = []
+            for row in dt.rows:
+                if idx is None:
+                    cells = [_fold(c) for c in row]
+                    cand = [i for i, c in enumerate(cells) if "date" in c]
+                    if cand and any("amount" in c for c in cells):
+                        idx = cand[0]
+                    continue
+                if idx < len(row):
+                    iso = parse_date(row[idx])
+                    if iso:
+                        dates.append(iso)
+            return _dominant_month(dates)
+        labels = {"period": list((get_config().classify.get("period") or {}).get("labels") or [])}
+        text = dt.plain or dt.layout
+        found = extract_labeled(text, labels, max_lines=2).get("period", "")
+        parsed = [d for d in (parse_date(m) for m in _ISO_DATE.findall(found)) if d]
+        if parsed:
+            return parsed[-1][:7]
+        us = [d for d in (parse_date(m) for m in _LINE_US_DATE.findall(text)) if d]
+        return _dominant_month(us)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _classify(doc: Doc) -> None:
@@ -109,7 +155,20 @@ def _classify(doc: Doc) -> None:
         "ocr_used": dt.ocr_used,
     })
     doc.meta.pop("error", None)
-    doc.doc_class = top[0] if top[1] >= float(cfg.classify["min_score"]) else "other"
+    doc.meta.pop("unverified", None)
+    doc.period = None
+    if top[1] >= float(cfg.classify["min_score"]):
+        doc.doc_class = top[0]
+        if dt.kind == "image":
+            doc.meta["unverified"] = False
+    elif dt.kind == "image":
+        # a photo we cannot read is present-but-unverified, never a missing document (D-05, READ-04)
+        doc.doc_class = str(cfg.classify["image_default_class"])
+        doc.meta["unverified"] = True
+    else:
+        doc.doc_class = "other"
+    if doc.doc_class == "bank_statement":
+        doc.period = statement_period(dt)
 
 
 def classify(doc: Doc) -> Doc:

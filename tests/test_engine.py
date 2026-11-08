@@ -256,7 +256,9 @@ def test_tracer_tiny_set_to_valid_submission(tiny_set):
     folder, arrivals = tiny_set
     result = run_sim(folder, arrivals)
     assert sorted(result.states) == ["Alpha Trading", "Beta & Sons"]
-    assert result.n_files == 4 and result.n_ticks == 5  # 4 arrivals + end-grace tick (option 1)
+    # 4 arrivals + end-grace tick (option 1) + one quiet-expiry tick at 10:15 (D-16: 09:45 + 30 min is the
+    # first arrival of a quiet gap in Alpha's folder; the other expiries coincide with existing ticks)
+    assert result.n_files == 4 and result.n_ticks == 6
     assert result.unattached == ["notice.txt"]
     payload = build_submission(
         result.states, result.history_flags, result.errors, team="T", set_name="sample"
