@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-11-08T05:39:04.156Z",
+  "phase": "03",
+  "phase_name": "Read the Folder",
+  "phase_dir": ".planning/phases/03-read-the-folder",
+  "plan": 1,
+  "task": 2,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Tracer: application PDF to legal_name and amount_requested", "status": "done", "commit": "33599ec"},
+    {"id": 2, "name": "Normalization, full application parser, all 9 facts", "status": "in_progress", "progress": "RED tests written (uncommitted): tests/test_read_application.py, tests/test_read_normalize.py. Next: config additions + prism/read/normalize.py"}
+  ],
+  "remaining_tasks": [
+    {"id": 3, "name": "Classifier for all classes, statement period, text fallbacks, engine loop, guards, gate", "status": "not_started"},
+    {"id": "03-02", "name": "Plan 03-02 forms/entities/features (wave 2)", "status": "not_started"},
+    {"id": "03-03", "name": "Plan 03-03 issues and statements (wave 2)", "status": "not_started"},
+    {"id": "03-04", "name": "Plan 03-04 answer-key proof + Nemotron VL (wave 3)", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "03-01 executor stalled once (600s, no output) then hit API 429 rate limit", "type": "external", "workaround": "Resume when usage resets; keep commands bounded with timeouts"}
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {"decision": "Sequential execution on main (workflow.use_worktrees=false, ISOLATION=none)", "rationale": "Project config", "phase": "03"}
+  ],
+  "uncommitted_files": [" M .planning/STATE.md", " M .planning/config.json", "?? .planning/state.json", "?? tests/test_read_application.py", "?? tests/test_read_normalize.py"],
+  "next_action": "/gsd-execute-phase 3 — resumes 03-01 at Task 2 (keep the two RED test files; commit them as the RED commit)",
+  "context_notes": "STATE.md/config.json/state.json changes come from the orchestrator (begin-phase, _auto_chain_active=false), not the executor."
+}
