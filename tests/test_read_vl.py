@@ -201,6 +201,10 @@ def test_a_null_or_invalid_answer_fills_nothing(monkeypatch, tmp_path):
     ('[1, 2]', None),
     ('not json at all', None),
     ('', None),
+    ('{"product": null, "term_months": {"product": "Term Loan"}}', None),
+    ('{"product": "Term Loan", "term_months": [24]}', None),
+    ('Example: {"product": "Line of Credit"} Answer: {"product": "Term Loan"}', None),
+    ('{"term_months": 12, "note": {"product": "Term Loan"}}', None),
 ])
 def test_parse_answer(reply, expected):
     assert vl.parse_answer(reply, ["product", "term_months"]) == expected
@@ -211,6 +215,9 @@ def test_parse_answer(reply, expected):
 @pytest.mark.parametrize("field, value, ok", [
     ("legal_name", "Zephyr Quarry LLC", True), ("legal_name", "A", False), ("legal_name", "A\nB", False),
     ("legal_name", "x" * 121, False), ("legal_name", 12, False),
+    ("legal_name", "N/A", False), ("legal_name", "Not provided", False), ("legal_name", "unknown", False),
+    ("legal_name", "Not stated in document", False), ("guarantor_name", "None", False), ("guarantor_name", "--", False),
+    ("guarantor_name", "AB", False), ("guarantor_name", "Ada Quillfeather", True),
     ("ein", "12-3456789", True), ("ein", "123456789", True), ("ein", "12-345", False),
     ("amount_requested", 125000, True), ("amount_requested", "$125,000.50", True), ("amount_requested", 0, False),
     ("amount_requested", -5, False), ("amount_requested", 2_000_000_000, False), ("amount_requested", True, False),
@@ -225,6 +232,18 @@ def test_parse_answer(reply, expected):
 ])
 def test_validators(field, value, ok):
     assert (vl.validate_value(field, value) is not None) is ok
+
+
+@pytest.mark.parametrize("field, value, text, ok", [
+    ("legal_name", "Zephyr  Quarry LLC", "Legal name: zephyr quarry llc EIN 12-3456789", True),
+    ("legal_name", "Invented Holdings LLC", "Legal name: Zephyr Quarry LLC", False),
+    ("ein", "12-3456789", "EIN 123456789", True), ("ein", "12-3456789", "EIN 98-7654321", False),
+    ("guarantor_name", "Ada Quillfeather", "Guarantor: Ada Quillfeather, Owner", True),
+    ("guarantor_name", "Ada Quillfeather", "Guarantor: someone else", False),
+    ("product", "Term Loan", "anything", True),
+])
+def test_a_text_value_must_appear_in_the_document_text(field, value, text, ok):
+    assert vl.grounded(field, value, text) is ok
 
 
 def test_normalizations():
@@ -570,3 +589,15 @@ def test_extract_features_reports_vl_fills_only_when_there_are_some(monkeypatch,
     live(monkeypatch, Fake('{"product": "Term Loan"}'))
     st.facts = extract_facts(st, RULES)
     assert extract_features(st, RULES)["vl_fills"]["product"]["model"] == PRIMARY
+
+
+# ---------------------------------------------------------------- grounding and placeholders (HI-06)
+
+@pytest.mark.parametrize("answer", ['{"legal_name": "Invented Holdings Incorporated"}', '{"legal_name": "N/A"}',
+                                    '{"legal_name": "Not provided"}'])
+def test_a_placeholder_or_ungrounded_name_is_never_filled(monkeypatch, tmp_path, answer):
+    live(monkeypatch, Fake(answer))
+    st = state_for(tmp_path, drop=("Legal business name",), parts={k: None for k in ("id", "irs", "cert", "tax", "fs", "letter")})
+    assert "legal_name" not in st.facts
+    out = vl.fill_nulls(st, RULES, st.facts)
+    assert "legal_name" not in out and vl.fills_for(st) == {}

@@ -34,7 +34,7 @@ from prism.contract import Fact, Product, PurposeCategory
 from prism.engine.config import REPO_ROOT
 from prism.engine.money import cents_to_number
 from prism.read import docmodel
-from prism.read.normalize import legal_names_match, money_to_cents, norm_ein, person_names_match
+from prism.read.normalize import legal_names_match, money_to_cents, norm_ein, person_names_match, strip_none
 from prism.read.settings import get_config
 from prism.read.text import _embedded_images, load_text
 
@@ -255,19 +255,34 @@ def _cache_write(key: str, model: str, fields: list[str], answer: dict) -> None:
 # ---------------------------------------------------------------- model output
 
 def parse_answer(text: Any, fields: list[str]) -> Optional[dict]:
-    """The first JSON object in ``text`` whose keys are all requested fields (code fences and prose tolerated)."""
+    """The one JSON object in ``text`` whose keys are all requested fields (code fences and prose tolerated).
+
+    The first decodable object decides: unrequested keys, a nested object or list as a value, or a second
+    decodable object anywhere in the reply reject the whole reply (no scanning on into children or later objects).
+    """
     if not isinstance(text, str):
         return None
     dec = json.JSONDecoder()
     wanted = set(fields)
+    first: Optional[dict] = None
+    pos = 0
     for m in re.finditer(r"\{", text):
+        if m.start() < pos:
+            continue  # inside an object already decoded
         try:
-            obj, _end = dec.raw_decode(text, m.start())
+            obj, end = dec.raw_decode(text, m.start())
         except ValueError:
             continue
-        if isinstance(obj, dict) and obj and set(obj) <= wanted and set(obj) & wanted:
-            return obj
-    return None
+        if not isinstance(obj, dict):
+            continue
+        if first is not None:
+            return None  # a second object: ambiguous
+        first, pos = obj, end
+    if not first or not set(first) <= wanted:
+        return None
+    if any(isinstance(v, (dict, list)) for v in first.values()):
+        return None
+    return first
 
 
 def _num(v: Any) -> Optional[int]:
@@ -277,11 +292,18 @@ def _num(v: Any) -> Optional[int]:
     return money_to_cents(v)
 
 
+_WORD3 = re.compile(r"[^\W\d_]{3,}")
+_NOT_A_NAME = re.compile(r"(?i)(?:not|no)\s+(?:stated|specified|found|provided|available|given|listed|visible|readable)")
+
+
 def _valid_name(v: Any) -> Optional[str]:
+    """A single-line name with a real word in it; placeholders ("N/A", "Not provided", "unknown") are not names."""
     if not isinstance(v, str):
         return None
     s = " ".join(v.split()) if "\n" not in v and "\r" not in v else None
-    return s if s and 2 <= len(s) <= 120 else None
+    if not s or not 2 <= len(s) <= 120 or strip_none(s) is None or not _WORD3.search(s) or _NOT_A_NAME.match(s):
+        return None
+    return s
 
 
 def _valid_amount(v: Any) -> Optional[Any]:
@@ -342,6 +364,30 @@ def validate_value(field: str, value: Any) -> Any:
         return fn(value)
     except Exception:  # noqa: BLE001
         return None
+
+
+def _squash(text: str) -> str:
+    return " ".join(re.sub(r"[^\w]+", " ", text.casefold()).split())
+
+
+def grounded(field: str, value: Any, text: str) -> bool:
+    """A name or EIN taken from a text document must appear in that text (case, spacing and punctuation aside).
+    Other fields are format- and sibling-checked only."""
+    try:
+        if field in ("legal_name", "guarantor_name"):
+            return isinstance(value, str) and _squash(value) in _squash(text)
+        if field == "ein":
+            digits = re.sub(r"\D", "", str(value))
+            return bool(digits) and digits in re.sub(r"(?<=\d)[-\s](?=\d)", "", text)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _has_sibling(state: Any, field: str) -> bool:
+    pairs = {"legal_name": (("ein_letter", "name"), ("certificate_of_formation", "entity_name")),
+             "guarantor_name": (("guarantor_id", "name"),)}
+    return any(_siblings(state, cls, attr) for cls, attr in pairs.get(field, ()))
 
 
 def _siblings(state: Any, doc_class: str, attr: str) -> list[Any]:
@@ -512,11 +558,18 @@ def fill_nulls(state: Any, rules: Any, facts: Mapping[str, Fact]) -> dict[str, F
             return result
         model, answer = got
         conf = get_config().confidence["vl"]
+        dt = load_text(doc)
+        doc_text = (dt.plain or dt.layout or "").strip()
         tags: dict[str, dict[str, str]] = {}
         for f in fields:
             value = validate_value(f, answer.get(f))
             if value is None or not agrees(state, f, value):
                 continue
+            if doc_text:
+                if not grounded(f, value, doc_text):
+                    continue  # not in the document that was sent: a guess or an injected name
+            elif f in ("legal_name", "guarantor_name") and not _has_sibling(state, f):
+                continue  # read from an image with nothing to corroborate it
             result[f] = Fact(value=value, source_doc=doc.path, confidence=conf)
             tags[f] = {"source": "nemotron_vl", "model": model, "doc": doc.path}
         if tags:
