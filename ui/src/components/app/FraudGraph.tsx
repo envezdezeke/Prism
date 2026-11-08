@@ -81,6 +81,28 @@ export function FraudGraphView({
   const [zoom, setZoom] = useState(1)
   const [replaying, setReplaying] = useState(false)
   const [agentFocus, setAgentFocus] = useState<AgentFocus | null>(null)
+  // The replay takes over the window (and the browser's full screen when allowed). Esc exits.
+  const startReplay = (): void => {
+    setReplaying(true)
+    try {
+      void document.documentElement.requestFullscreen?.().catch(() => undefined)
+    } catch {
+      /* full screen refused: the in-app takeover still applies */
+    }
+  }
+  const stopReplay = (): void => {
+    setReplaying(false)
+    setAgentFocus(null)
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined)
+  }
+  useEffect(() => {
+    if (!replaying) return
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') stopReplay()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
 
   const activeId = clusterId ?? defaultClusterId(graph)
   const cluster = graph.clusters.find((c) => c.id === activeId) ?? null
@@ -129,7 +151,7 @@ export function FraudGraphView({
         toolbar={
           <>
             {hasTrace && (
-              <Button size="sm" variant={replaying ? 'outline' : 'default'} onClick={() => setReplaying((r) => !r)}>
+              <Button size="sm" variant={replaying ? 'outline' : 'default'} onClick={() => (replaying ? stopReplay() : startReplay())}>
                 <Bot aria-hidden="true" />
                 {replaying ? 'Stop agent replay' : 'Watch Nemotron investigate'}
               </Button>
@@ -210,7 +232,7 @@ export function FraudGraphView({
       </PageHeader>
 
       <div className="flex h-[calc(100vh-14rem)] min-h-[32rem] gap-4">
-        <div className="relative min-w-0 flex-1 overflow-hidden rounded-md border border-line bg-surface">
+        <div className={replaying ? 'fixed inset-0 z-50 overflow-hidden bg-surface' : 'relative min-w-0 flex-1 overflow-hidden rounded-md border border-line bg-surface'}>
           {palette && (
             <GraphCanvas
               view={view}
@@ -233,7 +255,7 @@ export function FraudGraphView({
               edges={view.edges}
               clusterDeals={cluster?.deals ?? []}
               controls={controls}
-              onClose={() => setReplaying(false)}
+              onClose={stopReplay}
               onFocus={setAgentFocus}
             />
           )}
@@ -242,7 +264,7 @@ export function FraudGraphView({
               {view.edges.length} shared values visible as of {fmtSimTime(now)}. Replay the clock to watch the ring form.
             </Caption>
           </div>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-2 p-3">
+          <div className={`pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-2 p-3 ${replaying ? 'hidden' : ''}`}>
             {view.backgroundDeals.length > 0 && (
               <p className="text-sm text-ink">
                 <span className="font-semibold tabular-nums">{view.backgroundDeals.length}</span>{' '}

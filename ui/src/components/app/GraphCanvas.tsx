@@ -17,7 +17,7 @@ export interface GraphControls {
   // Screen position (px, relative to the canvas) of a node, or null when it is not laid out.
   screenPos: (id: string) => { x: number; y: number } | null
   // Zoom to a set of nodes (used by the agent replay).
-  focusOn: (ids: Set<string>, ms?: number) => void
+  focusOn: (ids: Set<string>, ms?: number, pad?: number) => void
 }
 
 // What the Nemotron replay is working on: the nodes it reads, their linked nodes, and its colour.
@@ -162,9 +162,9 @@ export function GraphCanvas({
         if (!fg || !n || n.x === undefined || n.y === undefined) return null
         return fg.graph2ScreenCoords(n.x, n.y)
       },
-      focusOn: (ids: Set<string>, ms = 900) => {
+      focusOn: (ids: Set<string>, ms = 900, pad = 170) => {
         const fg = fgRef.current
-        if (fg && ids.size > 0) fg.zoomToFit(ms, 170, (n: N) => ids.has(String(n.id)))
+        if (fg && ids.size > 0) fg.zoomToFit(ms, pad, (n: N) => ids.has(String(n.id)))
       },
     }
   })
