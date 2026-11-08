@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { getDeal, getDeals, describeError } from '../api/client.ts'
+import { getAlerts, getDeal, getDeals, getGraph, getInbox, getInvestigator, getRedteam, describeError } from '../api/client.ts'
 import type { DealDetail } from '../api/types.ts'
 
 // One deal's detail. Shares the cache key with the board's per-deal queries, so a deal the board has
@@ -9,6 +9,31 @@ export function useDealDetail(folder: string) {
     queryKey: ['deal', folder],
     queryFn: () => getDeal(folder),
   })
+}
+
+export function useGraph() {
+  return useQuery({ queryKey: ['graph'], queryFn: getGraph })
+}
+
+export function useInvestigator(clusterId: string | null) {
+  return useQuery({
+    queryKey: ['investigator', clusterId],
+    queryFn: () => getInvestigator(clusterId as string),
+    enabled: clusterId !== null,
+    retry: false,
+  })
+}
+
+export function useRedteam() {
+  return useQuery({ queryKey: ['redteam'], queryFn: getRedteam })
+}
+
+export function useAlerts() {
+  return useQuery({ queryKey: ['alerts'], queryFn: getAlerts })
+}
+
+export function useInbox() {
+  return useQuery({ queryKey: ['inbox'], queryFn: getInbox })
 }
 
 export function useDeals() {

@@ -150,3 +150,35 @@ const STAGE_OWNER_ROLES: Record<string, string> = {
 export function stageOwnerRole(stage: string): string {
   return STAGE_OWNER_ROLES[stage] ?? 'Stage owner'
 }
+
+// Mirrors FAMILY_LABELS in prism/contract.py (the API does not serve it). Order is F1 to F6.
+export const FAMILIES: readonly { id: string; label: string }[] = [
+  { id: 'F1', label: 'Shared rare entity' },
+  { id: 'F2', label: 'Novelty or burst' },
+  { id: 'F3', label: 'Lookalike vendor or account' },
+  { id: 'F4', label: 'Document forensics' },
+  { id: 'F5', label: 'Deposit pattern' },
+  { id: 'F6', label: 'Terms shape' },
+]
+
+const ENTITY_KIND_LABELS: Record<string, string> = {
+  preparer: 'Tax preparer',
+  phone: 'Phone',
+  registered_agent: 'Registered agent',
+  address: 'Address',
+  vendor: 'Vendor',
+  remit_account: 'Remittance account',
+  pdf_producer: 'PDF producer',
+  bank: 'Bank',
+  guarantor: 'Guarantor',
+}
+
+export function entityKindLabel(kind: string | null | undefined): string {
+  if (kind == null) return 'Entity'
+  return ENTITY_KIND_LABELS[kind] ?? kind
+}
+
+// "rarity 0.96": the engine's 0-to-1 value with two decimals, never re-binned into a word.
+export function rarityText(r: number): string {
+  return `rarity ${r.toFixed(2)}`
+}

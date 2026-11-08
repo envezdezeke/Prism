@@ -4,7 +4,10 @@ import type { DealDetail as DealDetailData, Fact } from '../../api/types.ts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useDealDetail, useDeals } from '../../data/queries.ts'
+import { useDealDetail, useDeals, useGraph } from '../../data/queries.ts'
+import { clusterForDeal } from '../../graph/graphview.ts'
+import type { GGraph } from '../../graph/graphview.ts'
+import { buildHash } from '../../route.ts'
 import { fmtDuration, fmtHours, fmtMoney, fmtPct, fmtSimTime } from '../../lib/format.ts'
 import { alertLevelLabel, factFields, factValueText, isClearedAnswer, issueLabel, optionLabel, requestTypeLabel } from '../../labels.ts'
 import { personLabel, roleForAlert, roleForRequest } from '../../people.ts'
@@ -298,7 +301,17 @@ function AlertsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: num
 
 // Sober on purpose (D-16): the red badge is the only red, and nothing is shown that the contract does not
 // give. A held deal's reason, stage at flag and links appear only once the hold has happened at the clock time.
-function FraudPanel({ deal, now, boardFolders }: { deal: DealDetailData; now: string; boardFolders: string[] }) {
+function FraudPanel({
+  deal,
+  now,
+  boardFolders,
+  clusterId,
+}: {
+  deal: DealDetailData
+  now: string
+  boardFolders: string[]
+  clusterId: string | null
+}) {
   const f = deal.fraud
   const held = heldAt(deal, simToMs(now))
   const linked = f.linked_deals ?? []
@@ -323,6 +336,14 @@ function FraudPanel({ deal, now, boardFolders }: { deal: DealDetailData; now: st
               </ul>
             </div>
           )}
+          {clusterId !== null && (
+            <a
+              href={buildHash({ view: 'graph', clusterId })}
+              className="pt-1 text-sm font-semibold text-navy underline-offset-2 hover:underline"
+            >
+              Investigate ring →
+            </a>
+          )}
         </>
       ) : deal.watch ? (
         <>
@@ -345,7 +366,17 @@ function FraudPanel({ deal, now, boardFolders }: { deal: DealDetailData; now: st
 // The screen as a pure function of (fetched detail, clock now): the same boardAt the board uses decides
 // the stage, SLA and held state, so the two screens agree at every clock time and one clock change
 // can never show a mixed state.
-export function DealDetailView({ detail, now, boardFolders }: { detail: DealDetailData; now: string; boardFolders: string[] }) {
+export function DealDetailView({
+  detail,
+  now,
+  boardFolders,
+  clusterId = null,
+}: {
+  detail: DealDetailData
+  now: string
+  boardFolders: string[]
+  clusterId?: string | null
+}) {
   const name = detail.legal_name ?? detail.folder
   const nowMs = simToMs(now)
   const when = fmtSimTime(now)
@@ -389,7 +420,7 @@ export function DealDetailView({ detail, now, boardFolders }: { detail: DealDeta
         </div>
         <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
           <SummaryPanel row={row} />
-          <FraudPanel deal={detail} now={now} boardFolders={boardFolders} />
+          <FraudPanel deal={detail} now={now} boardFolders={boardFolders} clusterId={clusterId} />
         </div>
       </div>
     </div>
@@ -401,6 +432,7 @@ export function DealDetail({ folder }: { folder: string }) {
   const showPipeline = useUiStore((s) => s.showPipeline)
   const q = useDealDetail(folder)
   const deals = useDeals()
+  const graph = useGraph()
   const name = q.data ? (q.data.legal_name ?? q.data.folder) : null
 
   useEffect(() => {
@@ -428,5 +460,8 @@ export function DealDetail({ folder }: { folder: string }) {
       </div>
     )
   }
-  return <DealDetailView detail={q.data} now={now} boardFolders={(deals.data ?? []).map((d) => d.folder)} />
+  const clusterId = graph.data ? (clusterForDeal(graph.data as GGraph, folder)?.id ?? null) : null
+  return (
+    <DealDetailView detail={q.data} now={now} boardFolders={(deals.data ?? []).map((d) => d.folder)} clusterId={clusterId} />
+  )
 }

@@ -6,7 +6,7 @@
 <domain>
 ## Phase Boundary
 
-Someone playing bank staff can watch every deal move through the pipeline, open any deal to see what the engine read and why it decided what it did, and answer sign-off requests. Built entirely on Zeke's mock API (`MOCK=1`, `docs/CONTRACT.md`, `fixtures/`), so it never waits on the engine. Requirements UI-01 to UI-05. The fraud-graph hero view, red-team view and live switch are Phase 7, not here.
+Someone playing bank staff can watch every deal move through the pipeline, open any deal to see what the engine read and why it decided what it did, and answer sign-off requests. Built entirely on Zeke's mock API (`MOCK=1`, `docs/CONTRACT.md`, `fixtures/`), so it never waits on the engine. Requirements UI-01 to UI-05. The live switch stays in Phase 7. Amended Sun 2026-11-08 (D-23 to D-32): the fraud-graph hero view (UI-06) and a red-team summary chip are pulled into Phase 2 on mock data.
 
 </domain>
 
@@ -44,6 +44,19 @@ Someone playing bank staff can watch every deal move through the pipeline, open 
 - **D-20:** Error states use neutral gray (red stays reserved for holds). All action buttons use the navy accent, including fraud-hold actions. No toast pop-ups: confirmations appear inline.
 - **D-21:** Clock controls: show current sim time, advance (by hours or to a time) and replay from start. Keep the clock in client state; never refetch `/api/clock` after load (it would snap back). Inbox replies are kept in a client overlay because the mock doesn't persist them.
 - **D-22 (Jesse, Sat 19:40):** Staff are shown as role labels ("Credit officer", "Committee", "Fraud Operations") with the raw id in a tooltip. No names map in the UI and no staff names in git; real names come from the engine at the Phase 7 live switch. Supersedes the name part of D-14/D-17 for Phase 2.
+
+### Hero-flow amendment (grilling session with Zeke, Sun 2026-11-08)
+The demo is the product: a judge must see a cross-deal fraud ring caught before money goes out, then see why. These decisions relax D-08, D-10 and the "no graph, no motion, no dark" rules **only** as stated; every other ban stays (gradients, blur, glassmorphism, purple/indigo/violet, emoji, toasts, Goldman #7399C6, large shadows).
+- **D-23:** One graph library is allowed: `react-force-graph-2d@1.29.2` (MIT, ships types, pinned exact). No other graph, chart or animation library.
+- **D-24:** CSS-only motion is allowed: transitions and `@keyframes` declared in `index.css`. Motion is one-shot and short (hold pulse 1.6s, drawer 200ms, fade 300ms, edge fade-in 600ms on canvas), never looping, and `prefers-reduced-motion` switches it off.
+- **D-25:** The fraud graph is a deliberate dark investigation view. While `#/graph` is open, `<html data-view="investigate">` swaps the same token names to a dark set: page `#0C0A09`, surface `#1C1917` (the light ink), subtle `#292524`, ink `#F5F5F4`, ink-2 `#A8A29E`, line `#44403C`, navy lifted to `#A9B7CC` for selection and focus, alarm red `#F04438`, amber `#F79009`, green `#47CD89`. The board stays light. There is no general dark theme.
+- **D-26:** Hero = the fraud graph, reached from the board. Routes `#/graph` (first held cluster) and `#/graph/{clusterId}`; a permanent "Fraud graph" rail item; "Investigate ring →" on a held card, in the clock-bar hold line and in the deal page's fraud panel. This delivers Phase 7 UI-06 early.
+- **D-27:** Default graph view: the flagged cluster plus one hop. Edges into an entity shared by two or more ring deals and at least 0.5 rare are lit alarm red once the cluster is held (display rule; the engine's counting is in the families). Edges carry "kind · rarity" labels. Deals outside the ring are drawn dim and named under the canvas ("not linked, not held"): the visible proof of no false flags.
+- **D-28:** Canvas colours are read from CSS custom properties at runtime (`src/graph/palette.ts`), so tokens stay single-source. Graph-only tokens: deal and history stone `#A8A29E`, edge `#57534E`, entity tints by kind group (document `#A18A62`, identity `#6E7A8C`, money `#6F8F7B`). A canvas-only halo is allowed on lit ring elements and nowhere else.
+- **D-29:** The graph obeys the sim clock: an edge exists from `first_visible_at`, a node from its first visible edge (or a deal's arrival), and the cluster turns red at the first `flagged_at` of a held ring deal. The existing clock bar replays it forming; new edges fade in.
+- **D-30:** Clicking a node or edge opens a 320px dark evidence drawer: shared value, the evidence sentence, rarity, weight, visible-from time, every deal sharing the value, and F1 to F6 in plain words in contract order (fired ones in weight 600 with the engine's evidence, captioned "as of end of run"). An "Investigator" tab renders the agent trace labelled **Advisory**, beside but never mixed with deterministic evidence. A "Red-team: N bypasses / M attempts" chip is computed from `/api/redteam` (sums over tricks; shown as the data says).
+- **D-31:** Hold beat on the board: when a deal becomes held while the board is open, its card pulses red once, sorts to the top of its column (already the sort rule), gets a red left edge and a "Linked to N deals" footer, and one hold line appears in the clock bar for the latest hold in the last sim day. Red is still only for a fraud hold.
+- **D-32:** 02-04 shrinks: the Alerts feed is built in full (newest first, amber edge on escalations); the Inbox is a minimal list with reply buttons from each item's options to `POST /api/inbox/{id}/reply`, with the in-memory overlay. The rail gets Inbox (pending count) and Alerts.
 
 ### Claude's Discretion
 - Exact hex values within the palette above, spacing details, component choice within the stack, and layout of secondary panels, as long as D-03 to D-12 hold.

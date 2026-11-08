@@ -137,6 +137,23 @@ export function inboxAt(items: InboxLike[], t: number): InboxLike[] {
     })
 }
 
+// inboxAt plus the in-session answer overlay (D-21): an answer given in this session counts from
+// its answered_at, so scrubbing the clock back before it shows the item pending again.
+export interface OverlayAnswer {
+  answer: string
+  answered_at: string
+}
+
+export function inboxWithOverlayAt(items: InboxLike[], overlay: Readonly<Record<string, OverlayAnswer>>, t: number): InboxLike[] {
+  return inboxAt(items, t).map((i) => {
+    const o = Object.hasOwn(overlay, i.id) ? overlay[i.id] : undefined
+    if (i.status === 'pending' && o !== undefined && SIM_RE.test(o.answered_at) && simToMs(o.answered_at) <= t) {
+      return { ...i, status: 'answered' as const, answer: o.answer, answered_at: o.answered_at }
+    }
+    return i
+  })
+}
+
 // Alerts visible at t. Needs only an `at` field, so the detail's alerts (no id or deal) work too.
 // Newest first for the feed; pass 'oldest' for the detail list.
 export function alertsAt<T extends { at: string }>(items: T[], t: number, order: 'newest' | 'oldest' = 'newest'): T[] {

@@ -5,7 +5,8 @@
 @import "@fontsource-variable/source-serif-4";
 
 /* Design tokens: 02-UI-SPEC.md is the source of truth (D-04 to D-08, D-19).
-   Navy is the only accent. Red is reserved for a fraud hold. No dark theme. */
+   Navy is the only accent. Red is reserved for a fraud hold. The only dark styling is the
+   investigation scope below (D-25); there is no general dark theme. */
 
 @theme {
   /* Drop Tailwind's default palette, scale and shadows so no stray colour, size or
@@ -66,6 +67,74 @@
   --shadow-xl: none;
   --shadow-2xl: none;
   --shadow-tooltip: 0 4px 12px rgb(28 25 23 / 0.06);
+
+  /* Fraud-graph canvas colours (D-30). The canvas reads these at runtime (src/graph/palette.ts), so
+     every colour still has one source. Muted stone, navy, amber and green only. */
+  --color-graph-deal: #A8A29E;
+  --color-graph-history: #A8A29E;
+  --color-graph-edge: #57534E;
+  --color-graph-document: #A18A62;
+  --color-graph-identity: #6E7A8C;
+  --color-graph-money: #6F8F7B;
+
+  /* CSS-only motion (D-24): one-shot, short, and switched off by prefers-reduced-motion below. */
+  --animate-hold-pulse: hold-pulse 1.6s ease-out 1;
+  --animate-drawer-in: drawer-in 200ms ease-out 1;
+  --animate-fade-in: fade-in 300ms ease-out 1;
+
+  @keyframes hold-pulse {
+    0% {
+      background-color: var(--color-hold-soft);
+      border-color: var(--color-hold);
+    }
+    35% {
+      background-color: var(--color-hold-soft);
+    }
+    100% {
+      background-color: var(--color-surface);
+    }
+  }
+  @keyframes drawer-in {
+    from {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Investigation mode (D-25): the fraud graph is a deliberate dark switch. App.tsx sets
+   data-view="investigate" on <html> only while the graph route is open. Same token names, so every
+   component restyles with no dark-specific classes. The previous ink becomes the surface. */
+:root[data-view='investigate'] {
+  --color-page: #0C0A09;
+  --color-surface: #1C1917;
+  --color-subtle: #292524;
+  --color-ink: #F5F5F4;
+  --color-ink-2: #A8A29E;
+  --color-tertiary: #78716C;
+  --color-line: #44403C;
+  /* Navy lifted for a dark ground: selection, focus, links and the primary button. */
+  --color-navy: #A9B7CC;
+  /* Alarm red brightened for dark (D-30). Still only for a fraud hold. */
+  --color-hold: #F04438;
+  --color-hold-soft: #3B1411;
+  --color-risk: #F79009;
+  --color-risk-soft: #3A2508;
+  --color-ok: #47CD89;
+  --color-ok-soft: #0D2A1C;
+  --primary-foreground: #0C0A09;
 }
 
 /* shadcn variables, mapped onto the tokens above. */
@@ -128,6 +197,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-variant-numeric: tabular-nums;
+    transition: background-color 300ms ease-out, color 300ms ease-out;
   }
   :focus-visible {
     outline: 2px solid var(--color-navy);

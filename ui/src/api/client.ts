@@ -1,6 +1,15 @@
 // Typed fetch wrapper. Runs under Vite and under Node (scripts/smoke.ts), so: relative imports with
 // explicit .ts extensions, import type for types, and no import.meta.env.
-import type { Clock, DealDetail, DealSummary } from './types.ts'
+import type {
+  AlertFeedItem,
+  Clock,
+  DealDetail,
+  DealSummary,
+  FraudGraph,
+  InboxItem,
+  InvestigatorTrace,
+  RedTeamReport,
+} from './types.ts'
 
 let base = ''
 
@@ -95,4 +104,32 @@ export async function getDeal(folder: string): Promise<DealDetail> {
     }
     throw e
   }
+}
+
+export function getAlerts(): Promise<AlertFeedItem[]> {
+  return apiGet<AlertFeedItem[]>('/api/alerts')
+}
+
+export function getInbox(): Promise<InboxItem[]> {
+  return apiGet<InboxItem[]>('/api/inbox')
+}
+
+// The body is exactly {option} plus a note only when one was typed (UI-05).
+export function postReply(id: string, option: string, note?: string): Promise<InboxItem> {
+  const trimmed = note?.trim() ?? ''
+  const body: { option: string; note?: string } = trimmed === '' ? { option } : { option, note: trimmed }
+  return apiPost<InboxItem>(`/api/inbox/${encodeURIComponent(id)}/reply`, body)
+}
+
+// The whole graph, unfiltered: the clock filter runs client-side (D-18), so scrubbing never refetches.
+export function getGraph(): Promise<FraudGraph> {
+  return apiGet<FraudGraph>('/api/graph')
+}
+
+export function getInvestigator(clusterId: string): Promise<InvestigatorTrace> {
+  return apiGet<InvestigatorTrace>(`/api/investigator/${encodeURIComponent(clusterId)}`)
+}
+
+export function getRedteam(): Promise<RedTeamReport> {
+  return apiGet<RedTeamReport>('/api/redteam')
 }
