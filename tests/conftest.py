@@ -30,3 +30,20 @@ def tiny_set(tmp_path):
         p.write_bytes(b"")
     arrivals = write_arrivals(tmp_path / "arrivals.jsonl", TINY_ARRIVALS)
     return folder, arrivals
+
+
+@pytest.fixture(autouse=True)
+def _vl_isolated(monkeypatch, tmp_path_factory):
+    """No test reaches the network or the real .env: VL is off, the env file is absent, the cache is a tmp dir.
+
+    Tests of the VL module set NEMOTRON_MODE, a sentinel key and a fake transport themselves."""
+    base = tmp_path_factory.mktemp("vl_env")
+    monkeypatch.setenv("NEMOTRON_MODE", "off")
+    monkeypatch.setenv("PRISM_ENV_FILE", str(base / "absent.env"))
+    monkeypatch.setenv("PRISM_NEMOTRON_CACHE_DIR", str(base / "cache"))
+    monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
+    from prism.read import vl
+
+    vl.reset()
+    yield
+    vl.reset()

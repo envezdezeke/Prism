@@ -343,3 +343,26 @@ nicknames:               # groups of a formal first name and its common short fo
   - [eduardo, edward, ed]
   - [fernando, fern]
   - [guillermo, william, bill]
+
+# Nemotron VL null-fill (03-04, N2/N10). Model ids and the key come from env only (.env.example):
+# NVIDIA_API_KEY, NEMOTRON_MODE (off|replay|live), NEMOTRON_VL_MODEL, NEMOTRON_VL_FALLBACK_MODEL.
+vl:
+  max_calls: 30               # live attempts per run_sim, fallback attempts included
+  timeout_seconds: 60
+  retries: 2                  # extra attempts on a retryable failure (each counts against max_calls)
+  retry_sleep_seconds: [2, 5]
+  max_text_chars: 12000
+  max_images: 3
+  max_image_bytes: 4000000
+  max_tokens: 600
+  cache_dir_default: out/nemotron_cache
+  fillable:                   # ordered; the scored fact fields a fill may touch
+    - legal_name
+    - ein
+    - amount_requested
+    - purpose_category
+    - product
+    - term_months
+    - guarantor_name
+    - annual_revenue_stated
+    - needed_by
