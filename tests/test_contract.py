@@ -393,6 +393,7 @@ def test_openapi_and_docs(client):
 
 def test_everything_503_when_mock_off(monkeypatch):
     monkeypatch.setenv("MOCK", "0")
+    monkeypatch.setenv("PRISM_GRAPH_PATH", str(ROOT / "out" / "no_such_graph.json"))
     c = TestClient(create_app())
     calls = [
         ("get", "/api/deals", None), ("get", "/api/deals/x", None), ("get", "/api/clock", None),
