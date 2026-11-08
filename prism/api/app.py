@@ -65,7 +65,10 @@ def create_app() -> FastAPI:
         clock = load_fixture("clock.json")
         end = parse_sim_time(clock["end"])
         if body.hours is not None:
-            now = parse_sim_time(clock["now"]) + timedelta(hours=body.hours)
+            try:
+                now = parse_sim_time(clock["now"]) + timedelta(hours=body.hours)
+            except OverflowError:
+                now = end
         else:
             now = parse_sim_time(body.to)  # type: ignore[arg-type]
         now = min(now, end)

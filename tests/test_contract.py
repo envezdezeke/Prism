@@ -145,6 +145,15 @@ def test_advance_clock(client):
     assert client.post("/api/clock/advance", json={}).status_code == 422
 
 
+def test_advance_clock_overflow_clamps(client):
+    end = load("clock.json")["end"]
+    for raw in ('{"hours": 1e300}', '{"hours": Infinity}'):
+        r = client.post(
+            "/api/clock/advance", content=raw, headers={"content-type": "application/json"}
+        )
+        assert r.status_code == 200 and r.json()["now"] == end, raw
+
+
 def test_replay_clock(client):
     r = client.post("/api/clock/replay")
     assert r.status_code == 200
