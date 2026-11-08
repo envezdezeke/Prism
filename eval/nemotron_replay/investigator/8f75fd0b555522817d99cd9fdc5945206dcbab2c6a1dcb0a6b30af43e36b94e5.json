@@ -1,0 +1,1 @@
+{"answer": {"content": "", "tool_calls": [{"arguments": "{\"deal\":\"Granite Bay Building Supply\"}", "id": "call-4121d1ce-7095-42a8-9840-1f01793ab042", "name": "deal_entities"}, {"arguments": "{\"deal\":\"Granite Bay Building Supply\"}", "id": "call-d19f0a19-f703-4fd1-a7a2-eac0c0c1884a", "name": "deal_documents"}]}, "model": "nvidia/nemotron-3.5-super-vl-120b-a12b"}
