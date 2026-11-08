@@ -49,7 +49,7 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 - [ ] **FRD-02**: The graph links deals (current and history) to the canonicalized entities they share, and the score weights each entity by how rare it is. (E)
 - [ ] **FRD-03**: Signal families are F1 shared rare entity (history matches count), F2 novelty/burst, F3 lookalike vendor/account, F4 document forensics, F5 deposit pattern (needs at least ~6 deposits), and F6 terms shape (weak). Each produces plain-words evidence. (E)
 - [ ] **FRD-04**: A hold needs F1 plus at least 2 other families. 1–2 families puts the deal on the watch tier, shown but not held. An OLD_TRICK hit goes to Fraud Ops. (E)
-- [ ] **FRD-05**: On a flag, the deal is frozen immediately with `held: true`, `stage_at_flag` and the reason, and `fraud_hold` is requested. A flagged deal never enters Closed. (E)
+- [x] **FRD-05**: On a flag, the deal is frozen immediately with `held: true`, `stage_at_flag` and the reason, and `fraud_hold` is requested. A flagged deal never enters Closed. (E)
 - [ ] **FRD-06**: `linked_deals` and `history_flags` are filled from clusters (history deals must share at least 2 families). On the sample, `history_flags` comes out as exactly H-2608-002 and H-2609-008. (E)
 - [ ] **FRD-07**: Trap regression gives zero holds on Garza, Tyler, Priya, Okafor, Westfield, Harbor Tea, Oakline, LSFD and Bluebonnet, and zero history false flags (including H-2511-010, H-2601-022 and the 15 Berkshire deals). Ridgeway is flagged on Monday from history alone. (E)
 
@@ -137,7 +137,7 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 | FRD-02 | Phase 5 | Pending |
 | FRD-03 | Phase 5 | Pending |
 | FRD-04 | Phase 5 | Pending |
-| FRD-05 | Phase 5 | Pending |
+| FRD-05 | Phase 5 | Complete |
 | FRD-06 | Phase 5 | Pending |
 | FRD-07 | Phase 5 | Pending |
 | NEM-01 | Phase 6 | Pending |

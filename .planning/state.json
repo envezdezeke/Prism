@@ -11,12 +11,12 @@
     {
       "number": "2",
       "name": "Pipeline Cockpit UI on Mock Data",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "number": "3",
       "name": "Read the Folder",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "number": "4",
@@ -26,7 +26,7 @@
     {
       "number": "5",
       "name": "Catch the Fakes",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "number": "6",
@@ -42,7 +42,7 @@
   "next": {
     "command": "/gsd-progress --next",
     "label": "Advance to the next step",
-    "reason": "Phase 3 of 7 · 0% · executing"
+    "reason": "Phase 3 of 7 · 14% · executing"
   },
-  "updated_at": "2026-11-08T05:10:26.960Z"
+  "updated_at": "2026-11-08T14:00:22.292Z"
 }

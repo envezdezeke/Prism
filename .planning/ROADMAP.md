@@ -176,7 +176,10 @@ Plans:
   3. The trap suite passes: zero holds on Garza, Tyler, Priya, Okafor, Westfield, Harbor Tea, Oakline, LSFD and Bluebonnet, and zero history false flags (including H-2511-010, H-2601-022 and the 15 Berkshire Ln deals). Granite Bay's OLD_TRICK goes to Fraud Ops.
   4. Every held or watched deal shows evidence for each signal family (F1–F6) that fired, with each shared entity's rarity against history. A deal with only 1–2 families appears on the watch tier and is not held.
   5. At H10 the sample-week submission validates, is byte-identical across two runs, passes both trap suites (no false issues, no false holds), has its self-score against the golden labels recorded, and is tagged as the frozen baseline. The live graph endpoint serves nodes, rarity-weighted edges, family evidence and each edge's first-visible sim time.
-**Plans**: TBD
+**Plans**: 1/3 plans executed
+- [x] 05-01-PLAN.md
+- [ ] 05-02-PLAN.md
+- [ ] 05-03-PLAN.md
 **Notes**: The deepest risk in the project. Thresholds live in `config/fraud.yaml` and are not fitted to the sample. No sample literals ("DocuForge", "Delacroix", 4471, "Metroplex", "Commerce Street") appear in detection code. The sample is already analyzed, so it can't serve as a blind fraud test. Follow Jesse's validation protocol (`HANDOFF.md` §3):
 - Replay history in time order and report how many deals into a scheme the first flag fires.
 - Run blind checks: without the DUP_EIN/SHELL_ADDRESS rules, does the generic detector still surface those labeled history deals?
@@ -228,6 +231,6 @@ Plans:
 | 2. Pipeline Cockpit UI on Mock Data | 6/6 | Complete (merged from ui/hero) | - |
 | 3. Read the Folder | 5/5 | In Progress | - |
 | 4. Move the Deal | 0/0 | Not started | - |
-| 5. Catch the Fakes | 0/0 | Not started | - |
+| 5. Catch the Fakes | 1/3 | In Progress | - |
 | 6. Nemotron Agents | 0/0 | Not started | - |
 | 7. Fraud Graph, Dry Run and Pitch | 0/0 | Not started | - |

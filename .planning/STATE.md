@@ -3,17 +3,17 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Read the Folder
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-11-08T05:10:26.853Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-11-08T14:00:25.193Z"
 last_activity: 2026-11-07
 last_activity_desc: Phase 03 execution started
-state_head: 6a86e58f25307042e0806e3dab61c80f33971a5f
+state_head: 39e4e78e261f9896f3d7d5a44bc07b4c552d34a3
 progress:
   total_phases: 7
-  completed_phases: 0
-  total_plans: 8
-  completed_plans: 3
-  percent: 0
+  completed_phases: 1
+  total_plans: 16
+  completed_plans: 12
+  percent: 14
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 ## Current Position
 
 Phase: 03 (Read the Folder) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 03
+Plan: 2 of 4
+Status: Ready to execute
 Last activity: 2026-11-07 — Phase 03 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 14%
 
 Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; submit target 11:40 (H19.75). Full hour-by-hour table: ROADMAP.md "Who's doing what, when".
 
@@ -86,6 +86,7 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 | Phase 02 P01 | 8min | 2 tasks | 31 files |
 | Phase 02 P02 | 6min | 3 tasks | 17 files |
 | Phase 02 P03 | 120min | 3 tasks | 16 files |
+| Phase 05 P01 | 35 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Full log in the PROJECT.md Key Decisions table. Most load-bearing right now:
 - [Phase 02]: 02-02: UI-SPEC copy and layout override plan copy (button labels, empty/sync messages, column limit only when shared); Play/Pause separate from Replay from start
 - [Phase 02]: 02-02: clock writes send only {to} or {}, debounced 300 ms, local clock never reverts; mock 422 on backward targets shows a neutral inline message
 - [Phase 02]: 02-03: UI-SPEC copy won over plan (role labels, whole-percent confidence, no credit officer row); deal links are hash anchors; stage-log why hidden until the exit time; .gitignore data/ anchored to /data/ so ui/src/data is tracked
+- [Phase 05]: Fraud reason lists failed OLD_TRICK codes first, then cross-deal family evidence cut at LINK_MARK (no partner ids)
+- [Phase 05]: Sticky flagged deals grow linked_deals only on ticks where the hold rule is met
 
 ### Pending Todos
 
@@ -132,9 +135,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-08T03:34:52.792Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-read-the-folder/03-CONTEXT.md
+Last session: 2026-11-08T14:00:25.130Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
 
 **Loose ends from the planning session:**
 - **Folder rename pending.** Exit Claude Code, then `cd C:\Users\ezeki\hack && ren "Goldman I" Prism && cd Prism && claude`. The git remote already points to `github.com/envezdezeke/Prism`.
