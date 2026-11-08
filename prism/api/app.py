@@ -10,6 +10,7 @@ from typing import Any, Literal, Optional
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from prism.agents.routes import build_agents_router
 from prism.contract import (
     AlertFeedItem,
     Clock,
@@ -20,8 +21,6 @@ from prism.contract import (
     FraudGraph,
     InboxItem,
     InboxReply,
-    InvestigatorTrace,
-    RedTeamReport,
     Submission,
     format_sim_time,
     parse_sim_time,
@@ -142,18 +141,9 @@ def create_app() -> FastAPI:
         nodes = [n for n in graph["nodes"] if n["type"] != "entity" or n["id"] in used]
         return {**graph, "nodes": nodes, "edges": edges}
 
-    @api.get("/investigator/{cluster_id}", response_model=InvestigatorTrace)
-    def get_investigator(cluster_id: str) -> Any:
-        trace = load_fixture("investigator.json")
-        if trace["cluster_id"] != cluster_id:
-            raise HTTPException(status_code=404, detail="unknown cluster")
-        return trace
-
-    @api.get("/redteam", response_model=RedTeamReport)
-    def get_redteam() -> Any:
-        return load_fixture("redteam.json")
-
+    # /api/investigator and /api/redteam live in prism/agents/routes.py (recorded output under MOCK=0).
     app.include_router(api)
+    app.include_router(build_agents_router(load_fixture, mock_enabled))
     return app
 
 
