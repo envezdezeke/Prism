@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prism: pitch deck</title>
+<!--
+  Prism pitch deck. One self-contained file: opens by double-click, no network, no package.
+  Arrow keys, space or a click step through the slides. Print to PDF gives one slide per page (16:9).
+  Order, titles and bullets follow docs/pitch/PITCH_OUTLINE.md. Every placeholder in double square brackets is listed with its
+  committed source in that file's placeholder table; 07-10 replaces them. Elements with class "pending"
+  mark screens or features from a later plan: remove the tag once that plan has shipped.
+  Screenshots go in docs/pitch/img and must come from the mock data (made-up names), never the live sample run.
+-->
+<style>
+  :root {
+    --page: #FAF9F7;
+    --surface: #FFFFFF;
+    --subtle: #F5F5F4;
+    --ink: #1C1917;
+    --ink-2: #57534E;
+    --tertiary: #78716C;
+    --line: #D6D3D1;
+    --navy: #0E2846;
+    --sky: #7399C6;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--subtle); color: var(--ink); font-family: var(--sans); }
+  body { overflow: hidden; }
+  #stage {
+    position: absolute; left: 50%; top: 50%;
+    width: 1280px; height: 720px;
+    transform-origin: center center;
+    background: var(--page);
+    border: 1px solid var(--line);
+  }
+  .slide {
+    display: none;
+    position: absolute; inset: 0;
+    flex-direction: column;
+    padding: 48px 72px 40px 72px;
+    background: var(--page);
+    overflow: hidden;
+  }
+  .slide.on { display: flex; }
+
+  /* Title: sky bar to the left, navy serif heading */
+  .slide h1 {
+    margin: 0 0 28px 0;
+    padding-left: 20px;
+    border-left: 8px solid var(--sky);
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 42px;
+    line-height: 1.15;
+    color: var(--navy);
+  }
+  .kicker {
+    margin: 0 0 6px 28px;
+    font-size: 14px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-2); font-weight: 600;
+  }
+  .body { flex: 1; display: flex; gap: 40px; min-height: 0; }
+  .col-text { flex: 1 1 52%; min-width: 0; }
+  .col-fig { flex: 1 1 48%; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+  .slide ul { margin: 0; padding: 0; list-style: none; }
+  .slide li {
+    position: relative; padding-left: 22px; margin: 0 0 16px 0;
+    font-size: 23px; line-height: 1.35; color: var(--ink);
+  }
+  .slide li::before {
+    content: ""; position: absolute; left: 0; top: .62em;
+    width: 9px; height: 9px; background: var(--sky); border: 1px solid var(--navy);
+  }
+  .dense li { font-size: 20px; margin-bottom: 12px; }
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+  .ph { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--navy); }
+
+  /* Headline band */
+  .band {
+    background: var(--navy); color: #FFFFFF;
+    padding: 18px 28px; border-radius: 6px;
+    display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+  }
+  .band .big { font-family: var(--serif); font-size: 46px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .band .small { font-size: 20px; color: #DCE7F3; }
+  .band .ph { color: #FFFFFF; }
+
+  /* Screenshots and their placeholders */
+  figure.shot {
+    margin: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+    overflow: hidden;
+  }
+  figure.shot img { display: block; width: 100%; height: auto; }
+  figure.shot figcaption {
+    padding: 8px 12px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line);
+    background: var(--subtle);
+  }
+  figure.shot.missing { min-height: 300px; display: flex; flex-direction: column; border-style: dashed; border-color: var(--tertiary); }
+  figure.shot.missing img { display: none; }
+  figure.shot.missing::before {
+    content: attr(data-label);
+    flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 24px; font-size: 18px; line-height: 1.4; color: var(--ink-2);
+  }
+  .pending {
+    display: inline-block; vertical-align: middle;
+    font-size: 12px; font-style: normal; font-weight: 600; letter-spacing: .02em;
+    color: var(--ink-2); border: 1px dashed var(--tertiary); border-radius: 4px; padding: 1px 7px; margin-left: 8px;
+    background: var(--surface);
+  }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; background: var(--surface); border: 1px solid var(--line); font-size: 17px; }
+  thead th {
+    background: var(--navy); color: #FFFFFF; text-align: left; font-weight: 600;
+    padding: 10px 14px; font-size: 16px; letter-spacing: .02em;
+  }
+  tbody td { padding: 11px 14px; border-top: 1px solid var(--line); vertical-align: top; line-height: 1.3; }
+  tbody td.c { white-space: nowrap; }
+  tbody tr.lead td { background: var(--subtle); font-weight: 600; }
+  td.yn { font-weight: 700; color: var(--navy); }
+  .note { font-size: 15px; color: var(--ink-2); margin-top: 12px; line-height: 1.4; }
+
+  /* Demo steps */
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
+  ol.steps li {
+    counter-increment: s; position: relative; padding: 14px 16px 14px 64px; margin: 0 0 12px 0;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-size: 22px;
+  }
+  ol.steps li::before {
+    content: counter(s); position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    width: 34px; height: 34px; background: var(--navy); color: #FFFFFF; border: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px; border-radius: 4px;
+  }
+  ol.steps li small { display: block; font-size: 15px; color: var(--ink-2); margin-top: 2px; }
+
+  /* Footer */
+  .foot {
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2);
+  }
+  .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--navy); }
+  .brand svg { width: 20px; height: 20px; display: block; }
+
+  /* Close slide */
+  .close-mark { display: flex; align-items: center; gap: 22px; margin-bottom: 26px; }
+  .close-mark svg { width: 88px; height: 88px; display: block; }
+  .close-mark span { font-family: var(--serif); font-size: 64px; font-weight: 700; color: var(--navy); }
+
+  /* Screen navigation hint */
+  .nav { position: fixed; right: 14px; bottom: 10px; font-size: 12px; color: var(--ink-2); }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    html, body { height: auto; overflow: visible; background: var(--page); width: 1280px; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #stage { position: static; transform: none !important; border: 0; height: auto; width: 1280px; }
+    .slide { display: flex !important; position: relative; width: 1280px; height: 720px; break-after: page; page-break-after: always; }
+    .slide:last-of-type { break-after: auto; page-break-after: auto; }
+    .nav { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+
+<section class="slide" id="s1" aria-label="Slide 1">
+  <p class="kicker">Prism</p>
+  <h1>Hold the ring before the money goes out</h1>
+  <div class="body">
+    <div class="col-text">
+      <ul>
+        <li>Prism runs a commercial lending desk end to end: it reads the loan folder, moves each deal through six stages and asks the right person at every sign-off.</li>
+        <li>Its main job: catch coordinated fake loan applications before disbursement, without blocking honest borrowers.</li>
+      </ul>
+      <div class="band" style="margin-top: 26px;">
+        <span class="big"><span class="ph">[[BLIND_HELD]]</span> of <span class="ph">[[BLIND_TOTAL]]</span></span>
+        <span class="small">fake deals held before Closed on the organizers' new data. <span class="ph">[[BLIND_FALSE_FLAGS]]</span> false flags.</span>
+      </div>
+    </div>
+    <div class="col-fig">
+      <figure class="shot" data-label="Screenshot pending: pipeline board with one deal showing the Held badge (mock data). Save as img/board.png">
+        <img src="img/board.png" alt="Pipeline board on mock data, with one deal showing the Held: fraud review badge" onerror="this.parentNode.classList.add('missing')">
+        <figcaption>Pipeline board on the simulated clock (mock data)</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="12" fill="#0E2846"/><polygon points="3,38.2 19,33.4 19,35.4 3,40.2" fill="#FFFFFF"/><polygon points="19,33.4 44.5,30.6 44.5,36.6 19,35.4" fill="#FFFFFF" opacity="0.35"/><polygon points="44.5,30.6 61,24 61,30.5 44.5,32.1" fill="#DCE7F3"/><polygon points="44.5,32.1 61,30.5 61,37 44.5,33.6" fill="#A9C3E0"/><polygon points="44.5,33.6 61,37 61,43.5 44.5,35.1" fill="#7399C6"/><polygon points="44.5,35.1 61,43.5 61,50 44.5,36.6" fill="#4C77AE"/><polygon points="32,10 53,48 11,48" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/></svg>Prism</span><span>HackUTD 2026 · 1 of 8</span></div>
+</section>
+
+<section class="slide" id="s2" aria-label="Slide 2">
+  <p class="kicker">The problem</p>
+  <h1>One fake deal looks clean. The ring does not.</h1>
+  <div class="body">
+    <div class="col-text">
+      <ul>
+        <li>Each fake application passes the bank's existing known-fraud checks on its own.</li>
+        <li>Rings are cheap because they reuse resources: one bookkeeper, one payment account, one document generator.</li>
+        <li>Every reuse leaves a trace that is rare in the bank's own history and shared across deals.</li>
+      </ul>
+    </div>
+    <div class="col-fig">
+      <figure class="shot" data-label="Screenshot pending (plans 07-01 and 07-03): fraud graph with the ring's deals joined by thick edges to a few shared entities, mock data, entity types only. Save as img/graph.png">
+        <img src="img/graph.png" alt="Fraud graph on mock data: a ring of deals tied together by shared entities" onerror="this.parentNode.classList.add('missing')">
+        <figcaption>Fraud graph: deals tied together by what they share (mock data) <span class="pending">pending 07-01/07-03</span></figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="brand">Prism</span><span>HackUTD 2026 · 2 of 8</span></div>
+</section>
+
+<section class="slide" id="s3" aria-label="Slide 3">
+  <p class="kicker">How it decides</p>
+  <h1>How Prism decides: three kinds of evidence must agree</h1>
+  <div class="body">
+    <div class="col-text dense">
+      <ul>
+        <li><strong>Unsupervised anomaly detection.</strong> Every signal is surprise measured against a year of clean history. A rare shared entity scores high, a common one near zero.</li>
+        <li>Six evidence families: shared rare entity, sudden new activity, lookalike counterparty, document fingerprint, deposit pattern, and loan terms (shown, never votes).</li>
+        <li>Hold only when a shared rare entity is present and at least two other families agree. Fewer is a visible watch list, not a hold.</li>
+        <li>Thresholds come from false-alarm rates on clean deals only, never fitted to fraud examples.</li>
+      </ul>
+    </div>
+    <div class="col-fig">
+      <figure class="shot" data-label="Screenshot pending (plan 07-03): cluster panel with the family checklist F1 to F6, each Fired or Not fired with its evidence sentence, F6 marked Evidence only. Mock data. Save as img/checklist.png">
+        <img src="img/checklist.png" alt="Cluster panel family checklist on mock data: each family fired or not fired with its evidence sentence" onerror="this.parentNode.classList.add('missing')">
+        <figcaption>Family checklist: fired or not fired, in words, with the evidence (mock data) <span class="pending">pending 07-03</span></figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="brand">Prism</span><span>HackUTD 2026 · 3 of 8</span></div>
+</section>
+
+<section class="slide" id="s4" aria-label="Slide 4">
+  <p class="kicker">Live demo, 60 seconds</p>
+  <h1>Live demo</h1>
+  <div class="body">
+    <div class="col-text" style="flex-basis: 62%;">
+      <ol class="steps">
+        <li>Pipeline board on the simulated clock<small>Replay from start, then Next event</small></li>
+        <li>A held deal, its plain-English reason and its linked deals<small>Red Held badge, then the deal page</small></li>
+        <li>The ring connecting as files arrive<span class="pending">pending 07-01/07-03</span><small>Click a link to read its evidence sentence</small></li>
+        <li>Inbox: the Committee approval request, then Approve<small>The right person signs off, with a backup when someone is out</small></li>
+      </ol>
+    </div>
+    <div class="col-fig" style="flex-basis: 38%;">
+      <div class="band" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+        <span class="small">Nemotron runs in replay mode, so the demo needs no network.</span>
+        <span class="small">Backup: recorded demo video</span>
+        <span class="ph" style="font-size: 20px;">[[DEMO_VIDEO_URL]]</span>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="brand">Prism</span><span>HackUTD 2026 · 4 of 8</span></div>
+</section>
+
+<section class="slide" id="s5" aria-label="Slide 5">
+  <p class="kicker">Validation</p>
+  <h1>Measured, not claimed</h1>
+  <div class="body" style="flex-direction: column; gap: 14px;">
+    <table>
+      <thead><tr><th>Test set</th><th>Used for tuning?</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr class="lead"><td>Blind weekend drop, frozen engine, first run recorded before anyone opened the files</td><td class="yn">Never</td><td class="num"><span class="ph">[[BLIND_HELD]]</span> of <span class="ph">[[BLIND_TOTAL]]</span> held, <span class="ph">[[BLIND_FALSE_FLAGS]]</span> false flags, first hold at stage <span class="ph">[[BLIND_FIRST_STAGE]]</span></td></tr>
+        <tr><td>A year of history replayed in time order, last four months held out</td><td class="yn">No</td><td class="num"><span class="ph">[[HIST_FLAGS]]</span> flags among <span class="ph">[[HIST_GOOD_N]]</span> good deals; after written review <span class="ph">[[HIST_FALSE_POS]]</span> false positives</td></tr>
+        <tr><td>Synthetic fraud families with honest twins, one family held out at a time</td><td class="yn">No</td><td class="num"><span class="ph">[[SYN_HELD_PCT]]</span> of ring deals held, <span class="ph">[[SYN_TWIN_PCT]]</span> of twins flagged (bar: at least 70% held, at most 5% flagged)</td></tr>
+        <tr><td>Sample week, including deliberately odd honest borrowers</td><td class="yn">No</td><td class="num">Held at stage <span class="ph">[[SAMPLE_STAGE]]</span>; history links <span class="ph">[[SAMPLE_LINKS]]</span>; false holds <span class="ph">[[SAMPLE_FALSE_HOLDS]]</span></td></tr>
+        <tr><td>Earlier months of clean history</td><td class="yn">Yes, the only set</td><td>Where each family's threshold is set from clean deals</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Scorecard commit <span class="ph">[[SCORECARD_COMMIT]]</span>. Every number on this slide comes from a committed record; the sample week is not a fair fraud test because we studied its trick.</p>
+  </div>
+  <div class="foot"><span class="brand">Prism</span><span>HackUTD 2026 · 5 of 8</span></div>
+</section>
+
+<section class="slide" id="s6" aria-label="Slide 6">
+  <p class="kicker">Nemotron</p>
+  <h1>Nemotron works around the engine, not inside the score</h1>
+  <div class="body">
+    <div class="col-text dense">
+      <ul>
+        <li><strong>Investigator:</strong> plans, calls our real HTTP API and the bank's clock service, and writes a cited evidence case for each held or watched cluster.</li>
+        <li><strong>Prosecutor and defender:</strong> two briefs on the same evidence. The rule still decides.</li>
+        <li><strong>Adaptive red team:</strong> invents new fraud tricks, sees only which were caught, and evolves them: <span class="ph">[[RED_TRICKS]]</span> tricks, catch rate by generation <span class="ph">[[RED_CATCH_BY_GEN]]</span>.</li>
+        <li><strong>Vision reader</strong> for documents the parser cannot read, validated before it can fill a field. The scored output is identical with Nemotron on or off.</li>
+      </ul>
+    </div>
+    <div class="col-fig">
+      <figure class="shot" data-label="Screenshot pending (plans 07-04 and 07-05): investigation panel labelled advisory, beside the red-team results table, mock data. Show only the part that has shipped. Save as img/agents.png">
+        <img src="img/agents.png" alt="Investigation panel and red-team results on mock data" onerror="this.parentNode.classList.add('missing')">
+        <figcaption>Investigation (advisory) and red-team results (mock data) <span class="pending">pending 07-04/07-05</span></figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="brand">Prism</span><span>HackUTD 2026 · 6 of 8</span></div>
+</section>
+
+<section class="slide" id="s7" aria-label="Slide 7">
+  <p class="kicker">Generalization</p>
+  <h1>Built for the next trick, and where it stops</h1>
+  <div class="body">
+    <div class="col-text">
+      <ul>
+        <li>Nothing sample-specific in the detector: no names, no software strings, no account numbers. Thresholds re-derive from whatever history ships with a new dataset.</li>
+        <li>Deliberate bet: the hidden trick is still a ring, so it must share something. A trick that shares no visible entity lands on the watch list, not on hold.</li>
+      </ul>
+    </div>
+    <div class="col-fig">
+      <figure class="shot" data-label="Screenshot pending (plans 07-01 and 07-03): fraud graph zoomed out, common entities faint and rare ones thick, mock data. Save as img/graph-wide.png">
+        <img src="img/graph-wide.png" alt="Fraud graph zoomed out on mock data: common links faint, rare links thick" onerror="this.parentNode.classList.add('missing')">
+        <figcaption>Common links stay faint; rare ones are thick (mock data) <span class="pending">pending 07-01/07-03</span></figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="brand">Prism</span><span>HackUTD 2026 · 7 of 8</span></div>
+</section>
+
+<section class="slide" id="s8" aria-label="Slide 8">
+  <p class="kicker">Close</p>
+  <h1>Catch the ring. Leave honest borrowers alone.</h1>
+  <div class="body">
+    <div class="col-text" style="flex-basis: 58%;">
+      <div class="close-mark">
+        <svg viewBox="0 0 64 64" aria-label="Prism"><rect width="64" height="64" rx="12" fill="#0E2846"/><polygon points="3,38.2 19,33.4 19,35.4 3,40.2" fill="#FFFFFF"/><polygon points="19,33.4 44.5,30.6 44.5,36.6 19,35.4" fill="#FFFFFF" opacity="0.35"/><polygon points="44.5,30.6 61,24 61,30.5 44.5,32.1" fill="#DCE7F3"/><polygon points="44.5,32.1 61,30.5 61,37 44.5,33.6" fill="#A9C3E0"/><polygon points="44.5,33.6 61,37 61,43.5 44.5,35.1" fill="#7399C6"/><polygon points="44.5,35.1 61,43.5 61,50 44.5,36.6" fill="#4C77AE"/><polygon points="32,10 53,48 11,48" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/></svg>
+        <span>Prism</span>
+      </div>
+      <ul>
+        <li>Catches the ring before the money goes out, leaves honest borrowers alone, and shows its work.</li>
+        <li>A deterministic engine makes every scored decision. Nemotron agents investigate, argue both sides and attack it.</li>
+        <li>Team Prism: finance and quant.</li>
+      </ul>
+    </div>
+    <div class="col-fig" style="flex-basis: 42%;">
+      <div class="band" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+        <span class="small">First blind run</span>
+        <span class="big"><span class="ph">[[BLIND_HELD]]</span> of <span class="ph">[[BLIND_TOTAL]]</span> held</span>
+        <span class="small"><span class="ph">[[BLIND_FALSE_FLAGS]]</span> false flags · scorecard commit <span class="ph">[[SCORECARD_COMMIT]]</span></span>
+      </div>
+      <p class="note">Repository <span class="ph">[[REPO_URL]]</span><br>Demo video <span class="ph">[[DEMO_VIDEO_URL]]</span></p>
+      <p class="note">Tracks: Goldman Sachs "DealPilot — Move the Deal. Stop the Fraud." and NVIDIA Nemotron.</p>
+    </div>
+  </div>
+  <div class="foot"><span class="brand">Prism</span><span>HackUTD 2026 · 8 of 8</span></div>
+</section>
+
+</div>
+<div class="nav" id="pos" aria-live="polite"></div>
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var stage = document.getElementById('stage');
+  var pos = document.getElementById('pos');
+  var i = 0;
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) { s.classList.toggle('on', k === i); });
+    pos.textContent = (i + 1) + ' / ' + slides.length + '  (arrow keys)';
+    try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {}
+  }
+  function fit() {
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || k === ' ' || k === 'Enter') { e.preventDefault(); show(i + 1); }
+    else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); show(i - 1); }
+    else if (k === 'Home') { show(0); }
+    else if (k === 'End') { show(slides.length - 1); }
+  });
+  document.addEventListener('click', function (e) { show(e.shiftKey ? i - 1 : i + 1); });
+  window.addEventListener('resize', fit);
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  fit();
+  show(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>
