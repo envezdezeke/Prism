@@ -405,11 +405,11 @@ def build_credit_memo(state: DealState, rules: Rules, now: datetime, answer_by: 
         f"{name} requests {messages.amount_text(state)} {messages.product_text(state)} over {messages.term_text(state)} months "
         f"for {purpose}. Risk grade {grade} ({gname}): {rec_short}."
     )
-    second = (
-        f"Coverage {_fx(coverage) + 'x' if coverage is not None else NP} at an assumed {rate_s}; revenue supported "
-        f"{_fx(support) + 'x' if support is not None else NP} by bank deposits; "
-        f"{(str(int(years)) + ' years') if years is not None else NP + ' for time'} in business; {_rel_phrase(status, rel, False)}."
-    )
+    cov_part = f"Coverage {_fx(coverage)}x at an assumed {rate_s}" if coverage is not None else f"Coverage {NP}"
+    sup_part = f"revenue supported {_fx(support)}x by bank deposits" if support is not None else f"revenue support {NP}"
+    yrs_part = f"{int(years)} years in business" if years is not None else f"time in business {NP}"
+    rel_part = _rel_phrase(status, rel, False) if status else f"relationship {NP}"
+    second = f"{cov_part}; {sup_part}; {yrs_part}; {rel_part}."
     third = "All documents and checks clear" + (f"; needed by {fmt_when(nb)}" if nb else "") + "."
     fourth = "Full memo on the deal page. Please approve or decline" + (f" by {fmt_when(answer_by)}" if answer_by else "") + "."
     short = "\n".join([first, second, third, fourth])

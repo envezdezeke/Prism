@@ -7,7 +7,7 @@ Alert) stay in the state; this holds only the bookkeeping around them.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from prism.engine.state import DealState
@@ -57,6 +57,7 @@ class MoveRuntime:
     reqs: list[ReqMeta] = field(default_factory=list)
     decisions: dict[str, tuple[str, datetime]] = field(default_factory=dict)
     frozen_at: Optional[datetime] = None
+    frozen_total: timedelta = timedelta(0)  # time spent frozen in the current stage (SLA clock excludes it)
     terminal: Optional[str] = None  # closed | declined | stopped
     terminal_at: Optional[datetime] = None
     watermark: Optional[datetime] = None

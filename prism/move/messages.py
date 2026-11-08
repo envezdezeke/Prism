@@ -334,3 +334,195 @@ def funding_release_message(
     if cover:
         lines.append(cover)
     return "\n".join(lines)
+
+
+# ------------------------------------------------------------ stuck-deal alerts
+
+
+def _dur(delta: Any) -> str:
+    from prism.move.timeutil import fmt_duration
+
+    return fmt_duration(delta)
+
+
+def _backup_label(rules: Rules, pid: Optional[str], now: datetime) -> str:
+    from prism.move.routing import available
+
+    b = rules.teams.backup_of(pid) if pid else None
+    return person_name(rules.teams, available(b, rules.teams, now)) if b else "their backup"
+
+
+def gate_ask(gate_type: str, state: DealState) -> str:
+    from prism.move.settings import get_config
+
+    g = get_config().gates.get(gate_type)
+    words = [o.replace("_", " ") for o in g.options] if g else ["approve", "decline"]
+    listed = words[0] if len(words) == 1 else ", ".join(words[:-1]) + " or " + words[-1]
+    return f"Please reply {listed}." + needed_clause(state)
+
+
+def waiting_on(
+    state: DealState, rules: Rules, rt: Any, issues: tuple[str, ...], stage: str, blocking: tuple,
+    missing_facts: list[str], vendor_unverified: bool, now: datetime,
+) -> tuple[str, str]:
+    """(waiting on, to unblock it): the fixed list in MESSAGE_TEMPLATES section 1."""
+    from prism.move.settings import get_config
+
+    if rt.frozen_at is not None:
+        sent = next((m.at for m in rt.reqs if m.kind == "fraud"), None)
+        when = f" (sent {fmt_when(sent)})" if sent else ""
+        return (f"Fraud Operations to review the hold request{when}",
+                "Fraud Ops places or releases the hold. Funding stays frozen until then")
+    for m in rt.reqs:
+        req = state.human_requests[m.idx]
+        if m.kind == "gate" and m.stage == stage and req.answer is None and not m.superseded:
+            label = GATE_LABELS.get(m.gate, m.gate.replace("_", " "))
+            who = person_name(rules.teams, m.to)
+            g = get_config().gates.get(m.gate)
+            opts = option_words(g.options) if g else "approve / decline"
+            return (f"{who}'s {label} (sent {fmt_when(m.at)})",
+                    f"{who} or backup {_backup_label(rules, m.to, now)} answers {opts}")
+    for issue in issues:
+        if not any(p.fullmatch(issue) for p in blocking):
+            continue
+        kind, target = _split_issue(issue)
+        asked = rt.issue_requested_at.get(issue)
+        when = f"requested {fmt_when(asked)}" if asked else "request pending"
+        if kind == "MISSING_DOC":
+            label = doc_label(target)
+            return f"the borrower's {label}", f"the borrower sends the {label} ({when})"
+        if kind == "MISSING_PAGE":
+            m2 = _STMT_RE.match(target)
+            if m2:
+                month = month_label(m2.group(1))
+                return f"a missing page of the {month} bank statement", f"the borrower sends the complete {month} statement"
+            label = doc_label(target)
+            return f"a missing page of the {label}", f"the borrower sends the complete {label}"
+        if kind == "MISMATCH":
+            label = FIELD_LABELS.get(target, target.replace("_", " "))
+            e = evidence(state, target)
+            if e and e.get("application") is not None and e.get("value") is not None:
+                doc = e.get("document") or "supporting document"
+                detail = f": the application says {e['application']}, the {doc} says {e['value']}"
+            else:
+                detail = ": the application and a supporting document disagree"
+            return (f"the borrower to confirm the {label}{detail}",
+                    "the borrower confirms which is correct, with a corrected document")
+        return ("Fraud Operations to review the failed known-fraud check " + target.replace("_", " "),
+                "Fraud Ops places or releases the hold")
+    if vendor_unverified:
+        quote = profile(state).get("quote")
+        q = quote if isinstance(quote, dict) else {}
+        vendor = q.get("vendor") or "the vendor"
+        last4 = q.get("remit_last4") or NOT_PROVIDED
+        return (f"verification of vendor {vendor} and remit account ...{last4}",
+                f"a callback to {vendor} confirming the remit account")
+    if missing_facts:
+        names = ", ".join(f.replace("_", " ") for f in missing_facts)
+        return f"the application facts ({names}) to be read", f"the application is read and its {names} are confirmed"
+    items = rules.stages.stages.get(stage, {}).get("required_to_exit") or []
+    need = "; ".join(str(i) for i in items) if items else "the next step"
+    return f"the stage's remaining items ({need})", "someone completes them"
+
+
+def ladder_message(
+    state: DealState, rules: Rules, rt: Any, index: int, pct: float, stage: str, entered: datetime, when: datetime,
+    limit: float, waiting: tuple[str, str], alert_time: Optional[datetime], escalation_time: Optional[datetime],
+    manager: Optional[str],
+) -> str:
+    w, u = waiting
+    head = f"{borrower_label(state)}, RM {rm_label(state, rules)}, has been in {stage} for "
+    dur = _dur(when - entered)
+    owner = person_name(rules.teams, rt.owner)
+    a_time = fmt_when(alert_time) if alert_time else "earlier"
+    mult = f"{pct / 100:g}x"
+    lim = f"{limit:g}h limit"
+    need = needed_clause(state)
+    if index == 0:
+        return f"{head}{dur}, past its {lim}.\nIt is waiting on {w}.\nTo unblock it: {u}.{need}"
+    if index == 1:
+        return (f"Escalation: {head}{dur}, {mult} its {lim}.\nIt is waiting on {w}; {owner} was alerted {a_time} "
+                f"with no movement since.\nTo unblock it: {u}. Please step in or reassign.{need}")
+    e_time = fmt_when(escalation_time) if escalation_time else "earlier"
+    return (f"Second escalation: {head}{dur}, {mult} its {lim}.\nIt is waiting on {w}. Alerted {owner} at {a_time}, "
+            f"escalated to {person_name(rules.teams, manager)} at {e_time}.\nTo unblock it: {u}.{need}")
+
+
+def reminder_message(
+    state: DealState, rules: Rules, gate_type: str, sent_at: datetime, now: datetime, backup: Optional[str]
+) -> str:
+    label = GATE_LABELS.get(gate_type, gate_type.replace("_", " "))
+    lines = [f"Reminder: {borrower_label(state)} still needs your {label}, sent {fmt_when(sent_at)} ({_dur(now - sent_at)} ago)."]
+    if backup:
+        lines.append(f"{person_name(rules.teams, backup)}, you are copied as backup: whichever of you answers first decides it.")
+    lines.append(gate_ask(gate_type, state))
+    return "\n".join(lines)
+
+
+# ------------------------------------------------------------ fraud
+
+_CODE_RE = re.compile(r"\b(STMT_TAMPER|REV_INFLATION|ID_MISMATCH|DUP_EIN|SHELL_ADDRESS)\b")
+
+
+def fraud_hold_message(state: DealState, rules: Rules, stage: str, t: datetime) -> str:
+    f = state.fraud
+    reason = (f.reason or "").strip()
+    codes = sorted(set(_CODE_RE.findall(reason)) | {i.split(":", 1)[1] for i in state.issues if i.startswith("OLD_TRICK:")})
+    if codes:
+        evidence_text = reason.rstrip(".") if reason else "see the deal page for the evidence"
+        why = f"Why: the bank's known-fraud check {' and '.join(codes)} failed: {evidence_text}."
+    elif reason:
+        why = f"Why: {reason.rstrip('.')}."
+    else:
+        why = "Why: the cross-deal fraud screen raised a hold request (the evidence is on the deal page)."
+    current = sorted(d for d in set(f.linked_deals) if not d.startswith("H-"))
+    past = sorted(d for d in set(f.linked_deals) if d.startswith("H-"))
+    if current and past:
+        linked = f"Linked: {', '.join(current)} and past loans {', '.join(past)}."
+    elif current:
+        linked = f"Linked: {', '.join(current)}."
+    elif past:
+        linked = f"Linked: past loans {', '.join(past)}."
+    else:
+        linked = "Linked: no other deals so far."
+    return "\n".join([
+        f"Fraud hold requested: {borrower_label(state)}, RM {rm_label(state, rules)}, {amount_text(state)} {product_text(state)}, "
+        f"frozen at {stage} as of {fmt_when(t)}. No money has gone out.",
+        why,
+        linked,
+        "Please place or release the hold. The deal stays frozen until you do.",
+    ])
+
+
+def fraud_chase_message(
+    state: DealState, rules: Rules, stage: str, analyst: str, sent: datetime, backup: Optional[str],
+    copied: Optional[datetime], now: datetime,
+) -> str:
+    copy = f", copied to {person_name(rules.teams, backup)} {fmt_when(copied)}" if backup and copied else ""
+    return "\n".join([
+        f"Escalation: the fraud hold request for {borrower_label(state)}, RM {rm_label(state, rules)}, is unanswered. "
+        f"It was sent to {person_name(rules.teams, analyst)} {fmt_when(sent)}{copy}, with no reply by {fmt_when(now)}.",
+        f"The deal stays frozen at {stage} and no money goes out.",
+        "To unblock it: Fraud Ops places or releases the hold. Please step in.",
+    ])
+
+
+def deadline_risk_message(
+    state: DealState, rules: Rules, stage: str, projected: datetime, remaining: list[str],
+    next_person: Optional[str], decision: Optional[str], latest: Optional[datetime],
+) -> str:
+    nb = needed_by_dt(state)
+    steps = ", ".join(remaining) if remaining else "the final steps"
+    who = person_name(rules.teams, next_person) if next_person else "the stage owner"
+    by = f" by {fmt_when(latest)}" if latest else ""
+    if decision:
+        label = GATE_LABELS.get(decision, decision.replace("_", " "))
+        last = f"To make it: {who} needs to answer the {label}{by}."
+    else:
+        last = f"To make it: {who} needs to finish {stage}{by}."
+    return "\n".join([
+        f"Deadline at risk: {borrower_label(state)}, RM {rm_label(state, rules)}, needs {amount_text(state)} by "
+        f"{fmt_when(nb) if nb else NOT_PROVIDED}.",
+        f"It is in {stage}; at typical speed the remaining steps ({steps}) finish around {fmt_when(projected)}, after the deadline.",
+        last,
+    ])

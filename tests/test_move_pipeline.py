@@ -86,8 +86,10 @@ def test_never_persona_never_advances_past_the_first_gate(rules):
     st = good()
     with persona("never"):
         tick(st, rules, "2026-03-02T12:00", "2026-03-09T12:00", FAR)
-    assert st.stage == "Credit" and kinds(st) == [("credit_decision", "cal.credit")]
-    assert st.human_requests[0].answer is None
+    assert st.stage == "Credit"
+    # past 100% of the limit the same request is reminded and copied to the backup (J21), nothing more
+    assert kinds(st) == [("credit_decision", "cal.credit"), ("credit_decision", "cal.credit"), ("credit_decision", "cass.credit")]
+    assert all(r.answer is None for r in st.human_requests)
 
 
 def test_slow_gate_not_satisfied_until_the_answer_lands(rules):

@@ -16,14 +16,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Callable, Optional
 
-from prism.contract import StageLogEntry
+from prism.contract import Alert, StageLogEntry
 from prism.engine.config import Rules
 from prism.engine.state import DealState
-from prism.move import credit_memo, inbox, messages, routing
+from prism.move import credit_memo, deadline, inbox, messages, routing, sla
 from prism.move.runtime import MoveRuntime, View, get_runtime
 from prism.move.settings import MoveConfig, get_config
-from prism.move.sla import stage_limit_hours
-from prism.move.timeutil import fmt_when, iso, to_sim
+from prism.move.timeutil import fmt_when, iso, parse_iso, to_sim
 
 MAX_EVENTS = 10_000  # T-qx3-02: one call cannot fan out forever
 
@@ -94,7 +93,8 @@ def _enter(run: Run, stage: str, t: datetime, reason: str) -> None:
     st, rt, rules = run.state, run.rt, run.rules
     st.stage, st.stage_entered_at = stage, t
     rt.owner = routing.stage_owner(stage, st, rules, t)
-    rt.limit_hours = stage_limit_hours(st, rules, stage)
+    rt.limit_hours = sla.stage_limit_hours(st, rules, stage)
+    rt.frozen_total = timedelta(0)
     cfg = rules.stages.stages.get(stage, {})
     rt.delegated = routing.committee_delegated(st, cfg)
     ready = t
@@ -119,7 +119,8 @@ def _on_enter(run: Run, stage: str, t: datetime) -> None:
 
 
 def _answer_by(run: Run, t: datetime) -> Optional[datetime]:
-    return None
+    """Deadline deals only: the latest time the committee can answer and still fund by needed_by."""
+    return deadline.answer_by(run.state, run.rules) if deadline.needed_by(run.state) else None
 
 
 # ------------------------------------------------------------ requests
@@ -273,7 +274,8 @@ def _exit_stage(run: Run, t: datetime, gate_type: Optional[str]) -> None:
     decision, detail = _exit_detail(run, stage, gate_type)
     entry = _open_entry(run)
     if entry is not None:
-        entry.exited_at, entry.decision, entry.why = iso(t), decision, _exit_why(run, stage, detail, nxt)
+        carry = entry.why[entry.why.find(" Frozen "):] if " Frozen " in entry.why else ""  # keep the hold history
+        entry.exited_at, entry.decision, entry.why = iso(t), decision, _exit_why(run, stage, detail, nxt) + carry
     if nxt is None:
         rt.terminal, rt.terminal_at = "closed", t
         rt.eval_pending = False
@@ -354,7 +356,38 @@ def _src_answer(run: Run) -> list[Event]:
     return out
 
 
-_SOURCES: list[Callable[[Run], list[Event]]] = [_src_answer, _src_eval]
+def _src_freeze(run: Run) -> list[Event]:
+    st, rt = run.state, run.rt
+    if rt.frozen_at is not None or not (st.fraud.held or st.fraud.flagged):
+        return []
+    t = parse_iso(st.fraud.flagged_at) or run.now
+    t = min(_clamp(run, t), run.now)
+    return [(t, P_FREEZE, 0, "freeze", None)]
+
+
+def _src_ladder(run: Run) -> list[Event]:
+    rt = run.rt
+    if rt.frozen_at is not None:
+        return []
+    nt = sla.next_threshold(run.state, run.rules, rt)
+    return [(_clamp(run, nt[3]), P_LADDER, 0, "ladder", nt)] if nt else []
+
+
+def _src_chase(run: Run) -> list[Event]:
+    rt = run.rt
+    if rt.frozen_at is None or inbox.fraud_answered(rt):
+        return []
+    orig = inbox.fraud_original(rt)
+    if orig is None:
+        return []
+    if rt.fraud_chase1_at is None:
+        return [(_clamp(run, orig.at + timedelta(hours=run.cfg.fraud_first_hours)), P_CHASE, 0, "chase1", None)]
+    if rt.fraud_chase2_at is None:
+        return [(_clamp(run, rt.fraud_chase1_at + timedelta(hours=run.cfg.fraud_second_hours)), P_CHASE, 1, "chase2", None)]
+    return []
+
+
+_SOURCES: list[Callable[[Run], list[Event]]] = [_src_freeze, _src_ladder, _src_chase, _src_answer, _src_eval]
 
 
 def _h_start(run: Run, t: datetime, payload: Any) -> None:
@@ -439,11 +472,60 @@ def _h_answer(run: Run, t: datetime, idx: int) -> None:
     _apply_answer(run, m, m.answered_at or t)
 
 
+def _h_freeze(run: Run, t: datetime, payload: Any) -> None:
+    st, rt, rules = run.state, run.rt, run.rules
+    rt.frozen_at = t
+    entry = _open_entry(run)
+    if entry is not None:
+        entry.decision = "held"
+        entry.why = (f"{entry.why} Frozen {fmt_when(t)}: a fraud hold was requested and the deal is awaiting Fraud Ops "
+                     "to place or release it. No money goes out.")
+    route = routing.route_detail("fraud_hold", st, rules, t)
+    if route is not None:
+        msg = messages.fraud_hold_message(st, rules, st.stage, t)
+        inbox.send_request(st, rt, "fraud_hold", route.to, t, msg, st.stage, inbox.FRAUD_GROUP, "fraud")
+
+
+def _h_ladder(run: Run, t: datetime, nt: tuple) -> None:
+    st, rt, rules = run.state, run.rt, run.rules
+    idx, pct, level, when, key = nt
+    waiting = waiting_for(st, rules, rt, run.view.issues, when)
+    st.alerts.extend(sla.ladder_alerts(st, rules, rt, idx, pct, level, when, waiting))
+    rt.emitted.add(key)
+    rt.alert_times[key] = when
+    if idx == 0:
+        inbox.send_reminder_and_copy(st, rules, rt, when)
+
+
+def _h_chase1(run: Run, t: datetime, payload: Any) -> None:
+    run.rt.fraud_chase1_at = t
+    inbox.send_fraud_copy(run.state, run.rules, run.rt, t)
+
+
+def _h_chase2(run: Run, t: datetime, payload: Any) -> None:
+    st, rt, rules = run.state, run.rt, run.rules
+    rt.fraud_chase2_at = t
+    orig = inbox.fraud_original(rt)
+    if orig is None:
+        return
+    backup = inbox.fraud_backup(rules, orig.to)
+    target = rules.teams.escalates_to(backup or orig.to)
+    if not target:
+        return
+    copied = rt.fraud_chase1_at if backup else None
+    msg = messages.fraud_chase_message(st, rules, st.stage, orig.to, orig.at, backup, copied, t)
+    st.alerts.append(Alert(at=iso(t), stage=st.stage, level="escalation", to=target, message=msg))
+
+
 _HANDLERS: dict[str, Callable[[Run, datetime, Any], None]] = {
     "start": _h_start,
     "eval": _h_eval,
     "immediate": _h_immediate,
     "answer": _h_answer,
+    "freeze": _h_freeze,
+    "ladder": _h_ladder,
+    "chase1": _h_chase1,
+    "chase2": _h_chase2,
 }
 
 
@@ -467,8 +549,63 @@ def _drain(run: Run, strict: bool) -> None:
         _after_event(run, t)
 
 
+def waiting_for(state: DealState, rules: Rules, rt: MoveRuntime, issues: tuple[str, ...], now: datetime) -> tuple[str, str]:
+    """(waiting on, to unblock it) for an alert, from the current stage's blockers."""
+    cfg = get_config()
+    run = Run(state, rules, rt, cfg, to_sim(now), _view(state))
+    stage = state.stage
+    present = run.view.facts
+    missing = [f for f in cfg.required_facts.get(stage, ()) if f not in present]
+    return messages.waiting_on(
+        state, rules, rt, issues, stage, cfg.issues.blocking.get(stage, ()), missing, _vendor_unverified(run, stage),
+        to_sim(now),
+    )
+
+
+def _deadline_check(run: Run, t: datetime) -> None:
+    """J18: one alert, to the RM and the stage owner, once the projection no longer fits before needed_by."""
+    st, rt, rules = run.state, run.rt, run.rules
+    if not rt.started or rt.terminal or rt.frozen_at is not None or "deadline_risk" in rt.emitted:
+        return
+    nb = deadline.needed_by(st)
+    if nb is None:
+        return
+    projected = deadline.project_finish(st, rules, t)
+    if projected <= nb:
+        return
+    rt.emitted.add("deadline_risk")
+    rt.alert_times["deadline_risk"] = t
+    recipients: list[str] = []
+    for pid in (routing.rm_of(st, rules), rt.owner):
+        if pid and pid not in recipients:
+            recipients.append(pid)
+    person, decision = deadline.next_signoff(st, rules, rt, t)
+    msg = messages.deadline_risk_message(
+        st, rules, st.stage, projected, deadline.remaining_stages(st, rules), person, decision,
+        deadline.latest_exit(st, rules, st.stage),
+    )
+    for pid in recipients:
+        st.alerts.append(Alert(at=iso(t), stage=st.stage, level="alert", to=pid, message=msg))
+
+
 def _after_event(run: Run, t: datetime) -> None:
-    return None
+    _deadline_check(run, t)
+
+
+def _maybe_unfreeze(run: Run) -> None:
+    """Move never releases a hold; it resumes only once the fraud flag itself is cleared."""
+    st, rt = run.state, run.rt
+    if rt.frozen_at is None or rt.terminal or st.fraud.held or st.fraud.flagged:
+        return
+    t = max(run.now, rt.frozen_at)
+    rt.frozen_total += t - rt.frozen_at
+    rt.frozen_at = None
+    rt.eval_pending, rt.ready_at = True, t
+    rt.watermark = t if rt.watermark is None or t > rt.watermark else rt.watermark
+    entry = _open_entry(run)
+    if entry is not None:
+        entry.decision = None
+        entry.why = f"{entry.why} Fraud hold cleared {fmt_when(t)}; the deal resumes."
 
 
 def step_deal(state: DealState, rules: Rules, now: datetime) -> None:
@@ -485,10 +622,12 @@ def step_deal(state: DealState, rules: Rules, now: datetime) -> None:
     if prev is None or cur != prev:
         rt.eval_pending = True
     run = Run(state, rules, rt, cfg, now, cur, count=0)
+    _maybe_unfreeze(run)
     _drain(run, strict=False)
     _finish(run)
     rt.view = cur
 
 
 def _finish(run: Run) -> None:
-    return None
+    wm = run.rt.watermark
+    _deadline_check(run, run.now if wm is None or run.now >= wm else wm)

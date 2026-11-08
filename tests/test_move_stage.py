@@ -16,7 +16,7 @@ def rules(tmp_path):
 def test_tracer_clean_deal_reaches_credit_with_one_routed_request(rules):
     st = make_state(profile=GOOD_PROFILE)
     with persona("never"):
-        tick(st, rules, "2026-03-10T12:00")  # one call far past the arrival
+        tick(st, rules, "2026-03-03T12:00")  # one call a day past the arrival, inside the 48h Credit limit
     assert st.error is None
     assert st.stage == "Credit"
     intake, credit = st.stage_log
