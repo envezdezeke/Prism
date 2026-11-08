@@ -1,0 +1,69 @@
+# Read (Phase 3) settings. Generic words only: form titles, field labels, common English words.
+# No company, person, EIN or folder name from any sample belongs here (guard test enforces it).
+#
+# Schema (every section is also reachable as ReadConfig.raw[<name>]):
+#   quiet_minutes   J11 quiet window; must equal config/move.yaml quiet_minutes
+#   limits          max_bytes / max_pages / max_chars caps for untrusted input
+#   confidence      label, table, ocr, range, inferred, vl (UI bins: High >= 0.9, Medium >= 0.6)
+#   classify        title_lines, min_score, image_default_class, signals (per class list of
+#                   {kind: phrase|regex|csv_headers, text|pattern|tokens, weight, where: title|any})
+#   labels.<class>  field -> list of label synonyms (casefolded, whole-line or "label: value")
+#   stops           label-block terminators ("text" exact line, "text*" prefix)
+
+quiet_minutes: 30
+
+limits:
+  max_bytes: 26214400     # 25 MB
+  max_pages: 80
+  max_chars: 400000
+
+confidence:
+  label: 0.95
+  table: 0.9
+  ocr: 0.6
+  range: 0.5
+  inferred: 0.5
+  vl: 0.55
+
+classify:
+  title_lines: 6
+  min_score: 3.0
+  image_default_class: guarantor_id
+  signals:
+    application:
+      - {kind: phrase, text: "small business loan application", weight: 3.0, where: title}
+      - {kind: phrase, text: "legal business name", weight: 1.0, where: any}
+      - {kind: phrase, text: "amount requested", weight: 1.0, where: any}
+
+stops:
+  - "Section*"
+  - "I certify*"
+  - "/s/*"
+
+labels:
+  application:
+    legal_name: ["Legal business name", "Legal name", "Business legal name"]
+    dba: ["DBA / trade name", "DBA", "Trade name", "Doing business as"]
+    ein: ["Federal EIN", "EIN", "Employer identification number", "Federal tax ID"]
+    entity_type: ["Entity type / state", "Entity type", "Type of entity"]
+    formation_date: ["Date business established", "Date established", "Date of formation", "Business start date"]
+    business_address: ["Business address", "Address of business", "Principal business address"]
+    business_phone_email: ["Business phone / email", "Business phone", "Phone / email"]
+    industry: ["Industry (NAICS)", "Industry", "NAICS"]
+    employees: ["Number of employees", "Employees"]
+    revenue: ["Annual revenue (most recent year)", "Annual revenue", "Annual gross revenue"]
+    bank: ["Primary bank / account", "Primary bank", "Bank / account"]
+    amount_requested: ["Amount requested", "Loan amount", "Requested amount"]
+    product: ["Product", "Loan product", "Product type"]
+    purpose: ["Use of proceeds", "Purpose of loan", "Loan purpose"]
+    term: ["Requested term", "Term requested", "Loan term"]
+    collateral: ["Collateral offered", "Collateral"]
+    needed_by: ["Funds needed by", "Needed by", "Date funds needed"]
+    guarantor_name: ["Name", "Guarantor name", "Owner name"]
+    guarantor_title: ["Title / ownership", "Title", "Ownership"]
+    guarantor_dob: ["Date of birth", "DOB"]
+    guarantor_ssn: ["SSN", "Social security number"]
+    guarantor_address: ["Home address", "Residence address"]
+    guarantor_dl: ["Driver license", "Driver's license", "Driver license number"]
+    affiliated: ["Affiliated businesses", "Affiliates"]
+    application_date: ["Application date", "Date of application", "Date submitted"]
