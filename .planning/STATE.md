@@ -1,9 +1,9 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 02
-current_phase_name: Pipeline Cockpit UI on Mock Data
-status: executing
-stopped_at: Phase 3 context gathered (UI 02-03 complete)
+current_phase: 03
+current_phase_name: Read the Folder
+status: planning
+stopped_at: Phase 3 context gathered
 last_updated: "2026-11-08T03:34:52.884Z"
 last_activity: "2026-11-07 ~20:10 CT - Merged quick task 261107-qx3 (Move core; 353 tests). Fraud baseline (qx4) merged earlier. Next: Phase 3 Read (critical path), then Phase 5 decide/clusters/history_flags."
 state_head: c2ed1e43a2179031d96665675ab0e98a7999d749
