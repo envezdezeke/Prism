@@ -1,0 +1,1 @@
+{"answer": {"content": "", "tool_calls": [{"arguments": "{\"cluster_id\":\"C-004\"}", "id": "call-a17233e8-b5c2-4475-9dbc-8470ea21a5e4", "name": "cluster_summary"}]}, "model": "nvidia/nemotron-3.5-super-vl-120b-a12b"}
