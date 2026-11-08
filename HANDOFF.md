@@ -141,8 +141,8 @@ Settle these together; each blocks clean hand-offs.
 | 1 | ~~Contract + mock data~~ | | **Resolved:** delivered by Zeke Sat evening (`docs/CONTRACT.md`, `fixtures/`, `prism/`; 76 tests pass on Mac) |
 | 2 | ~~Answer key not started; shape undefined~~ | | **Resolved Sat 18:29:** Zeke's template (`eval/README.md`), all 13 deals `done`, pushed before the 20:00 deadline |
 | 3 | ~~Answer key must be labelled blind~~ | | **Done:** labelled from raw files, then diffed against the research: zero disagreements on issues, holds or links |
-| 4 | **Jesse's role.** The plan has Jesse coding the UI for ~8h (H1–H9) plus the graph view; Jesse is finance, not a developer | Biggest schedule risk on Jesse's track | Jesse owns: the details checklist and judgment calls, answer key, credit-memo and alert wording, false-flag review, pitch. The UI gets built with Claude Code under Jesse's direction, kept plain (accuracy > looks) |
-| 5 | **Finance items aren't in the ROADMAP**: domain rules / judgment calls, credit-memo template, alert and request wording (§7 items 2–4) | The Committee stage can't exit without a credit memo; alerts must say 4 specific things | Add them to Jesse's track, ahead of UI polish |
+| 4 | ~~Jesse's role vs. ~8h of UI coding~~ | | **Resolved Sat ~19:20:** Jesse keeps the UI role (Phase 2 + 7), building with Claude Code; finance items (checklist, answer key, memo, messages) already delivered first |
+| 5 | ~~Finance items not in the ROADMAP~~ | | **Resolved:** delivered: `docs/DETAILS_CHECKLIST.md`, `eval/gold.json`, `docs/CREDIT_MEMO_TEMPLATE.md`, `docs/MESSAGE_TEMPLATES.md` |
 | 6 | ~~Judgment calls J1–J20~~ | | **Locked** by Jesse; Zeke confirmed in STATE.md |
 | 7 | **Organizer questions** were in two places; now merged into §5 here, owned by Jesse | Who answers human requests during judging, and how `issues` is scored, both change the build | Jesse owns asking Vijay; record the answers in PROJECT.md Key Decisions |
 | 8 | ~~Mac setup~~ | | **Resolved:** Mac steps in ONBOARDING §4; Zeke's tests pass on Jesse's Mac |
