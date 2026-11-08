@@ -128,6 +128,7 @@ The answer key will be `eval/gold.json` (Jesse, labelled blind; not yet written 
 | Missing statement at Credit → `info_request` first; no `credit_decision` on an incomplete file | Rule: never advance while waiting on a document | — Pending |
 | Ask organizers now how human answers and drops arrive; build inbox + scripted personas meanwhile | Unknown judging mechanics | — Pending |
 | Hard gates: H10 engine baseline frozen, H15.5 Nemotron agents working, H18 feature freeze, submit 11:40 (deadline Sun 12:00 CT); cut UI first | 20h budget (Sat 15:55 → Sun 12:00), Goldman > Nemotron > UI | — Pending |
+| Fraud model + Nemotron design settled (bits of surprise, F1 + ≥2 of F2–F5, 95th-pct thresholds on clean history, time-split validation, adaptive red-team headline, VL may fill nulls) | Grilling sessions 2026-11-07; full record and playbooks in `docs/MODEL_DESIGN.md`, math in `docs/model/prism_model.tex` | ✓ Decided |
 
 ## Evolution
 

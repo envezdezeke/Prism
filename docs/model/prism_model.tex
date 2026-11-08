@@ -1,0 +1,203 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\setlist{nosep,leftmargin=1.4em}
+\definecolor{navy}{HTML}{1B2A41}
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\df}{\operatorname{df}}
+\newcommand{\KL}{D_{\mathrm{KL}}}
+\title{\color{navy}\textbf{Prism: Cross-Deal Fraud Detection Model}\\[2pt]\large Mathematical specification, calibration and validation}
+\author{Team Prism (Ezekiel, Jesse) \quad HackUTD 2026, Goldman Sachs DealPilot}
+\date{Saturday 2026-11-07 \quad Decisions of record: \texttt{docs/MODEL\_DESIGN.md}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Prism holds coordinated fake loan applications before money is disbursed while leaving honest but unusual borrowers alone.
+Fraud rings manufacture applications cheaply by \emph{reusing resources}: a bookkeeper, a remit account, a document generator, a deposit-shaping script.
+Each reuse leaves a trace that is \emph{rare in the bank's own history} and \emph{shared across deals}.
+Every piece of evidence is expressed in one unit, bits of surprise relative to a year of clean history.
+Evidence is grouped into independent families, and a hold requires agreement between at least three of them.
+Thresholds are set to fixed false-alarm rates on clean deals. They are never fitted to fraud examples, so the method carries over to an unseen trick.
+Every scored decision is deterministic; language models (NVIDIA Nemotron) work around the engine and never decide a hold.
+\end{abstract}
+
+\section{Setup and notation}
+\begin{itemize}
+\item $\mathcal{H}$: history deals ($N=|\mathcal{H}|=257$, Nov 2025 -- Oct 2026); $\mathcal{D}_t$: current deals whose documents have arrived by sim time $t$ (files are visible only once $t \ge \texttt{arrive\_at}$).
+\item $\mathcal{C}\subset\mathcal{H}$: \emph{clean calibration set}: funded, \texttt{fraud\_label}$=$none, repayment current or paid off, applied on or before 2026-06-30.
+\item Entity types $\mathcal{T}$ = \{preparer, preparer phone, registered agent, remit account, vendor, PDF producer, business address, bank, guarantor ID\}.
+For deal $d$, $E(d)$ is its set of canonical entity values. Canonicalization casefolds, strips punctuation, reduces phones to digits, tokenizes addresses, and splits the legal suffix (LLC, Inc) into its own field, giving a \emph{base key} and a \emph{full key}.
+\item $\df(v)=|\{h\in\mathcal{H}: v\in E(h)\}|$, the history document frequency of entity value $v$.
+\end{itemize}
+
+\section{The unit: bits of surprise}
+For any observation $x$ with smoothed probability $\hat P(x\mid\text{clean history})$,
+\begin{equation}
+\B(x) \;=\; -\log_2 \hat P(x\mid\text{clean history}) .
+\end{equation}
+Every family $f\in\{1,\dots,6\}$ produces a per-deal score $\B_f(d)\ge 0$.
+All probabilities use add-one (Laplace) smoothing, so no observation is ever infinitely surprising.
+For an entity value,
+\begin{equation}
+\hat p(v)=\frac{\df(v)+1}{N+1},\qquad I(v)=-\log_2 \hat p(v).
+\end{equation}
+With $N=257$: an unseen value carries $I\approx 8.0$ bits, a value used 5 times $\approx 5.4$ bits, 15 times $\approx 4.0$ bits, 200 times $\approx 0.4$ bits.
+
+\section{Signal families}
+
+\subsection*{F1 \quad Shared rare entity (mandatory for a hold)}
+An entity value $v$ is \emph{strong} if it is rare and actually links deals:
+\begin{equation}
+\text{strong}(v)\iff \frac{\df(v)}{N}<\rho \;\;\wedge\;\; |\{d'\in\mathcal{H}\cup\mathcal{D}_t: v\in E(d')\}|\ge 2,\qquad \rho=0.02 .
+\end{equation}
+The pair evidence between deals $a$ and $b$ weights each shared strong entity by its surprisal, its type and its history outcomes:
+\begin{equation}
+S(a,b)=\sum_{v\in E(a)\cap E(b),\ \text{strong}(v)} w_{t(v)}\;\omega_v\;I(v),
+\qquad
+\omega_v = 1-\beta\,\frac{\text{repaid}(v)+1}{\df(v)+2}.
+\end{equation}
+Here $w_t$ is the entity-type weight (remit account, preparer and registered agent strong; address and bank weak), and $\omega_v$ discounts entities whose history deals mostly repaid ($\beta\in[0,1]$).
+This is the rarity-weighted form of the standard \emph{Adamic--Adar} link-prediction index $\mathrm{AA}(a,b)=\sum_{v}1/\log\deg(v)$, with $\deg(v)\approx\df(v)$.
+The deal score is $\B_1(d)=\max_{b\neq d} S(d,b)$, over both current and history deals.
+
+\subsection*{F2 \quad Novelty and burst}
+For entity $v$, let $\lambda_v$ be its smoothed long-run usage rate scaled to a recent window $W$ (90 days), and $k_v$ its uses inside the window.
+Under a Poisson null $X\sim\mathrm{Pois}(\lambda_v)$,
+\begin{equation}
+\B_2(d)=\max_{v\in E(d)}\; -\log_2 P(X\ge k_v\mid\lambda_v),
+\qquad
+P(X\ge k)=1-\sum_{j=0}^{k-1}\frac{e^{-\lambda}\lambda^j}{j!}.
+\end{equation}
+
+\subsection*{F3 \quad Lookalike counterparty}
+Vendor $u$ on deal $d$ is a lookalike of a frequent history vendor $u^\ast$ if their base keys match ($\mathrm{sim}_{\text{token-set}}\ge 0.8$ or edit distance $\le 2$) but the suffix or the remit account differs.
+With $n_{\text{pat}}$ the number of history equipment deals showing that same pattern, out of $n_{\text{vend}}$ history vendor observations,
+\begin{equation}
+\B_3(d)= -\log_2\frac{n_{\text{pat}}+1}{n_{\text{vend}}+1}\quad\text{if a lookalike exists, else }0 .
+\end{equation}
+
+\subsection*{F4 \quad Document forensics}
+For document class $c$ (bank statement, tax return, ...) and producer string $\pi$, with $n_{c,\pi}$ observed counts and $\Pi_c$ the producers seen for class $c$:
+\begin{equation}
+\hat P(\pi\mid c)=\frac{n_{c,\pi}+1}{n_c+|\Pi_c|+1},\qquad
+\B_4(d)=\max_{\text{doc}\in d}\; -\log_2 \hat P(\pi_{\text{doc}}\mid c_{\text{doc}}) .
+\end{equation}
+This flags a bank statement produced by a template tool instead of a statement system, without naming any tool.
+
+\subsection*{F5 \quad Deposit pattern}
+From statements, $n$ deposits, of which $R$ are multiples of \$100. A Beta$(a,b)$ prior is fitted to the history round-share by the method of moments, and the shrunken share is
+\begin{equation}
+\tilde r=\frac{R+a}{n+a+b},
+\end{equation}
+which pulls small samples (e.g.\ four large wires) toward normal instead of using a hard cutoff.
+Weekday mix $q$ (Dirichlet-smoothed) is compared with the pooled history weekday distribution $p_0$ through
+\begin{equation}
+H(q)=-\sum_{i}q_i\log_2 q_i,\qquad \KL(q\,\|\,p_0)=\sum_i q_i\log_2\frac{q_i}{p_0(i)} .
+\end{equation}
+Deposits only on two weekdays give $H=1$ bit, while a spread over five gives about $2.3$.
+Each statistic is turned into bits through its smoothed empirical upper tail on $\mathcal{C}$: $\B(z)=-\log_2\frac{1+|\{h\in\mathcal{C}: z_h\ge z\}|}{1+|\mathcal{C}|}$, and $\B_5(d)$ is the maximum over the statistics.
+
+\subsection*{F6 \quad Terms shape (evidence only, never votes)}
+Amount within 2\% below any approval threshold in \texttt{stages.json}, entity younger than 24 months, no needed-by date, round amount.
+Reported in the reason and the checklist, but excluded from the hold rule, because these traits are common among honest small businesses and correlate with other quirks.
+
+\section{Calibration: thresholds from clean deals only}
+For $f\in\{2,3,4,5\}$ the firing threshold is the interpolated 95th percentile on the clean calibration set:
+\begin{equation}
+\tau_f = Q_{0.95}\big(\{\B_f(h): h\in\mathcal{C}\}\big),\qquad \text{fires}_f(d)\iff \B_f(d)\ge\tau_f ,
+\end{equation}
+so each family misfires on about $\alpha=5\%$ of good deals by construction ($|\mathcal{C}|\approx 164$ makes a 5\% tail about 8 deals, a stable estimate; a 1\% tail would be 1--2 deals).
+F1 fires when $\B_1(d)\ge\tau_1$ with at least one strong shared entity.
+The configuration stores the \emph{percentile} (0.95) and \emph{fraction} ($\rho$), never bit values, so thresholds re-derive from whatever history ships with a new dataset.
+The fraud examples and the 13 sample deals are \emph{never} used to set a threshold.
+
+\section{Decision rule}
+\begin{equation}
+\textsc{Hold}(d,t)\iff \text{fires}_1(d,t)\;\wedge\;\sum_{f=2}^{5}\text{fires}_f(d,t)\ge 2 ,
+\qquad
+\textsc{Watch}(d,t)\iff 1\le\sum_{f=1}^{5}\text{fires}_f(d,t)\;\wedge\;\neg\textsc{Hold}(d,t).
+\end{equation}
+A hit on any of the bank's five known-fraud checks goes straight to Fraud Operations (bank policy).
+
+\paragraph{False-alarm bound.} If families misfire independently with rates $\alpha_1$ and $\alpha=0.05$,
+\begin{equation}
+P(\textsc{Hold}\mid\text{clean})\le \alpha_1\cdot P\big(\mathrm{Bin}(4,0.05)\ge 2\big)
+=\alpha_1\big(1-0.95^4-4(0.05)(0.95)^3\big)\approx 0.014\,\alpha_1 .
+\end{equation}
+With $\alpha_1\approx 0.05$ this is about $7\times10^{-4}$ per deal: about 0.9\% chance of any false hold over 13 deals, and an expected 0.07 false flags over the 93 held-out history deals.
+Families are not truly independent (that is why F6 cannot vote), so this bound is a design target. The real rate is \emph{measured} on held-out history.
+
+\paragraph{Display score.} The UI shows total evidence $\B(d)=\sum_f\B_f(d)$ bits, read as ``about 1 in $2^{\B}$ by chance under the clean-history model''. The hold decision is always the rule above, never this number.
+
+\section{Clusters, significance and linking}
+\begin{itemize}
+\item \textbf{Clusters}: connected components of the graph restricted to strong F1 edges. Dropping weak edges keeps common entities from fusing everything.
+\item \textbf{Permutation test}: for cluster $K$ with statistic $T(K)=\sum_{a<b\in K}S(a,b)$, permute entity values within each type across all deals (preserving frequencies) $M=1000$ times. Then $p=\frac{1+|\{m: T^\ast_m\ge T(K)\}|}{1+M}$.
+\item \textbf{Kit detection (PMI)}: for rare entities $v,w$, $\mathrm{PMI}(v,w)=\log_2\frac{\hat P(v,w)}{\hat P(v)\hat P(w)}$. High-PMI pairs mark a reused kit (preparer + account + producer together).
+\item \textbf{History flags}: history deal $h$ joins \texttt{history\_flags} iff it has at least 2 independent links to a held cluster, from: (a) a strong shared entity type, (b) a second strong type, (c) the same F3 pattern, (d) the same rare producer, (e) a deposit fingerprint within a KL bound.
+\end{itemize}
+
+\section{Timing}
+Scores are recomputed on every file arrival. With $\mathcal{A}$ the arrival times,
+\begin{equation}
+\texttt{flagged\_at}(d)=\min\{t\in\mathcal{A}: \textsc{Hold}(d,t)\}.
+\end{equation}
+Holds are \emph{sticky}: once requested, a deal stays held until a human sends \texttt{fraud\_release}. Weaker later evidence adds a log entry and never un-flags.
+
+\section{Validation design}
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Set & Size & Role & Tuned on? \\
+\midrule
+History Nov 2025 -- Jun 2026 & 164 & baselines, thresholds & yes (only set)\\
+History Jul -- Oct 2026, forward replay & 93 & held-out false flags, scheme position & no\\
+Old-trick fraud deals & 12 & blind check without rules & no\\
+Sample deals & 13 & regression, trap suite & no\\
+Synthetic tricks + benign twins & 100s & leave-one-family-out & sanity only\\
+Nemotron-invented tricks & --- & final exam & never\\
+Weekend drop & ? & blind, first run recorded & never\\
+\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Success, in priority order}:
+(1) zero false holds on the sample traps and zero history false flags;
+(2) the sample ring held before Closed, with exact \texttt{history\_flags};
+(3) held-out history: at most 1 flag among the good deals, each reviewed in writing;
+(4) synthetic held-out family: at least 70\% of ring deals held, at most 5\% of benign twins flagged;
+(5) earliness.
+A lower criterion never overrides a higher one.
+
+\section{Playbooks}
+\begin{itemize}
+\item \textbf{Ring missed}: fix extraction $\rightarrow$ generic feature fix (full re-run) $\rightarrow$ threshold change only if held-out still passes (logged). Time box 60 minutes; otherwise ship it on watch and say so. Never sample literals or per-deal exceptions.
+\item \textbf{False hold}: inspect the families $\rightarrow$ lower the type weight / add the outcome discount / fix the feature $\rightarrow$ tighten to F1 + 3 of F2--F5. Never whitelist by name.
+\item \textbf{Running late}: build F1, F3, F5, F4, F2, then PMI/permutation. F1 + F3 + F5 alone can satisfy the rule.
+\end{itemize}
+
+\section{Nemotron guardrails}
+A Nemotron vision read $\hat x$ may fill a scored field $x$ only if
+\begin{equation}
+x_{\text{parser}}=\varnothing\;\wedge\;\mathrm{fmt}(\hat x)\;\wedge\;\big(\nexists\,x_{\text{2nd}}\;\vee\;\hat x\equiv x_{\text{2nd}}\big),
+\end{equation}
+and it can never create an issue, mismatch or hold. Calls are cached by hash(model, messages, tools, parameters), so runs replay deterministically.
+Agents (adaptive red-team, prosecutor/defender) use read-only HTTP tools; every claim must cite an evidence ID, and uncited claims are flagged by a deterministic check.
+
+\appendix
+\section{UI handoff (for Jesse's agents)}
+The full agent-ready playbook is \texttt{docs/UI\_PLAYBOOK.md}; the locked visual decisions are in \texttt{.planning/phases/02-*/02-CONTEXT.md} (D-01 to D-16). To set up Claude Code on the Mac, inside the repo:
+\begin{verbatim}
+/plugin marketplace add anthropics/skills
+/plugin install example-skills@anthropic-agent-skills   # frontend-design, webapp-testing
+npx shadcn@latest mcp init --client claude              # shadcn component MCP
+claude mcp add playwright -- npx @playwright/mcp@latest # agent sees the page
+\end{verbatim}
+How this model shows up on screen: the evidence panel lists the families in order F1--F6 with their bits and thresholds; F6 is visually marked ``evidence only''. Edges in the graph are weighted by $I(v)$ (thicker means rarer), and common entities are drawn faint with their history count (``used by 15 deals, mostly repaid''). The cluster header shows the permutation $p$-value and ``$k$ of 4 voting families agree''.
+
+\end{document}
