@@ -40,3 +40,8 @@ Counts: 20 fake cases per family per strength and 30 cases per twin, each with a
 ## Known blind spots
 
 The design deliberately bets that the hidden trick is still a cross-deal ring (MODEL_DESIGN M2). So any fraud that shares no rare party across deals can reach "watch" but never "hold". That covers four cells: a statement mill where every applicant uses different names and numbers (T3); a recycled identity whose name is respelled, because the engine matches guarantors by name and doesn't index birth date, SSN or licence (T4 weak); a bust-out by a single returning customer, because no rule compares a borrower with its own history (T5); and revenue inflation kept just under the bank's 1.5x line (T8 weak). Separately, until F2 (new or bursting party) and F4 (document software) are built, only rings that also involve an equipment vendor can be held. Every non-equipment ring lands on watch today. We report each of these as an expected miss rather than hiding it.
+
+## Decisions (Jesse, Sat ~20:30 CT)
+
+- 1, 2, 5: accepted as recommended (relative strengths; blind spots kept and labelled, outside the 70% target; only holds count as twin false flags, watches reported as friction).
+- 3, 4: sent to Zeke as HANDOFF §9 items 19 and 20.
