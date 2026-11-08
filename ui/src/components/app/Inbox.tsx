@@ -142,12 +142,12 @@ function Pane({
   const answerable = !answered && !item.answeredInSession
 
   return (
-    <aside aria-label="Request" className="flex flex-col gap-3 rounded-md border border-line bg-surface p-4">
+    <aside aria-label="Request" className="flex flex-col gap-3 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
       <div className="flex flex-col gap-1">
         <p className="text-sm font-semibold">{deal.name}</p>
         {deal.folder !== null && <Caption>{deal.folder}</Caption>}
       </div>
-      <h2 className="text-base font-semibold">{requestTypeLabel(item.type)}</h2>
+      <h2 className="text-base font-bold text-navy">{requestTypeLabel(item.type)}</h2>
       <div className="flex flex-col gap-1 text-sm text-ink-2">
         <p className="tabular-nums">Sent {fmtSimTime(item.at)}</p>
         <p title={who.title}>To {who.label}</p>
@@ -233,8 +233,8 @@ function SegmentButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`h-9 border-b-2 px-3 text-sm ${
-        active ? 'border-navy font-semibold text-navy' : 'border-transparent text-ink-2 hover:bg-subtle'
+      className={`h-10 rounded-t-sm border-b-4 px-4 text-sm ${
+        active ? 'border-sky bg-navy font-bold text-surface' : 'border-transparent font-medium text-ink-2 hover:bg-subtle'
       }`}
     >
       {children}
@@ -260,9 +260,9 @@ export function InboxList({
   return (
     <div className="rounded-md border border-line bg-surface">
       <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="border-l-2 border-transparent">Age</TableHead>
+        <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+          <TableRow className="border-navy hover:bg-transparent">
+            <TableHead className="border-l-4 border-transparent">Age</TableHead>
             <TableHead>Deal</TableHead>
             <TableHead>Request</TableHead>
             <TableHead>To</TableHead>
@@ -276,8 +276,8 @@ export function InboxList({
             const who = personLabel(item.to, roleForRequest(item.type))
             const selected = item.id === selectedId
             return (
-              <TableRow key={item.id} className="cursor-pointer align-top" onClick={() => onSelect(item.id)}>
-                <TableCell className={`border-l-2 whitespace-nowrap tabular-nums ${selected ? 'border-navy' : 'border-transparent'}`}>
+              <TableRow key={item.id} className={`cursor-pointer align-top ${selected ? 'bg-subtle' : ''}`} onClick={() => onSelect(item.id)}>
+                <TableCell className={`border-l-4 whitespace-nowrap font-semibold tabular-nums ${selected ? 'border-navy' : 'border-transparent'}`}>
                   <button
                     type="button"
                     aria-pressed={selected}
@@ -356,7 +356,7 @@ export function InboxScreen({
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="flex min-w-0 flex-col gap-4">
-        <div className="flex border-b border-line">
+        <div className="flex border-b-2 border-navy">
           <SegmentButton active={segment === 'pending'} onClick={() => setSegment('pending')}>
             Pending <span className="tabular-nums">{pending.length}</span>
           </SegmentButton>
@@ -382,7 +382,7 @@ export function InboxScreen({
         )}
       </div>
       {selected === undefined ? (
-        <aside aria-label="Request" className="rounded-md border border-line bg-surface p-4">
+        <aside aria-label="Request" className="rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
           <Caption>Select a request to read it and answer it.</Caption>
         </aside>
       ) : (

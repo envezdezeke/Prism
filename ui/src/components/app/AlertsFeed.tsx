@@ -30,9 +30,9 @@ export function AlertsView({
   return (
     <div className="rounded-md border border-line bg-surface">
       <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="border-l-2 border-transparent">Time</TableHead>
+        <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+          <TableRow className="border-navy hover:bg-transparent">
+            <TableHead className="border-l-4 border-transparent">Time</TableHead>
             <TableHead>Level</TableHead>
             <TableHead>Deal</TableHead>
             <TableHead>Stage</TableHead>
@@ -49,8 +49,8 @@ export function AlertsView({
             const edge = a.level === 'escalation' ? 'border-risk' : 'border-transparent'
             return (
               <TableRow key={a.id} className="align-top">
-                <TableCell className={`border-l-2 whitespace-nowrap tabular-nums ${edge}`}>{fmtSimTime(a.at)}</TableCell>
-                <TableCell className="whitespace-nowrap">{alertLevelLabel(a.level, a.message)}</TableCell>
+                <TableCell className={`border-l-4 whitespace-nowrap font-semibold tabular-nums ${edge}`}>{fmtSimTime(a.at)}</TableCell>
+                <TableCell className="whitespace-nowrap font-semibold text-navy">{alertLevelLabel(a.level, a.message)}</TableCell>
                 <TableCell className="max-w-48">
                   <DealLink folder={a.deal}>
                     <span className="block truncate font-semibold" title={legal ?? a.deal}>
