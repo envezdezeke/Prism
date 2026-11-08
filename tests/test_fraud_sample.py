@@ -10,7 +10,10 @@ import json
 import pytest
 
 from prism.contract import parse_sim_time
+from prism.engine.config import load_rules
 from prism.engine.run import run_sim
+from prism.engine.writer import build_submission, dumps
+from prism.move import routing
 from tests.real_data import ROOT, requires_sample, sample_root, tuning_folders
 
 
@@ -98,3 +101,54 @@ def test_tuning_flag_and_held_match_the_answer_key(sample_run, gold, tuning):
         got = sample_run.states[folder].fraud
         assert got.flagged == want["flagged"], "flag differs from the answer key on a tuning deal"
         assert got.held == want["held"], "held differs from the answer key on a tuning deal"
+
+
+
+# ---------------------------------------------------------------- Move does the rest (Task 3)
+
+def _first_fraud_decider():
+    rules = load_rules(sample_root())
+    ids = routing.ids_in(rules.stages.fraud_hold.get("who_decides"), rules.teams)
+    assert ids
+    return ids[0]
+
+
+@requires_sample
+def test_flagged_tuning_deals_are_frozen_at_intake_with_one_fraud_hold_request(sample_run, gold, tuning):
+    flagged = _flagged_gold(gold, tuning)
+    assert flagged
+    decider = _first_fraud_decider()
+    for folder in flagged:
+        st = sample_run.states[folder]
+        assert st.fraud.stage_at_flag == "Intake"
+        assert len(st.stage_log) == 1
+        entry = st.stage_log[0]
+        assert entry.stage == "Intake" and entry.decision == "held" and entry.exited_at is None
+        assert all(e.stage != "Closed" for e in st.stage_log)
+        holds = [r for r in st.human_requests if r.type == "fraud_hold" and r.at == st.fraud.flagged_at]
+        assert len(holds) == 1, "expected exactly one fraud_hold request at flagged_at"
+        first = min((r for r in st.human_requests if r.type == "fraud_hold"),
+                    key=lambda r: parse_sim_time(r.at))
+        assert first.to == decider and first.at == st.fraud.flagged_at
+
+
+@requires_sample
+def test_good_tuning_deals_get_no_fraud_hold_request(sample_run, gold, tuning):
+    for folder in tuning:
+        if gold[folder]["fraud"]["flagged"]:
+            continue
+        st = sample_run.states[folder]
+        assert not st.fraud.flagged and not st.fraud.held
+        assert st.fraud.stage_at_flag is None
+        assert not any(r.type == "fraud_hold" for r in st.human_requests)
+
+
+@requires_sample
+def test_two_sample_runs_give_the_same_submission(sample_run):
+    root = sample_root()
+    again = run_sim(root / "shared_folder", root / "sim" / "arrivals.jsonl", data_root=root)
+
+    def dump(r):
+        return dumps(build_submission(r.states, r.history_flags, r.errors, team="t", set_name="s"))
+
+    assert dump(sample_run) == dump(again)
