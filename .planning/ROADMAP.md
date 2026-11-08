@@ -119,7 +119,12 @@ Cut in this order when a gate is at risk.
   3. Clicking a deal opens its detail page: extracted facts (each with a source-document chip and confidence), open issues, the stage log with its "why", human requests and alerts.
   4. The user can answer a pending request from the inbox, and the reply goes to the API in the contract shape.
   5. Every screen uses one type scale and tabular money numerals, and red appears only on fraud holds.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 02-01-PLAN.md — Tracer: package checkpoint, scaffold, Playbook tokens, client-held clock and one live pipeline board path (UI-01, UI-02)
+- [ ] 02-02-PLAN.md — Full board rows, formatting module, sim-clock controls and replay, design audit gate (UI-01, UI-02, UI-03)
+- [ ] 02-03-PLAN.md — App frame, deal detail (facts, issues, stage log, requests, alerts, fraud panel), labels and people map (UI-01, UI-04)
+- [ ] 02-04-PLAN.md — Inbox with replies and overlay, alerts feed, phase gate and human-check (UI-01, UI-04, UI-05)
 **UI hint**: yes
 
 ### Phase 3: Read the Folder
