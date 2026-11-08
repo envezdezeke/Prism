@@ -4,7 +4,7 @@ Tasks 1 and 2 are done. Task 3 (repository sharing decision) is pending and wait
 
 | Task | State | Commit |
 |---|---|---|
-| 1. Cut outline to 3 minutes, built-screen demo, sourced placeholders | done | 7fa917d |
+| 1. Cut outline to 3 minutes, built-screen demo, sourced placeholders | done | 413f5a1 |
 | 2. Eight-slide self-contained deck | done (no screenshots, see below) | 8846f72 |
 | 3. Decide how the repository is shared with judges | pending, blocking-human, not decided here | none |
 
