@@ -34,20 +34,41 @@ def params(cfg):
 
 # ------------------------------------------------------------------------ clean set
 
-def test_clean_ids_filters_and_orders(params):
+def test_clean_ids_ignore_dates_and_filter_status(params):
     after_train = (params.train_end - date(2026, 1, 1)).days + 20
-    rows = [
-        deal_row("X-5", iso_day(30)),
+    rows = [deal_row(f"F-{i:02d}", iso_day(40 + i)) for i in range(20)]  # enough clean deals
+    rows += [
         deal_row("X-2", iso_day(10), repayment_status="paid_off"),
-        deal_row("X-3", iso_day(10)),
         deal_row("L-1", iso_day(11), fraud_label="old_trick"),
         deal_row("C-1", iso_day(12), repayment_status="charged_off"),
         deal_row("D-1", iso_day(13), final_status="declined", repayment_status=""),
         deal_row("P-1", iso_day(14), repayment_status="30_days_past_due"),
-        deal_row("Z-1", iso_day(after_train)),  # funded and clean but after train_end
+        deal_row("Z-1", iso_day(after_train)),  # after the config train_end: still clean (R4)
     ]
     b = Baseline.from_rows(rows, params=params)
-    assert clean_ids(b, params) == ["X-2", "X-3", "X-5"]
+    got = clean_ids(b, params)
+    assert "Z-1" in got and "X-2" in got
+    assert not {"L-1", "C-1", "D-1", "P-1"} & set(got)
+    assert got == [i for i in b.ordered_ids() if i in set(got)]
+
+
+def test_thin_clean_set_falls_back_to_label_none(params):
+    rows = [
+        deal_row("X-2", iso_day(10), repayment_status="paid_off"),
+        deal_row("L-1", iso_day(11), fraud_label="old_trick"),
+        deal_row("C-1", iso_day(12), repayment_status="charged_off"),
+    ]
+    b = Baseline.from_rows(rows, params=params)
+    assert clean_ids(b, params) == ["X-2", "C-1"]
+
+
+def test_shifted_history_keeps_the_same_clean_set(params):
+    rows = [deal_row(f"F-{i:02d}", iso_day(i)) for i in range(25)]
+    shifted = [dict(r, application_date=(date.fromisoformat(r["application_date"][:10])
+                                         .replace(year=2027)).isoformat()) for r in rows]
+    a = clean_ids(Baseline.from_rows(rows, params=params), params)
+    s = clean_ids(Baseline.from_rows(shifted, params=params), params)
+    assert a == s and len(a) == 25
 
 
 # ------------------------------------------------------------------------ thresholds
@@ -105,7 +126,7 @@ def test_f5_tau_matches_percentile_of_clean_bits(params):
 
 
 def test_empty_clean_set_gives_no_tau(params):
-    b = Baseline.from_rows([deal_row("X-1", iso_day(1), repayment_status="charged_off")], params=params)
+    b = Baseline.from_rows([deal_row("X-1", iso_day(1), fraud_label="old_trick")], params=params)
     cal = compute_thresholds(b, params)
     assert cal.n_clean == 0 and cal.tau == {"F3": None, "F5": None}
     assert cal.fire_rate_clean == {"F1": 0.0, "F3": 0.0, "F5": 0.0}

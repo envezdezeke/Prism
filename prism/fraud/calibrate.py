@@ -1,7 +1,7 @@
 """Startup calibration of the F3 and F5 thresholds (owner: Phase 5; M7, M13).
 
 The clean calibration set C is funded, ``fraud_label`` none, repayment current or paid_off,
-and applied on or before ``train_end``. Every deal in C is scored leave-one-out against the
+whatever its date (fallback: every label-none deal when fewer than MIN_CLEAN). Every deal in C is scored leave-one-out against the
 rest of the baseline. ``tau_f`` is the linearly interpolated percentile (from config) of the
 bits ``B_f`` over C. Config stores only the percentile; the computed tau lands on
 ``Baseline.calibration`` for audit and is never a stored bit value.
@@ -20,12 +20,24 @@ from prism.fraud.rarity import FraudParams, percentile, upper_tail_bits
 from prism.fraud.signals import F5_STATS, f5_statistics, score_f1, score_f3
 
 
+# A clean set smaller than this is too thin to calibrate on, so the label-none deals of any
+# repayment status stand in. A count of deals, not a bit threshold.
+MIN_CLEAN = 20
+
+
 def clean_ids(baseline: Baseline, params: FraudParams) -> list[str]:
-    """Clean calibration deals sorted by (applied, id)."""
-    return [
-        i for i in baseline.ordered_ids()
-        if baseline.deals[i].clean and baseline.deals[i].applied <= params.train_end
-    ]
+    """Clean calibration deals sorted by (applied, id), whatever their dates.
+
+    Thresholds are relative to the history that ships, never to dates in config: a history
+    dated outside the config window must not switch F3 and F5 off (red-team trick R4).
+    Measurement code that needs a time split builds its Baseline on the train deals only.
+    ``params`` is kept for signature stability.
+    """
+    ids = baseline.ordered_ids()
+    clean = [i for i in ids if baseline.deals[i].clean]
+    if len(clean) >= MIN_CLEAN:
+        return clean
+    return [i for i in ids if baseline.deals[i].fraud_label == "none"]
 
 
 def _tau(values: list[float], params: FraudParams, family: str) -> Optional[float]:
