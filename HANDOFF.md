@@ -93,6 +93,7 @@ Owner: Jesse. Record each answer in PROJECT.md Key Decisions. Ordered by how muc
 6. **Is "flag earlier" measured in sim time or by stage?** What are the score weights? Is there a live demo or presentation besides the JSON score?
 7. **Does submission require a public GitHub repo,** given the data is confidential?
 8. **What team name goes in the output file's `team` field?**
+9. **At what sim time does a judged run end?** The sample arrivals stop Fri 11/06 18:00; we currently run to the last arrival + 30 sim-minutes (quiet window). Should alerts/escalations past that (e.g. over the weekend) be emitted? Also: **who runs the hidden set** (does their run have an NVIDIA key)?
 
 NVIDIA table: confirm which Nemotron model they recommend for tool calling and for vision (VL), the rate limits, and how the Brev credits work.
 
