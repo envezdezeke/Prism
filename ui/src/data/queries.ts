@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { getAlerts, getDeal, getDeals, getGraph, getInbox, getInvestigator, getRedteam, describeError } from '../api/client.ts'
 import type { DealDetail } from '../api/types.ts'
@@ -54,4 +55,11 @@ export function useDealDetails(folders: string[]) {
       refetchFailed: () => results.forEach((r) => r.error && void r.refetch()),
     }),
   })
+}
+
+// Details for every deal on the board (shared query cache, so callers pay nothing extra).
+export function useBoardDetails() {
+  const deals = useDeals()
+  const folders = useMemo(() => (deals.data ?? []).map((d) => d.folder), [deals.data])
+  return useDealDetails(folders)
 }

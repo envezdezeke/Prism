@@ -16,7 +16,8 @@ import { useUiStore } from '../../state/uiStore.ts'
 import { alertsAt, boardAt, heldAt, requestsAt, simToMs, stageLogAt } from '../../time/timeview.ts'
 import type { BoardRow } from '../../time/timeview.ts'
 import { StatusBadge } from './Badges.tsx'
-import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle, PipelineLink } from './Primitives.tsx'
+import { ArrowLeft, Clock, Network } from 'lucide-react'
+import { Caption, DealLink, EmptyState, ErrorState, IconEmptyState, LoadingState, NullValue, PageHeader, PipelineLink } from './Primitives.tsx'
 
 const HOUR_MS = 3600_000
 
@@ -26,6 +27,18 @@ function Breadcrumb({ name }: { name: string | null }) {
       <PipelineLink>Pipeline</PipelineLink>
       {name !== null && <span> / {name}</span>}
     </nav>
+  )
+}
+
+const TOOL_LINK =
+  'inline-flex h-7 items-center gap-1 rounded-sm border border-primary bg-surface px-2 text-sm font-semibold text-primary hover:bg-subtle'
+
+function ArrivalEmpty({ name, when }: { name: string; when: string }) {
+  const showPipeline = useUiStore((s) => s.showPipeline)
+  return (
+    <IconEmptyState icon={Clock} heading={`${name} has not arrived as of ${when}.`} action={{ label: 'Back to pipeline', onClick: showPipeline }}>
+      Move the clock forward, or open a deal that is already on the board.
+    </IconEmptyState>
   )
 }
 
@@ -387,20 +400,33 @@ export function DealDetailView({
     return (
       <div className="flex flex-col gap-4">
         <Breadcrumb name={name} />
-        <EmptyState heading={`${name} has not arrived as of ${fmtSimTime(now)}.`}>
-          <PipelineLink>Back to pipeline</PipelineLink>
-        </EmptyState>
+        <ArrivalEmpty name={name} when={fmtSimTime(now)} />
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb name={name} />
-      <header className="flex flex-col gap-1">
-        <PageTitle>{name}</PageTitle>
-        {showFolder && <p className="text-sm text-ink-2">{detail.folder}</p>}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
+      <PageHeader
+        title={name}
+        crumbs={['Pipeline', 'Deal', detail.folder]}
+        toolbar={
+          <>
+            <PipelineLink className={TOOL_LINK}>
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              Back to pipeline
+            </PipelineLink>
+            {clusterId !== null && (
+              <a href={buildHash({ view: 'graph', clusterId })} className={TOOL_LINK}>
+                <Network className="size-4" aria-hidden="true" />
+                Open in fraud graph
+              </a>
+            )}
+          </>
+        }
+      >
+        {showFolder && <p className="pl-4 text-sm text-ink-2">{detail.folder}</p>}
+        <div className="flex flex-wrap items-center gap-2 pl-4">
           <Badge variant="secondary">{row.stage}</Badge>
           <StatusBadge
             held={row.held}
@@ -409,7 +435,7 @@ export function DealDetailView({
             cleared={row.stage === 'Closed'}
           />
         </div>
-      </header>
+      </PageHeader>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-8">
           <FactsSection deal={detail} />

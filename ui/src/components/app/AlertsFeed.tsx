@@ -1,4 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Bell, BellOff, TriangleAlert } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useBoardDetails } from '../../data/queries.ts'
 import { describeError } from '../../api/client.ts'
 import type { AlertFeedItem } from '../../api/types.ts'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -7,19 +10,47 @@ import { fmtSimTime } from '../../lib/format.ts'
 import { alertLevelLabel } from '../../labels.ts'
 import { personLabel, roleForAlert } from '../../people.ts'
 import { useClockStore } from '../../state/clockStore.ts'
-import { alertsAt, simToMs } from '../../time/timeview.ts'
-import { DealLink, EmptyState, ErrorState, LoadingState, PageTitle } from './Primitives.tsx'
+import { alertsAt, nextEventAfter, simToMs } from '../../time/timeview.ts'
+import { DealLink, ErrorState, IconEmptyState, LoadingState, PageHeader } from './Primitives.tsx'
 
 // Newest first, only what has fired by the clock time. Escalations (150% and 200%) carry an amber edge.
 export function AlertsFeedView({ alerts, now }: { alerts: AlertFeedItem[]; now: string }) {
-  const visible = alertsAt(alerts, simToMs(now), 'newest')
+  const [escOnly, setEscOnly] = useState(false)
+  const goTo = useClockStore((s) => s.goTo)
+  const { details } = useBoardDetails()
+  const all = alertsAt(alerts, simToMs(now), 'newest')
+  const visible = escOnly ? all.filter((a) => a.level === 'escalation') : all
+  const nextEvent = nextEventAfter(details, simToMs(now))
   return (
     <section aria-label="Alerts" className="flex flex-col gap-4">
-      <PageTitle>Alerts</PageTitle>
-      {visible.length === 0 ? (
-        <EmptyState heading="No alerts yet.">
+      <PageHeader
+        title="Alerts"
+        crumbs={['Pipeline', 'Alerts']}
+        toolbar={
+          <>
+            <Button variant={escOnly ? 'outline' : 'default'} size="sm" aria-pressed={!escOnly} onClick={() => setEscOnly(false)}>
+              <Bell aria-hidden="true" />
+              All {all.length}
+            </Button>
+            <Button variant={escOnly ? 'default' : 'outline'} size="sm" aria-pressed={escOnly} onClick={() => setEscOnly(true)}>
+              <TriangleAlert aria-hidden="true" />
+              Escalations {all.filter((a) => a.level === 'escalation').length}
+            </Button>
+          </>
+        }
+      />
+      {visible.length === 0 && escOnly && all.length > 0 ? (
+        <IconEmptyState icon={TriangleAlert} heading="No escalations yet." action={{ label: 'Show all alerts', onClick: () => setEscOnly(false) }}>
+          Escalations fire at 150% and 200% of a stage's limit. None had fired as of {fmtSimTime(now)}.
+        </IconEmptyState>
+      ) : visible.length === 0 ? (
+        <IconEmptyState
+          icon={BellOff}
+          heading="No alerts yet."
+          action={nextEvent === null ? undefined : { label: 'Jump to next event', onClick: () => goTo(nextEvent) }}
+        >
           Alerts fire at 100% of a stage's limit and escalate at 150% and 200%. None had fired as of {fmtSimTime(now)}.
-        </EmptyState>
+        </IconEmptyState>
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>

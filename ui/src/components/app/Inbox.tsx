@@ -10,8 +10,10 @@ import { isClearedAnswer, optionLabel, requestTypeLabel } from '../../labels.ts'
 import { personLabel, roleForRequest } from '../../people.ts'
 import { useAnswersStore } from '../../state/answersStore.ts'
 import { useClockStore } from '../../state/clockStore.ts'
-import { inboxWithOverlayAt, simToMs } from '../../time/timeview.ts'
-import { Caption, DealLink, EmptyState, ErrorState, LoadingState, PageTitle } from './Primitives.tsx'
+import { inboxWithOverlayAt, nextEventAfter, simToMs } from '../../time/timeview.ts'
+import { useBoardDetails } from '../../data/queries.ts'
+import { CheckCheck, Hourglass, Inbox as InboxIcon, ListChecks } from 'lucide-react'
+import { Caption, DealLink, ErrorState, IconEmptyState, LoadingState, PageHeader } from './Primitives.tsx'
 
 // decline and release_hold confirm inline first (02-UI-SPEC Copywriting). No modal, no toast.
 const CONFIRM = new Set(['decline', 'release_hold'])
@@ -104,7 +106,11 @@ function Item({ item, now }: { item: InboxItem; now: string }) {
 
 export function InboxView({ items, now }: { items: InboxItem[]; now: string }) {
   const answers = useAnswersStore((s) => s.answers)
+  const [show, setShow] = useState<'all' | 'pending' | 'answered'>('all')
+  const goTo = useClockStore((s) => s.goTo)
+  const { details } = useBoardDetails()
   const t = simToMs(now)
+  const nextEvent = nextEventAfter(details, t)
   const visible = inboxWithOverlayAt(items, answers, t) as InboxItem[]
   const pending = visible.filter((i) => i.status === 'pending').sort((a, b) => simToMs(a.at) - simToMs(b.at))
   const done = visible
@@ -112,12 +118,38 @@ export function InboxView({ items, now }: { items: InboxItem[]; now: string }) {
     .sort((a, b) => simToMs(b.answered_at ?? b.at) - simToMs(a.answered_at ?? a.at))
   return (
     <section aria-label="Inbox" className="flex max-w-3xl flex-col gap-4">
-      <PageTitle>Inbox</PageTitle>
+      <PageHeader
+        title="Inbox"
+        crumbs={['Pipeline', 'Inbox']}
+        toolbar={
+          <>
+            <Button variant={show === 'all' ? 'default' : 'outline'} size="sm" aria-pressed={show === 'all'} onClick={() => setShow('all')}>
+              <ListChecks aria-hidden="true" />
+              All {pending.length + done.length}
+            </Button>
+            <Button variant={show === 'pending' ? 'default' : 'outline'} size="sm" aria-pressed={show === 'pending'} onClick={() => setShow('pending')}>
+              <Hourglass aria-hidden="true" />
+              Pending {pending.length}
+            </Button>
+            <Button variant={show === 'answered' ? 'default' : 'outline'} size="sm" aria-pressed={show === 'answered'} onClick={() => setShow('answered')}>
+              <CheckCheck aria-hidden="true" />
+              Answered {done.length}
+            </Button>
+          </>
+        }
+      />
+      {show !== 'answered' && (<>
       <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">
         Pending <span className="font-normal text-ink-2 tabular-nums">{pending.length}</span>
       </h2>
       {pending.length === 0 ? (
-        <EmptyState heading="No pending requests.">Everything is waiting on borrowers or the clock.</EmptyState>
+        <IconEmptyState
+          icon={InboxIcon}
+          heading="No pending requests."
+          action={nextEvent === null ? undefined : { label: 'Jump to next event', onClick: () => goTo(nextEvent) }}
+        >
+          Everything is waiting on borrowers or the clock.
+        </IconEmptyState>
       ) : (
         <ul className="flex flex-col gap-2">
           {pending.map((i) => (
@@ -125,6 +157,8 @@ export function InboxView({ items, now }: { items: InboxItem[]; now: string }) {
           ))}
         </ul>
       )}
+      </>)}
+      {show !== 'pending' && (<>
       <h2 className="pt-4 border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">
         Answered <span className="font-normal text-ink-2 tabular-nums">{done.length}</span>
       </h2>
@@ -137,6 +171,7 @@ export function InboxView({ items, now }: { items: InboxItem[]; now: string }) {
           ))}
         </ul>
       )}
+      </>)}
     </section>
   )
 }
