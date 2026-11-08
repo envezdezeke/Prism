@@ -95,6 +95,9 @@ Owner: Jesse. Record each answer in PROJECT.md Key Decisions. Ordered by how muc
 8. **What team name goes in the output file's `team` field?**
 9. **At what sim time does a judged run end?** The sample arrivals stop Fri 11/06 18:00; we currently run to the last arrival + 30 sim-minutes (quiet window). Should alerts/escalations past that (e.g. over the weekend) be emitted? Also: **who runs the hidden set** (does their run have an NVIDIA key)?
 
+10. **Do extra alerts cost points?** For example a needed-by "deadline at risk" alert raised early that turns out unnecessary, or alerts beyond the 100/150/200% ladder. (Decides how cautious our deadline alerts should be; MOVE audit 2026-11-08.)
+11. **May the public demo video and Devpost show sample deal or company names** from the data pack, or should we use generic labels only? (We default to generic labels.)
+
 NVIDIA table: confirm which Nemotron model they recommend for tool calling and for vision (VL), the rate limits, and how the Brev credits work.
 
 ## 6. Pitch: making finance depth land with engineer judges
