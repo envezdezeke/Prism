@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Read the Folder
 status: executing
-stopped_at: Completed 06-02-PLAN.md (06-03 cut)
-last_updated: "2026-11-08T14:00:25.193Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-11-08T14:30:17.154Z"
 last_activity: 2026-11-07
 last_activity_desc: Phase 03 execution started
-state_head: 39e4e78e261f9896f3d7d5a44bc07b4c552d34a3
+state_head: c9e272fb62b819c2c465c966cad4cc3d5ccd61e3
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 16
-  completed_plans: 12
+  total_plans: 36
+  completed_plans: 15
   percent: 14
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 ## Current Position
 
 Phase: 03 (Read the Folder) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-11-07 — Phase 03 execution started
 
@@ -87,6 +87,7 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 | Phase 02 P02 | 6min | 3 tasks | 17 files |
 | Phase 02 P03 | 120min | 3 tasks | 16 files |
 | Phase 05 P01 | 35 min | 3 tasks | 4 files |
+| Phase 05 P02 | 60 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,7 @@ Full log in the PROJECT.md Key Decisions table. Most load-bearing right now:
 - [Phase 02]: 02-03: UI-SPEC copy won over plan (role labels, whole-percent confidence, no credit officer row); deal links are hash anchors; stage-log why hidden until the exit time; .gitignore data/ anchored to /data/ so ui/src/data is tracked
 - [Phase 05]: Fraud reason lists failed OLD_TRICK codes first, then cross-deal family evidence cut at LINK_MARK (no partner ids)
 - [Phase 05]: Sticky flagged deals grow linked_deals only on ticks where the hold rule is met
+- [Phase 05]: 05-02: links need 2 independent classes (M18) among a held member's F1 partners; history_flags only from hold clusters; F2/F4 structural, F6 evidence-only
 
 ### Pending Todos
 
@@ -135,8 +137,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-08T14:00:25.130Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-11-08T14:30:17.082Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
 
 **Loose ends from the planning session:**
