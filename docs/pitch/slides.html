@@ -206,7 +206,7 @@
     <div class="col-fig">
       <figure class="shot" data-label="Screenshot pending (plans 07-01 and 07-03): fraud graph with the ring's deals joined by thick edges to a few shared entities, mock data, entity types only. Save as img/graph.png">
         <img src="img/graph.png" alt="Fraud graph on mock data: a ring of deals tied together by shared entities" onerror="this.parentNode.classList.add('missing')">
-        <figcaption>Fraud graph: deals tied together by what they share (mock data) <span class="pending">pending 07-01/07-03</span></figcaption>
+        <figcaption>Fraud graph: deals tied together by what they share (mock data)</figcaption>
       </figure>
     </div>
   </div>
@@ -228,7 +228,7 @@
     <div class="col-fig">
       <figure class="shot" data-label="Screenshot pending (plan 07-03): cluster panel with the family checklist F1 to F6, each Fired or Not fired with its evidence sentence, F6 marked Evidence only. Mock data. Save as img/checklist.png">
         <img src="img/checklist.png" alt="Cluster panel family checklist on mock data: each family fired or not fired with its evidence sentence" onerror="this.parentNode.classList.add('missing')">
-        <figcaption>Family checklist: fired or not fired, in words, with the evidence (mock data) <span class="pending">pending 07-03</span></figcaption>
+        <figcaption>Family checklist: fired or not fired, in words, with the evidence (mock data)</figcaption>
       </figure>
     </div>
   </div>
@@ -243,7 +243,7 @@
       <ol class="steps">
         <li>Pipeline board on the simulated clock<small>Replay from start, then Next event</small></li>
         <li>A held deal, its plain-English reason and its linked deals<small>Red Held badge, then the deal page</small></li>
-        <li>The ring connecting as files arrive<span class="pending">pending 07-01/07-03</span><small>Click a link to read its evidence sentence</small></li>
+        <li>The ring connecting as files arrive<small>Click a link to read its evidence sentence</small></li>
         <li>Inbox: the Committee approval request, then Approve<small>The right person signs off, with a backup when someone is out</small></li>
       </ol>
     </div>
@@ -267,9 +267,9 @@
       <tbody>
         <tr class="lead"><td>Blind weekend drop, frozen engine, first run recorded before anyone opened the files</td><td class="yn">Never</td><td class="num"><span class="ph">[[BLIND_HELD]]</span> of <span class="ph">[[BLIND_TOTAL]]</span> held, <span class="ph">[[BLIND_FALSE_FLAGS]]</span> false flags, first hold at stage <span class="ph">[[BLIND_FIRST_STAGE]]</span></td></tr>
         <tr><td>A year of history replayed in time order, last four months held out</td><td class="yn">No</td><td class="num"><span class="ph">[[HIST_FLAGS]]</span> flags among <span class="ph">[[HIST_GOOD_N]]</span> good deals; after written review <span class="ph">[[HIST_FALSE_POS]]</span> false positives</td></tr>
-        <tr><td>Synthetic fraud families with honest twins, one family held out at a time</td><td class="yn">No</td><td class="num"><span class="ph">[[SYN_HELD_PCT]]</span> of ring deals held, <span class="ph">[[SYN_TWIN_PCT]]</span> of twins flagged (bar: at least 70% held, at most 5% flagged)</td></tr>
+        <tr><td>Synthetic fraud families with honest twins, one family held out at a time</td><td class="yn">Partly: one hold-rule setting chosen on it</td><td class="num"><span class="ph">[[SYN_HELD_PCT]]</span> of ring deals held, <span class="ph">[[SYN_TWIN_PCT]]</span> of twins flagged (bar: at least 70% held, at most 5% flagged)</td></tr>
         <tr><td>Sample week, including deliberately odd honest borrowers</td><td class="yn">No</td><td class="num">Held at stage <span class="ph">[[SAMPLE_STAGE]]</span>; history links <span class="ph">[[SAMPLE_LINKS]]</span>; false holds <span class="ph">[[SAMPLE_FALSE_HOLDS]]</span></td></tr>
-        <tr><td>Earlier months of clean history</td><td class="yn">Yes, the only set</td><td>Where each family's threshold is set from clean deals</td></tr>
+        <tr><td>Clean, repaid deals in the bank's history (any dates)</td><td class="yn">Yes, the only set</td><td>Where each family's threshold is set, never below a 1-in-20 floor</td></tr>
       </tbody>
     </table>
     <p class="note">Scorecard commit <span class="ph">[[SCORECARD_COMMIT]]</span>. Every number on this slide comes from a committed record; the sample week is not a fair fraud test because we studied its trick.</p>
@@ -310,7 +310,7 @@
     <div class="col-fig">
       <figure class="shot" data-label="Screenshot pending (plans 07-01 and 07-03): fraud graph zoomed out, common entities faint and rare ones thick, mock data. Save as img/graph-wide.png">
         <img src="img/graph-wide.png" alt="Fraud graph zoomed out on mock data: common links faint, rare links thick" onerror="this.parentNode.classList.add('missing')">
-        <figcaption>Common links stay faint; rare ones are thick (mock data) <span class="pending">pending 07-01/07-03</span></figcaption>
+        <figcaption>Common links stay faint; rare ones are thick (mock data)</figcaption>
       </figure>
     </div>
   </div>
@@ -328,7 +328,7 @@
       </div>
       <ul>
         <li>Catches the ring before the money goes out, leaves honest borrowers alone, and shows its work.</li>
-        <li>A deterministic engine makes every scored decision. Nemotron agents investigate, argue both sides and attack it.</li>
+        <li>A deterministic engine makes every scored decision. A Nemotron agent investigates each held ring and a vision model reads hard documents, never inside the score.</li>
         <li>Team Prism: finance and quant.</li>
       </ul>
     </div>

@@ -45,7 +45,7 @@ Prism runs a commercial lending desk on a simulated clock:
 
 | Test set | Used for tuning? |
 |---|---|
-| Earlier months of history (clean deals) | Yes, the only set we tuned on |
+| Clean, repaid history deals, any dates (thresholds, never below a 1-in-20 floor) | Yes, the only set we tuned on |
 | Later months of history, replayed forward in time | No: false flags on good deals, and how early a scheme is caught |
 | Labelled old-trick fraud in history, with the known-trick checks switched off | No |
 | The 13-deal sample, including deliberately odd but honest borrowers | No: regression and false-alarm traps |
@@ -75,7 +75,7 @@ Every flag on a good history deal got a written finance review, because "no know
 
 - **Blind result:** [[BLIND_HELD]] of [[BLIND_TOTAL]] fake deals held before Closed, [[BLIND_FALSE_FLAGS]] false flags on good deals, first hold at stage [[BLIND_FIRST_STAGE]], recorded from a frozen engine before anyone opened the files (commit [[BLIND_COMMIT]]). If the blind record does not exist by H18, lead with the held-out history result below instead (D-24).
 - **Held-out history:** [[HIST_FLAGS]] flags among [[HIST_GOOD_N]] good deals; after written review, [[HIST_SCHEME]] were scheme members and [[HIST_FALSE_POS]] were false positives; first flag at deal [[HIST_FIRST_DEAL]] of the scheme.
-- **Fraud types it never saw:** [[SYN_HELD_PCT]] of ring deals held and [[SYN_TWIN_PCT]] of honest twins flagged, per held-out family, against our pre-set bar of at least 70% held and at most 5% flagged.
+- **Synthetic fraud types** (one hold-rule setting was chosen on this bench; a second, separate set of trick designs was not tuned on): [[SYN_HELD_PCT]] of ring deals held and [[SYN_TWIN_PCT]] of honest twins flagged, per held-out family, against our pre-set bar of at least 70% held and at most 5% flagged.
 - **Sample week:** the ring held at stage [[SAMPLE_STAGE]], before any money went out, earlier funded members found in history ([[SAMPLE_LINKS]]), and [[SAMPLE_FALSE_HOLDS]] false holds across [[TRAP_N]] odd-but-honest borrowers.
 - **Reading accuracy:** [[READ_ACCURACY]] of fields correct against our hand-labelled answer key.
 - A fraud model whose every hold carries a plain-English reason and the evidence sentence behind each link [pending 07-03].

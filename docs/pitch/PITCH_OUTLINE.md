@@ -100,7 +100,7 @@ The running app (Nemotron in replay mode). Backup: the recorded demo video, [[DE
 **Bullets**
 - Blind weekend drop, frozen engine, first run recorded before anyone opened the files: [[BLIND_HELD]] of [[BLIND_TOTAL]] held, [[BLIND_FALSE_FLAGS]] false flags, first hold at stage [[BLIND_FIRST_STAGE]], commit [[BLIND_COMMIT]].
 - A year of history replayed in time order, last four months never used for tuning: [[HIST_FLAGS]] flags among [[HIST_GOOD_N]] good deals; after written review, [[HIST_SCHEME]] scheme members and [[HIST_FALSE_POS]] false positives; first flag at deal [[HIST_FIRST_DEAL]] of the scheme.
-- Fraud types it never saw: synthetic tricks with honest lookalike twins, one family held out at a time: [[SYN_HELD_PCT]] of ring deals held, [[SYN_TWIN_PCT]] of twins flagged. Target was at least 70% held, at most 5% flagged.
+- Synthetic tricks (one hold-rule setting was chosen on this bench, Sun 09:00; say so if asked) with honest lookalike twins, one family held out at a time: [[SYN_HELD_PCT]] of ring deals held, [[SYN_TWIN_PCT]] of twins flagged. Target was at least 70% held, at most 5% flagged.
 - Sample week: ring held before funding, earlier funded members linked, zero false holds on the deliberately odd honest borrowers: held at stage [[SAMPLE_STAGE]], history links [[SAMPLE_LINKS]], false holds [[SAMPLE_FALSE_HOLDS]].
 
 **Speaker notes**
@@ -145,7 +145,7 @@ It is unsupervised anomaly detection that learns what normal looks like from a y
 
 **Bullets**
 - Prism: catches the ring before the money goes out, leaves honest borrowers alone, and shows its work.
-- Deterministic engine for every scored decision; Nemotron agents to investigate, argue both sides and attack it.
+- Deterministic engine for every scored decision; a Nemotron agent investigates each held ring and a vision model reads hard documents, never inside the score.
 - Team Prism: finance and quant. [[REPO_URL]] · [[DEMO_VIDEO_URL]]
 
 **Speaker notes**
@@ -185,7 +185,7 @@ The final hold is a rule, on purpose: Fraud Ops and auditors need to know exactl
 Because the labels describe old tricks, and the hidden set uses a new one. A classifier trained on known fraud learns those tricks and misses the next one. We model what normal looks like instead, so anything abnormal and shared across deals stands out. A second reason: with only a handful of labelled fraud deals, a classifier's false-alarm rate cannot be estimated reliably. Ours is set directly, family by family, on clean deals.
 
 **3. "How do you know it generalizes?"**
-Three tests, none of which we tuned on. The blind weekend drop, run once on a frozen engine before anyone looked: [[BLIND_HELD]] of [[BLIND_TOTAL]], [[BLIND_FALSE_FLAGS]] false flags. History replayed in time order with the last four months held out: [[HIST_FLAGS]] flags, [[HIST_FALSE_POS]] false positives. Synthetic fraud families with one family left out at a time: [[SYN_HELD_PCT]] held, [[SYN_TWIN_PCT]] of twins flagged. The sample week is not on that list, because we studied its trick and it is no longer a fair test.
+Three tests, none of which we tuned on. The blind weekend drop, run once on a frozen engine before anyone looked: [[BLIND_HELD]] of [[BLIND_TOTAL]], [[BLIND_FALSE_FLAGS]] false flags. History replayed in time order with the last four months held out: [[HIST_FLAGS]] flags, [[HIST_FALSE_POS]] false positives. Synthetic fraud families with one family left out at a time (one hold-rule setting was chosen on these, so treat it as a check, not a blind test): [[SYN_HELD_PCT]] held, [[SYN_TWIN_PCT]] of twins flagged. The sample week is not on that list, because we studied its trick and it is no longer a fair test.
 
 **4. "What if the hidden trick shares no entity across deals?"**
 Then Prism will not hold it. Those deals would show on the watch list with their evidence, and a human would decide. This is a deliberate trade. Requiring a shared rare entity is what keeps honest but unusual borrowers out of the fraud queue, and false holds are expensive for the bank and the borrower. Our bet is that a ring, by definition, reuses something. The bank's existing single-deal checks still run alongside.
