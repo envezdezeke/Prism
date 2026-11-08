@@ -17,6 +17,10 @@ from prism.contract import (
     ClockAdvance,
     DealDetail,
     DealSummary,
+    FraudGraph,
+    InboxItem,
+    InvestigatorTrace,
+    RedTeamReport,
     Submission,
     parse_sim_time,
 )
@@ -31,6 +35,10 @@ FIXTURE_MODELS: dict[str, object] = {
     "deal_detail.json": dict[str, DealDetail],
     "alerts.json": list[AlertFeedItem],
     "submission.json": Submission,
+    "inbox.json": list[InboxItem],
+    "graph.json": FraudGraph,
+    "investigator.json": InvestigatorTrace,
+    "redteam.json": RedTeamReport,
 }
 
 
@@ -256,3 +264,120 @@ def test_no_sample_folder_names_in_fixtures():
         text = f.read_text(encoding="utf-8").lower()
         for n in names:
             assert n not in text, f"{f.name} contains sample folder name"
+
+
+# ------------------------------------------------------------ inbox, graph, agents
+
+ALL_PATHS = [
+    "/api/deals", "/api/deals/{folder}", "/api/clock", "/api/clock/advance", "/api/clock/replay",
+    "/api/inbox", "/api/inbox/{item_id}/reply", "/api/alerts", "/api/graph",
+    "/api/investigator/{cluster_id}", "/api/redteam", "/api/submission",
+]
+
+
+def test_fixture_files_all_mapped():
+    assert {p.name for p in FIX.glob("*.json")} == set(FIXTURE_MODELS)
+
+
+def test_inbox_matches_human_requests():
+    inbox = TypeAdapter(list[InboxItem]).validate_python(load("inbox.json"))
+    from_inbox = sorted((i.deal, i.type, i.to, i.at, i.answer, i.answered_at) for i in inbox)
+    expected = sorted(
+        (folder, r.type, r.to, r.at, r.answer, r.answered_at)
+        for folder, d in details().items()
+        for r in d.human_requests
+        if r.to != "borrower"
+    )
+    assert from_inbox == expected
+
+
+def test_graph_referential_and_rules():
+    g = FraudGraph.model_validate(load("graph.json"))
+    ds = details()
+    assert {n.id for n in g.nodes if n.type == "deal"} == set(ds)
+    ids = {n.id for n in g.nodes}
+    history = {n.id for n in g.nodes if n.type == "history_deal"}
+    for folder, d in ds.items():
+        for link in d.fraud.linked_deals:
+            assert link in ds or link in history
+        if d.held:
+            assert any(folder in c.deals and c.tier == "hold" for c in g.clusters)
+    for c in g.clusters:
+        n = sum(f.fired for f in c.families.values())
+        if c.tier == "hold":
+            assert c.families["F1"].fired and n >= 3
+        elif c.tier == "watch":
+            assert n in (1, 2)
+        else:
+            assert n == 0
+    assert any(c.tier == "hold" and len(c.deals) == 3 for c in g.clusters)
+    rarities = [e.rarity for e in g.edges]
+    assert min(rarities) < 0.2 and max(rarities) > 0.9
+    assert len(g.nodes) == 12 and len(g.edges) == 12
+    trace = InvestigatorTrace.model_validate(load("investigator.json"))
+    assert trace.cluster_id in {c.id for c in g.clusters}
+
+
+def test_redteam_rates():
+    rep = RedTeamReport.model_validate(load("redteam.json"))
+    for t in rep.tricks:
+        assert abs(t.catch_rate - t.caught / t.n_deals) <= 0.01
+
+
+def test_inbox_endpoints(client):
+    assert client.get("/api/inbox").status_code == 200
+    r = client.get("/api/inbox?status=pending")
+    assert r.status_code == 200 and r.json() and all(i["status"] == "pending" for i in r.json())
+    assert client.get("/api/inbox?status=bogus").status_code == 422
+
+
+def test_inbox_reply(client):
+    r = client.post("/api/inbox/inbox-001/reply", json={"option": "approve"})
+    assert r.status_code == 200 and r.json()["status"] == "answered" and r.json()["answer"] == "approve"
+    assert client.post("/api/inbox/inbox-001/reply", json={"option": "maybe"}).status_code == 422
+    assert client.post("/api/inbox/nope/reply", json={"option": "approve"}).status_code == 404
+    assert client.post("/api/inbox/inbox-005/reply", json={"option": "approve"}).status_code == 409
+
+
+def test_graph_endpoint(client):
+    full = client.get("/api/graph")
+    assert full.status_code == 200
+    at = "2026-11-03T08:30-06:00"
+    part = client.get("/api/graph", params={"at": at})
+    assert part.status_code == 200
+    body = part.json()
+    assert len(body["edges"]) < len(full.json()["edges"])
+    cutoff = parse_sim_time(at)
+    assert all(parse_sim_time(e["first_visible_at"]) <= cutoff for e in body["edges"])
+    assert client.get("/api/graph", params={"at": "garbage"}).status_code == 422
+
+
+def test_agent_endpoints(client):
+    assert client.get("/api/investigator/C-001").status_code == 200
+    assert client.get("/api/investigator/nope").status_code == 404
+    assert client.get("/api/redteam").status_code == 200
+
+
+def test_openapi_and_docs(client):
+    paths = client.get("/openapi.json").json()["paths"]
+    for p in ALL_PATHS:
+        assert p in paths, p
+    assert client.get("/docs").status_code == 200
+
+
+def test_everything_503_when_mock_off(monkeypatch):
+    monkeypatch.setenv("MOCK", "0")
+    c = TestClient(create_app())
+    calls = [
+        ("get", "/api/deals", None), ("get", "/api/deals/x", None), ("get", "/api/clock", None),
+        ("post", "/api/clock/advance", {"hours": 1}), ("post", "/api/clock/replay", None),
+        ("get", "/api/inbox", None), ("post", "/api/inbox/inbox-001/reply", {"option": "approve"}),
+        ("get", "/api/alerts", None), ("get", "/api/graph", None),
+        ("get", "/api/investigator/C-001", None), ("get", "/api/redteam", None),
+        ("get", "/api/submission", None),
+    ]
+    assert len(calls) == len(ALL_PATHS)
+    for method, path, body in calls:
+        r = getattr(c, method)(path, **({"json": body} if body is not None else {}))
+        assert r.status_code == 503, path
+    assert c.get("/docs").status_code == 200
