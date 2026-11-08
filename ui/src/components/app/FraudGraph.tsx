@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useDealDetails, useDeals, useGraph, useInvestigator } from '../../data/queries.ts'
 import { AgentReplay } from './AgentReplay.tsx'
+import { walkthroughTrace } from '../../graph/walkthrough.ts'
 import { clusterHoldAt, defaultClusterId, graphAt } from '../../graph/graphview.ts'
 import type { GGraph } from '../../graph/graphview.ts'
 import { readPalette } from '../../graph/palette.ts'
@@ -113,7 +114,14 @@ export function FraudGraphView({
   const labels = useMemo(() => new Map(graph.nodes.map((n) => [n.id, n.label])), [graph])
   const nodeLabel = (id: string): string => labels.get(id) ?? id
   const trace = useInvestigator(activeId ?? null)
-  const hasTrace = trace.isSuccess && trace.data.steps.length > 0
+  // A recorded Nemotron run when one exists for this ring; otherwise a walk-through built from the
+  // engine's own evidence, so the replay works for every ring and every data set.
+  const recorded = trace.isSuccess && trace.data.steps.length > 0 ? trace.data : null
+  const replayTrace = useMemo(
+    () => recorded ?? (cluster && !trace.isPending ? walkthroughTrace(graph, cluster) : null),
+    [recorded, cluster, graph, trace.isPending],
+  )
+  const hasTrace = replayTrace !== null && replayTrace.steps.length > 0
 
   // Auto-play the agent replay once per browser session, the first time a traced ring opens.
   useEffect(() => {
@@ -153,7 +161,7 @@ export function FraudGraphView({
             {hasTrace && (
               <Button size="sm" variant={replaying ? 'outline' : 'default'} onClick={() => (replaying ? stopReplay() : startReplay())}>
                 <Bot aria-hidden="true" />
-                {replaying ? 'Stop agent replay' : 'Watch Nemotron investigate'}
+                {replaying ? 'Stop agent replay' : recorded ? 'Watch Nemotron investigate' : 'Walk through the evidence'}
               </Button>
             )}
             <Button
@@ -248,9 +256,9 @@ export function FraudGraphView({
               agentFocus={replaying ? agentFocus : null}
             />
           )}
-          {replaying && trace.data && (
+          {replaying && replayTrace && (
             <AgentReplay
-              trace={trace.data}
+              trace={replayTrace}
               nodes={view.nodes}
               edges={view.edges}
               clusterDeals={cluster?.deals ?? []}

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, FileSearch, FileText, Folder, FolderOpen, History, Network, Pause, Play, RotateCcw, SkipForward, Sparkles, Users, X } from 'lucide-react'
+import { BookOpen, CheckCircle2, FileSearch, FileText, Folder, FolderOpen, History, Network, Pause, Play, RotateCcw, SkipForward, Sparkles, Users, X } from 'lucide-react'
 import type { InvestigatorTrace, TraceStep } from '../../api/types.ts'
 import type { GEdge, GNode } from '../../graph/graphview.ts'
 import type { AgentFocus, GraphControls } from './GraphCanvas.tsx'
@@ -276,8 +276,8 @@ export function AgentReplay({
   }, [flyer])
 
   useEffect(() => {
-    if (phase === 'done') controls.current?.focusOn(new Set(clusterDeals), 900, 240)
-  }, [phase, controls, clusterDeals])
+    if (phase === 'done') controls.current?.focusOn(new Set([...clusterDeals, ...touched]), 900, 300)
+  }, [phase, controls, clusterDeals, touched])
 
   const typed = useTyped(step?.result_summary ?? '', phase === 'scan')
   const restart = (): void => {
@@ -311,10 +311,10 @@ export function AgentReplay({
         </span>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-ink">
-            {phase === 'done' ? `Nemotron assembled the case on ${trace.cluster_id}` : `Nemotron is investigating ${trace.cluster_id}`}
+            {phase === 'done' ? trace.mode === 'off' ? `Case assembled on ${trace.cluster_id}` : `Nemotron assembled the case on ${trace.cluster_id}` : trace.mode === 'off' ? `Walking through the evidence on ${trace.cluster_id}` : `Nemotron is investigating ${trace.cluster_id}`}
           </p>
           <p className="text-xs text-ink-2">
-            {trace.mode === 'off' ? 'Template trace (Nemotron off)' : 'Replay of a recorded Nemotron run'} · advisory only, the engine made the hold · Esc to exit
+            {trace.mode === 'off' ? 'Walk-through of the engine’s evidence (no recorded Nemotron run for this ring)' : 'Replay of a recorded Nemotron run'} · advisory only, decisions come from the engine · Esc to exit
           </p>
         </div>
         <ol className="ml-4 flex flex-1 items-center gap-1" aria-label="Steps">
@@ -417,15 +417,15 @@ export function AgentReplay({
           })}
         </ol>
         {phase === 'done' && (
-          <div className="relative border-t border-line p-3">
-            <span
-              className="animate-stamp absolute -top-4 right-4 rounded-md border-2 bg-surface px-2 py-0.5 text-xs font-bold tracking-widest uppercase"
-              style={{ borderColor: 'var(--color-agent-done)', color: 'var(--color-agent-done)' }}
-            >
-              Case assembled
-            </span>
+          <div className="border-t border-line p-3">
             <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-ink">
               <Sparkles className="size-3.5" aria-hidden="true" /> Case summary
+              <span
+                className="animate-fade-in ml-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold"
+                style={{ borderColor: 'var(--color-agent-done)', color: 'var(--color-agent-done)' }}
+              >
+                <CheckCircle2 className="size-3" aria-hidden="true" /> Replay complete
+              </span>
             </p>
             <p className="text-xs leading-relaxed text-ink">{trace.case_summary}</p>
           </div>

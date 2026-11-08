@@ -13,22 +13,31 @@ graph of deals and the parties, documents and accounts they share.
 
 ## Quick start
 
-Needs Python 3.11+ and Node 20+.
+Needs Python 3.11+ and Node 20+. Run every command from the repository root.
+
+**Windows:** plain `python` can open the Microsoft Store stub. Use the launcher (`py -3.13 -m venv .venv`)
+or the full path to `python.exe`. In Git Bash, activate with `source .venv/Scripts/activate`.
 
 ```bash
 # 1. Engine
-python -m venv .venv
-source .venv/bin/activate            # Windows: .venv\Scripts\activate
+python -m venv .venv                 # Windows: py -3.13 -m venv .venv
+source .venv/bin/activate            # Windows Git Bash: source .venv/Scripts/activate; cmd/PowerShell: .venv\Scriptsctivate
 pip install -e ".[dev]"
+
+# Needed in EVERY new shell (the documents contain non-ASCII characters):
 export PYTHONUTF8=1                  # Windows PowerShell: $env:PYTHONUTF8=1
 
-# 2. Run on a data set (the challenge data is not in this repo)
-#    <DATA> holds shared_folder/, sim/arrivals.jsonl, and the bank's rules and history
-python -m prism run --folder <DATA>/shared_folder --arrivals <DATA>/sim/arrivals.jsonl \
-    --data-root <DATA> --out out/submission.json
-python -m prism validate out/submission.json --folder <DATA>/shared_folder
+# 2. Put the challenge data at data/participant/ (it is not in this repo, and data/ is gitignored):
+#      data/participant/shared_folder/      one folder per deal
+#      data/participant/sim/arrivals.jsonl  when each file arrives
+#      data/participant/{history,contacts,rules}/
+#    Then, with DATA=data/participant:
+python -m prism run --folder data/participant/shared_folder --arrivals data/participant/sim/arrivals.jsonl     --data-root data/participant --out out/submission.json
+python -m prism validate out/submission.json --folder data/participant/shared_folder
+#    A new drop or the hidden set runs the same way: point --folder/--arrivals at it, and check that its
+#    sim/assignments.json lists every deal folder (a folder missing there gets no credit officer).
 
-# 3. Tests
+# 3. Tests (tests that need data/participant/ skip cleanly without it)
 python -m pytest -q
 ```
 
@@ -38,13 +47,22 @@ python -m pytest -q
 # API (demo data; MOCK=1 is the default)
 uvicorn prism.api.app:app --port 8000
 
-# UI, in a second terminal
+# UI, in a second terminal, from the repository root
 cd ui && npm ci && npm run dev       # http://localhost:5173
+
+# UI build and tests
+npm --prefix ui run build
+npm --prefix ui test
 ```
+
+The UI proxies `/api` to `http://localhost:8000`. If that port is taken, start the API on another port and
+point the UI at it: `PRISM_API=http://localhost:8020 npm --prefix ui run dev`.
 
 The pipeline, deal, inbox, alert and fraud-graph screens run on the made-up demo data in `fixtures/`.
 The **Upload & run** page (`http://localhost:5173/#/upload`) runs the real engine on a zipped data set
 (a `shared_folder/` plus an `arrivals.jsonl`) and returns the submission JSON for download.
+On the fraud graph, **Watch Nemotron investigate** replays a recorded Nemotron run; a ring with no recorded
+run gets **Walk through the evidence**, the same replay built from the engine's own evidence.
 
 ### Nemotron (optional)
 
