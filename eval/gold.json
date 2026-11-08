@@ -1,0 +1,429 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "set": "sample",
+    "labelled_by": "Jesse",
+    "blind": true,
+    "how_to": "See eval/README.md"
+  },
+  "deals": {
+    "Bluebonnet Landscape": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Garza Family Pharmacy": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Granite Bay Building Supply": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Harbor Tea Co": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "LSFD_docs": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Oakline Auto": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Okafor Advisory - James": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Pecan Grove Catering": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Priya's Bakery": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Ridgeway Freight Logistics": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Summit Peak Flooring": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "tyler loopwise loan stuff": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    },
+    "Westfield Print & Sign": {
+      "status": "todo",
+      "extracted": {
+        "legal_name": null,
+        "ein": null,
+        "amount_requested": null,
+        "purpose_category": null,
+        "product": null,
+        "term_months": null,
+        "guarantor_name": null,
+        "annual_revenue_stated": null,
+        "needed_by": null
+      },
+      "extracted_accept": {},
+      "sources": {},
+      "issues": [],
+      "issues_optional": [],
+      "routing": {
+        "credit_decision": null,
+        "committee_approval": null,
+        "commitment_signoff": null,
+        "funding_release": null
+      },
+      "final_stage": null,
+      "fraud": {
+        "flagged": false,
+        "held": false,
+        "latest_ok_stage": null,
+        "linked_deals": []
+      },
+      "notes": ""
+    }
+  },
+  "history_flags": [],
+  "history_must_not_flag": []
+}
