@@ -68,7 +68,7 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 - [x] **UI-02**: A pipeline board shows deals by stage with SLA timers and deadline badges. (J)
 - [x] **UI-03**: Sim clock controls: current time, advance, and replay from the start. (J)
 - [x] **UI-04**: Deal detail shows extracted facts with source chips, issues, stage log, human requests and alerts. (J)
-- [ ] **UI-05**: A human inbox lets whoever plays the staff answer pending requests. (J)
+- [x] **UI-05**: A human inbox lets whoever plays the staff answer pending requests. (J)
 - [ ] **UI-06**: The fraud graph hero view has edges encoded by rarity and replays as the clock advances ("ring lights up"), with an evidence panel, a signal-family checklist and the investigator trace. (J)
 - [ ] **UI-07**: A red-team results view (per-trick catch rate). (J)
 
@@ -113,7 +113,7 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 | UI-02 | Phase 2 | Complete |
 | UI-03 | Phase 2 | Complete |
 | UI-04 | Phase 2 | Complete |
-| UI-05 | Phase 2 | Pending |
+| UI-05 | Phase 2 | Complete |
 | READ-01 | Phase 3 | Pending |
 | READ-02 | Phase 3 | Pending |
 | READ-03 | Phase 3 | Pending |
