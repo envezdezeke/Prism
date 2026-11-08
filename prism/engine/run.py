@@ -24,6 +24,7 @@ from prism.read import classify as read_classify
 from prism.read import extract as read_extract
 from prism.read import issues as read_issues
 from prism.read import settings as read_settings
+from prism.read import vl as read_vl
 
 log = logging.getLogger("prism")
 
@@ -142,6 +143,7 @@ def run_sim(
     to stop exactly at the last arrival.
     """
     folder = Path(folder)
+    read_vl.reset()  # the Nemotron VL call budget is per run
     rules = load_rules(data_root, fraud_path=fraud_path)
     alog = ArrivalLog.from_jsonl(arrivals_path)  # FileNotFoundError is a usage error
     result = RunResult(errors=list(alog.errors), unattached=alog.unattached())

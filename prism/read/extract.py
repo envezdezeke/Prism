@@ -15,6 +15,7 @@ from prism.engine.config import Rules
 from prism.engine.state import DealState, EntityRef
 from prism.engine.money import cents_to_number
 from prism.read import docmodel
+from prism.read import vl as read_vl
 from prism.read.settings import get_config
 
 FACT_FIELDS: tuple[str, ...] = tuple(Extracted.model_fields)
@@ -114,6 +115,10 @@ def extract_facts(state: DealState, rules: Rules) -> dict[str, Fact]:
             _fallback_facts(state, app, facts, conf)
         except Exception:  # noqa: BLE001
             pass
+        try:
+            facts = read_vl.fill_nulls(state, rules, facts)  # null-fill only; off/failed means unchanged
+        except Exception:  # noqa: BLE001
+            pass
         return facts
     except Exception:  # noqa: BLE001
         return {}
@@ -144,6 +149,9 @@ def extract_features(state: DealState, rules: Rules) -> dict[str, Any]:
         months = features.build_deposit_months(state)
         if months:
             out["deposit_months"] = months
+        fills = read_vl.fills_for(state)
+        if fills:
+            out["vl_fills"] = fills
     except Exception:  # noqa: BLE001
         return {}
     return out

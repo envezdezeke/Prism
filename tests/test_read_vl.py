@@ -72,7 +72,9 @@ def state_for(tmp_path, drop=(), parts=None, **over):
     p = {"application": app_pages(drop, **over)}
     p.update(parts or {})
     st = make_state(tmp_path, parts=p, folder="Deal")
-    st.facts = extract_facts(st, RULES)
+    with pytest.MonkeyPatch.context() as mp:  # deterministic facts only; tests call vl.fill_nulls themselves
+        mp.setattr(vl, "fill_nulls", lambda state, rules, facts: dict(facts))
+        st.facts = extract_facts(st, RULES)
     return st
 
 
@@ -482,3 +484,89 @@ def test_vl_never_adds_an_issue_entity_or_hold(monkeypatch, tmp_path):
 def test_module_text_has_no_clock_calls():
     src = (Path(__file__).resolve().parents[1] / "prism" / "read" / "vl.py").read_text(encoding="utf-8")
     assert "time.time" not in src and "datetime.now" not in src and "import random" not in src
+
+
+# ---------------------------------------------------------------- wiring through run_sim (Task 3)
+
+def _deal_rows(tmp_path, drop=("Product",)):
+    st = make_state(tmp_path, parts={"application": app_pages(drop), "id": clean_id()}, folder="Deal")
+    rows = [{"path": d.path, "arrive_at": d.arrive_at.isoformat()} for d in st.docs]
+    arr = tmp_path / "arrivals.jsonl"
+    arr.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    return arr
+
+
+def _run(tmp_path, arr):
+    from prism.engine.run import run_sim
+    from prism.engine.writer import build_submission, dumps
+
+    result = run_sim(tmp_path, arr, data_root=tmp_path)
+    payload = build_submission(result.states, result.history_flags, result.errors, team="t", set_name="s")
+    return result, dumps(payload), payload["deals"]["Deal"]["extracted"]
+
+
+def test_off_replay_empty_and_live_agree_except_for_the_one_filled_field(monkeypatch, tmp_path):
+    arr = _deal_rows(tmp_path)
+    fake = live(monkeypatch, Fake('{"product": "Term Loan"}'), mode="off")
+    _r, off_text, off_ext = _run(tmp_path, arr)
+    assert fake.calls == [] and off_ext["product"] is None
+
+    live(monkeypatch, fake, mode="replay")
+    _r, replay_empty_text, _e = _run(tmp_path, arr)
+    assert replay_empty_text == off_text and fake.calls == []
+
+    live(monkeypatch, fake)
+    result, live_text, live_ext = _run(tmp_path, arr)
+    assert fake.calls and live_ext["product"] == "Term Loan"
+    assert {k: v for k, v in live_ext.items() if k != "product"} == {k: v for k, v in off_ext.items() if k != "product"}
+    assert result.states["Deal"].features["vl_fills"]["product"]["source"] == "nemotron_vl"
+    n = len(fake.calls)
+    assert n <= 30 and result.states["Deal"].error is None
+
+    live(monkeypatch, fake, mode="replay")  # recorded cache: same answer, no transport call
+    fake.calls.clear()
+    _r, replay_text, _e = _run(tmp_path, arr)
+    assert replay_text == live_text and fake.calls == []
+
+    live(monkeypatch, fake)  # rerun live with the cache present: identical, still no call
+    _r, again_text, _e = _run(tmp_path, arr)
+    assert again_text == live_text and fake.calls == []
+
+
+def test_a_failing_api_leaves_the_scored_output_unchanged(monkeypatch, tmp_path):
+    arr = _deal_rows(tmp_path)
+    live(monkeypatch, Fake("x"), mode="off")
+    _r, off_text, _e = _run(tmp_path, arr)
+    fake = live(monkeypatch, Fake(vl._VLError("http 429", retryable=True)))
+    _r, down_text, _e = _run(tmp_path, arr)
+    assert fake.calls and down_text == off_text
+    assert vl.calls_used() <= 30
+
+
+def test_run_sim_resets_the_call_budget(monkeypatch, tmp_path):
+    arr = _deal_rows(tmp_path)
+    live(monkeypatch, Fake('{"product": "Term Loan"}'))
+    vl._RUN.calls = 30  # exhausted by an earlier run
+    result, _t, ext = _run(tmp_path, arr)
+    assert ext["product"] == "Term Loan"  # the reset at the start of run_sim restored the budget
+
+
+def test_extract_facts_survives_a_crashing_vl_module(monkeypatch, tmp_path):
+    st = state_for(tmp_path, drop=("Product",))
+    plain = dict(st.facts)
+
+    def crash(*a, **k):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("prism.read.extract.read_vl.fill_nulls", crash)
+    assert extract_facts(st, RULES) == plain
+
+
+def test_extract_features_reports_vl_fills_only_when_there_are_some(monkeypatch, tmp_path):
+    from prism.read.extract import extract_features
+
+    st = state_for(tmp_path, drop=("Product",))
+    assert "vl_fills" not in extract_features(st, RULES)
+    live(monkeypatch, Fake('{"product": "Term Loan"}'))
+    st.facts = extract_facts(st, RULES)
+    assert extract_features(st, RULES)["vl_fills"]["product"]["model"] == PRIMARY
