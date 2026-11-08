@@ -1,6 +1,7 @@
 // Hash routes, no router library (D-02). Folder names contain spaces, ampersands and apostrophes,
 // so the folder (and a cluster id) is always passed through encodeURIComponent.
 export type Route =
+  | { view: 'overview' }
   | { view: 'pipeline' }
   | { view: 'deal'; folder: string }
   | { view: 'inbox' }
@@ -15,6 +16,8 @@ export function buildHash(route: Route): string {
   switch (route.view) {
     case 'deal':
       return `${DEAL_PREFIX}${encodeURIComponent(route.folder)}`
+    case 'overview':
+      return '#/overview'
     case 'inbox':
       return '#/inbox'
     case 'alerts':
@@ -42,6 +45,7 @@ export function parseHash(hash: string): Route {
     if (folder !== null) return { view: 'deal', folder }
     return { view: 'pipeline' }
   }
+  if (hash === '#/overview') return { view: 'overview' }
   if (hash === '#/inbox') return { view: 'inbox' }
   if (hash === '#/alerts') return { view: 'alerts' }
   if (hash === '#/graph' || hash === GRAPH_PREFIX) return { view: 'graph', clusterId: null }

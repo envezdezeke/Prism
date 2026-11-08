@@ -18,6 +18,8 @@ interface UiState {
 const hasLocation = (): boolean => typeof location !== 'undefined'
 
 function initialRoute(): Route {
+  // An empty hash lands on the Overview (the page that says where to start).
+  if (hasLocation() && (location.hash === '' || location.hash === '#')) return { view: 'overview' }
   return hasLocation() ? parseHash(location.hash) : { view: 'pipeline' }
 }
 

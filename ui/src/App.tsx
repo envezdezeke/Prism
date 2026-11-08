@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Bell, ChevronDown, ChevronsLeft, ChevronsRight, Inbox as InboxIcon, LayoutGrid, Network } from 'lucide-react'
+import { Bell, ChevronDown, Home, ChevronsLeft, ChevronsRight, Inbox as InboxIcon, LayoutGrid, Network } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AlertsFeed } from '@/components/app/AlertsFeed'
 import { Board } from '@/components/app/Board'
@@ -8,6 +8,7 @@ import { ClockBar, ClockControls } from '@/components/app/ClockBar'
 import { DealDetail } from '@/components/app/DealDetail'
 import { FraudGraph } from '@/components/app/FraudGraph'
 import { Inbox } from '@/components/app/Inbox'
+import { Overview } from '@/components/app/Overview'
 import { usePendingCount } from './state/pendingCount.ts'
 import { buildHash } from './route.ts'
 import type { Route } from './route.ts'
@@ -20,6 +21,7 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Pipeline',
     items: [
+      { id: 'overview', label: 'Overview', route: { view: 'overview' }, icon: Home },
       { id: 'pipeline', label: 'Board', route: { view: 'pipeline' }, icon: LayoutGrid },
       { id: 'inbox', label: 'Inbox', route: { view: 'inbox' }, icon: InboxIcon },
       { id: 'alerts', label: 'Alerts', route: { view: 'alerts' }, icon: Bell },
@@ -125,6 +127,8 @@ function Screen({ route }: { route: Route }) {
       return <AlertsFeed />
     case 'graph':
       return <FraudGraph clusterId={route.clusterId} />
+    case 'overview':
+      return <Overview />
     default:
       return <Board />
   }
