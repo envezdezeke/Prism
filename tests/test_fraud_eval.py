@@ -287,3 +287,30 @@ def test_smoke_on_real_history(tmp_path, cfg):
         outs.append(tmp_path / name)
     for name in ("baseline_eval.json", "baseline_eval.md"):
         assert (outs[0] / name).read_bytes() == (outs[1] / name).read_bytes()
+
+
+def test_hold_rule_report_false_holds_and_label_positions(cfg):
+    rows = [
+        {"deal_id": "a", "good": True, "fraud_label": "none", "fired": ["F1", "F3", "F5"]},
+        {"deal_id": "b", "good": True, "fraud_label": "none", "fired": ["F1", "F3"]},
+        {"deal_id": "c", "good": True, "fraud_label": "none", "fired": ["F1", "F5", "F6"]},
+        {"deal_id": "d", "good": False, "fraud_label": "ring", "fired": ["F1"]},
+        {"deal_id": "e", "good": False, "fraud_label": "ring", "fired": ["F1", "F3", "F5"]},
+        {"deal_id": "f", "good": False, "fraud_label": "ring", "fired": ["F1", "F3", "F5"]},
+        {"deal_id": "g", "good": False, "fraud_label": "old_trick", "fired": ["F5"]},
+    ]
+    h = eval_baseline.hold_rule_report(rows, cfg)
+    assert (h["n_good"], h["good_held"], h["good_held_ids"]) == (3, 1, ["a"])
+    assert h["good_held_rate"] == pytest.approx(1 / 3)
+    assert h["by_label"] == {
+        "old_trick": {"n": 1, "first_hold_position": None, "caught": 0},
+        "ring": {"n": 3, "first_hold_position": 2, "caught": 2},
+    }
+    assert h["rule"]["required"] == ["F1"] and h["rule"]["non_voting"] == ["F6"]
+
+
+def test_report_summary_carries_hold_rule(params, cfg):
+    full = Baseline.from_rows(eval_history(), params=params)
+    h = eval_baseline.build_report(full, params, None, 0, cfg)["summary"]["hold_rule"]
+    assert h["n_good"] == 5 and h["good_held"] == 0
+    assert h["by_label"]["old_trick"] == {"n": 1, "first_hold_position": None, "caught": 0}

@@ -190,10 +190,11 @@ def test_report_schema_and_determinism(hist):
     assert "### Per trick" in text and "Earliest hold stage" in text
 
 
-def test_engine_mode_with_stub_decide_holds_nothing(hist):
+def test_engine_mode_with_real_decide_never_holds_a_twin(hist):
+    """decide() is real since Plan 05-01: the honest twins (good analogues) are never held."""
     eng = _report(hist, ("engine",), ("core",))["modes"]["engine"]
-    assert all(c["hold_rate"] == 0 for c in eng["cells"])
-    assert eng["bars"]["twin_bar"]["pass"] and not eng["bars"]["catch_bar"]["pass"]
+    assert all(c["hold_rate"] == 0 for c in eng["cells"] if c["kind"] == "twin")
+    assert eng["bars"]["twin_bar"]["pass"]
 
 
 def test_engine_mode_reads_decide_output(hist, monkeypatch):

@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
-from prism.engine.config import ConfigError, load_fraud_config
+from prism.engine.config import ConfigError, FraudConfig, load_fraud_config
 from prism.fraud.baseline import Baseline, Calibration, build_baseline
 from prism.fraud.calibrate import compute_thresholds
 from prism.fraud.rarity import FraudParams
@@ -83,6 +83,42 @@ def summarize(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def hold_rule_fires(fired: Sequence[str], cfg: FraudConfig) -> bool:
+    """The configured hold rule over a list of fired families (non-voting families never count)."""
+    fams = set(fired) - set(cfg.non_voting)
+    if not all(f in fams for f in cfg.hold_required):
+        return False
+    return sum(1 for f in fams if f in cfg.hold_additional_from) >= cfg.hold_min_additional
+
+
+def hold_rule_report(rows: Sequence[dict[str, Any]], cfg: FraudConfig) -> dict[str, Any]:
+    """The configured hold rule on the replay: good deals it would hold (the false-hold metric)
+    and, per fraud_label group (evaluation only, never training or thresholds), the 1-based
+    position in (date, id) order of the first deal it holds and how many it catches."""
+    good = [r for r in rows if r["good"]]
+    held_good = [r["deal_id"] for r in good if hold_rule_fires(r["fired"], cfg)]
+    labels = sorted({str(r.get("fraud_label") or "") for r in rows} - {"", "none"})
+    by_label: dict[str, Any] = {}
+    for lab in labels:
+        group = [r for r in rows if r.get("fraud_label") == lab]
+        hits = [i for i, r in enumerate(group, start=1) if hold_rule_fires(r["fired"], cfg)]
+        by_label[lab] = {"n": len(group), "first_hold_position": hits[0] if hits else None, "caught": len(hits)}
+    return {
+        "rule": {
+            "required": list(cfg.hold_required),
+            "additional_from": list(cfg.hold_additional_from),
+            "min_additional": cfg.hold_min_additional,
+            "non_voting": list(cfg.non_voting),
+        },
+        "families_computed": list(FAMILIES),
+        "n_good": len(good),
+        "good_held": len(held_good),
+        "good_held_rate": len(held_good) / len(good) if good else 0.0,
+        "good_held_ids": held_good,
+        "by_label": by_label,
+    }
+
+
 def scheme_links(rows: Sequence[dict[str, Any]], members: Sequence[str]) -> dict[str, Any]:
     """For each later member of a scheme: does its F1 partner list contain an earlier member?"""
     by_id = {r["deal_id"]: r for r in rows}
@@ -114,8 +150,13 @@ def _round(obj: Any) -> Any:
 
 
 def build_report(
-    full: Baseline, params: FraudParams, gold_members: Optional[Sequence[str]], n_warnings: int
+    full: Baseline,
+    params: FraudParams,
+    gold_members: Optional[Sequence[str]],
+    n_warnings: int,
+    cfg: Optional[FraudConfig] = None,
 ) -> dict[str, Any]:
+    cfg = cfg if cfg is not None else load_fraud_config()
     order = full.ordered_ids()
     train_ids = [i for i in order if full.deals[i].applied <= params.train_end]
     train = full.restricted_to(train_ids)
@@ -139,7 +180,7 @@ def build_report(
             "fire_rate_clean": cal.fire_rate_clean,
             "reference_sizes": {k: len(v) for k, v in sorted(cal.reference.items())},
         },
-        "summary": summarize(rows),
+        "summary": {**summarize(rows), "hold_rule": hold_rule_report(rows, cfg)},
         "deals": rows,
         "scheme": None if gold_members is None else scheme_links(rows, gold_members),
     }
@@ -193,6 +234,28 @@ def render_markdown(rep: dict[str, Any]) -> str:
         "",
     ]
     L += [f"- {i}" for i in s["false_flag_ids"]] or ["- none"]
+    h = s.get("hold_rule")
+    if h is not None:
+        L += [
+            "",
+            "## Configured hold rule on the test period",
+            "",
+            f"Rule: all of {', '.join(h['rule']['required'])} plus at least {h['rule']['min_additional']} of "
+            f"{', '.join(h['rule']['additional_from'])} (never {', '.join(h['rule']['non_voting']) or 'none'}); "
+            f"families computed in this replay: {', '.join(h['families_computed'])}.",
+            "",
+            f"Good test deals the rule would hold: {h['good_held']} of {h['n_good']} ({_pct(h['good_held_rate'])}).",
+            "",
+            "Fraud-label groups (evaluation only, never used for training or thresholds):",
+            "",
+            "| label | deals | first held at position | caught |",
+            "|---|---|---|---|",
+        ]
+        for lab, g in h["by_label"].items():
+            pos = "never" if g["first_hold_position"] is None else str(g["first_hold_position"])
+            L.append(f"| {lab} | {g['n']} | {pos} | {g['caught']} |")
+        if not h["by_label"]:
+            L.append("| none | 0 | never | 0 |")
     L += ["", "## Scheme links", ""]
     sch = rep["scheme"]
     if sch is None:
@@ -256,7 +319,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         members = [x for x in flags if isinstance(x, str)] if isinstance(flags, list) else []
 
     full = build_baseline(hist, cfg)
-    report = build_report(full, params, members, len(full.warnings))
+    report = build_report(full, params, members, len(full.warnings), cfg)
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     _write(out / JSON_NAME, json.dumps(_round(report), sort_keys=True, indent=2, ensure_ascii=False) + "\n")

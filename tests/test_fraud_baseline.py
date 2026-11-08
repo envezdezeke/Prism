@@ -154,11 +154,13 @@ def test_signals_are_deterministic(tmp_path, cfg):
     assert one == two
 
 
-def test_engine_output_unchanged_decide_is_stub(tmp_path, cfg):
+def test_lone_f1_holds_nothing_and_is_a_watch_cluster(tmp_path, cfg):
+    """decide() is real since Plan 05-01: a lone shared entity never holds, it is watched."""
     base = build_baseline(tracer_history(tmp_path), cfg)
     states = {"a": DealState(folder="a", entities=[EntityRef("remit_account", "4321", "d")])}
     out = evaluate(states, base, cfg, NOW)
-    assert out == FraudOutcome() and out.per_deal == {} and out.clusters == []
+    assert out.per_deal == {} and out.history_flags == []
+    assert [c.tier for c in out.clusters] == ["watch"] and out.clusters[0].families["F1"].fired
 
 
 # ------------------------------------------------------------- Task 2: deposits, F3, F5
