@@ -4,14 +4,15 @@ import type { DealDetail as DealDetailData, Fact } from '../../api/types.ts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useDealDetail, useDeals } from '../../data/queries.ts'
+import { useDealDetail, useDeals, useInbox } from '../../data/queries.ts'
 import { fmtDuration, fmtHours, fmtMoney, fmtPct, fmtSimTime } from '../../lib/format.ts'
 import { alertLevelLabel, factFields, factValueText, isClearedAnswer, issueLabel, optionLabel, requestTypeLabel } from '../../labels.ts'
 import { personLabel, roleForAlert, roleForRequest } from '../../people.ts'
 import { useClockStore } from '../../state/clockStore.ts'
+import { useAnswersStore } from '../../state/answersStore.ts'
 import { useUiStore } from '../../state/uiStore.ts'
-import { alertsAt, boardAt, heldAt, requestsAt, simToMs, stageLogAt } from '../../time/timeview.ts'
-import type { BoardRow } from '../../time/timeview.ts'
+import { alertsAt, boardAt, heldAt, inboxAt, requestsAt, requestsWithOverlay, simToMs, stageLogAt } from '../../time/timeview.ts'
+import type { BoardRow, InboxLike, SessionAnswers } from '../../time/timeview.ts'
 import { StatusBadge } from './Badges.tsx'
 import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle, PipelineLink } from './Primitives.tsx'
 
@@ -204,8 +205,22 @@ function StageLogSection({ deal, nowMs }: { deal: DealDetailData; nowMs: number 
   )
 }
 
-function RequestsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: number; when: string }) {
-  const requests = requestsAt(deal.human_requests, nowMs)
+// An answer given in the inbox is joined to the request by deal, type and sent time before the time rule
+// runs, so scrubbing the clock to before the answer hides it here too. No inbox data: requests as fetched.
+function RequestsSection({
+  deal,
+  nowMs,
+  when,
+  inboxItems,
+  answers,
+}: {
+  deal: DealDetailData
+  nowMs: number
+  when: string
+  inboxItems: InboxLike[]
+  answers: SessionAnswers
+}) {
+  const requests = requestsAt(requestsWithOverlay(deal.folder, deal.human_requests, inboxItems, answers), nowMs)
   return (
     <section aria-label="Human requests" className="flex flex-col gap-2">
       <h2 className="text-base font-semibold">Human requests</h2>
@@ -298,9 +313,27 @@ function AlertsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: num
 
 // Sober on purpose (D-16): the red badge is the only red, and nothing is shown that the contract does not
 // give. A held deal's reason, stage at flag and links appear only once the hold has happened at the clock time.
-function FraudPanel({ deal, now, boardFolders }: { deal: DealDetailData; now: string; boardFolders: string[] }) {
+function FraudPanel({
+  deal,
+  now,
+  boardFolders,
+  inboxItems,
+  answers,
+}: {
+  deal: DealDetailData
+  now: string
+  boardFolders: string[]
+  inboxItems: InboxLike[]
+  answers: SessionAnswers
+}) {
   const f = deal.fraud
   const held = heldAt(deal, simToMs(now))
+  // A release answered in this session does not change the mock hold; say so (UI-SPEC fraud panel).
+  const releaseRecorded = inboxAt(
+    inboxItems.filter((i) => i.deal === deal.folder),
+    simToMs(now),
+    answers,
+  ).some((i) => i.answeredInSession && i.status === 'answered' && i.answer === 'release_hold')
   const linked = f.linked_deals ?? []
   return (
     <section aria-label="Fraud status" className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4">
@@ -308,6 +341,9 @@ function FraudPanel({ deal, now, boardFolders }: { deal: DealDetailData; now: st
       {held ? (
         <>
           <StatusBadge held watch={false} />
+          {releaseRecorded && (
+            <Caption>Release recorded in this session. The mock data does not change the hold.</Caption>
+          )}
           <p className="text-sm text-ink-2">
             Frozen at {f.stage_at_flag ?? 'its stage'}
             {f.flagged_at != null && ` as of ${fmtSimTime(f.flagged_at)}`}
@@ -345,7 +381,19 @@ function FraudPanel({ deal, now, boardFolders }: { deal: DealDetailData; now: st
 // The screen as a pure function of (fetched detail, clock now): the same boardAt the board uses decides
 // the stage, SLA and held state, so the two screens agree at every clock time and one clock change
 // can never show a mixed state.
-export function DealDetailView({ detail, now, boardFolders }: { detail: DealDetailData; now: string; boardFolders: string[] }) {
+export function DealDetailView({
+  detail,
+  now,
+  boardFolders,
+  inboxItems = [],
+  answers = {},
+}: {
+  detail: DealDetailData
+  now: string
+  boardFolders: string[]
+  inboxItems?: InboxLike[]
+  answers?: SessionAnswers
+}) {
   const name = detail.legal_name ?? detail.folder
   const nowMs = simToMs(now)
   const when = fmtSimTime(now)
@@ -384,12 +432,12 @@ export function DealDetailView({ detail, now, boardFolders }: { detail: DealDeta
           <FactsSection deal={detail} />
           <IssuesSection deal={detail} />
           <StageLogSection deal={detail} nowMs={nowMs} />
-          <RequestsSection deal={detail} nowMs={nowMs} when={when} />
+          <RequestsSection deal={detail} nowMs={nowMs} when={when} inboxItems={inboxItems} answers={answers} />
           <AlertsSection deal={detail} nowMs={nowMs} when={when} />
         </div>
         <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
           <SummaryPanel row={row} />
-          <FraudPanel deal={detail} now={now} boardFolders={boardFolders} />
+          <FraudPanel deal={detail} now={now} boardFolders={boardFolders} inboxItems={inboxItems} answers={answers} />
         </div>
       </div>
     </div>
@@ -401,6 +449,9 @@ export function DealDetail({ folder }: { folder: string }) {
   const showPipeline = useUiStore((s) => s.showPipeline)
   const q = useDealDetail(folder)
   const deals = useDeals()
+  // A loading or failed inbox just means no overlay: requests show as fetched, with no error here.
+  const inbox = useInbox()
+  const answers = useAnswersStore((s) => s.answers)
   const name = q.data ? (q.data.legal_name ?? q.data.folder) : null
 
   useEffect(() => {
@@ -428,5 +479,13 @@ export function DealDetail({ folder }: { folder: string }) {
       </div>
     )
   }
-  return <DealDetailView detail={q.data} now={now} boardFolders={(deals.data ?? []).map((d) => d.folder)} />
+  return (
+    <DealDetailView
+      detail={q.data}
+      now={now}
+      boardFolders={(deals.data ?? []).map((d) => d.folder)}
+      inboxItems={inbox.data ?? []}
+      answers={answers}
+    />
+  )
 }
