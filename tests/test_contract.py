@@ -329,6 +329,17 @@ def test_graph_referential_and_rules():
     assert trace.cluster_id in {c.id for c in g.clusters}
 
 
+def test_graph_rejects_bad_structure():
+    g = load("graph.json")
+    entity = next(n["id"] for n in g["nodes"] if n["type"] == "entity")
+    flipped = dict(g["edges"][0], source=g["edges"][0]["target"], target=g["edges"][0]["source"])
+    with pytest.raises(ValidationError):
+        FraudGraph.model_validate({**g, "edges": [flipped] + g["edges"][1:]})
+    bad_cluster = dict(g["clusters"][0], deals=g["clusters"][0]["deals"] + [entity])
+    with pytest.raises(ValidationError):
+        FraudGraph.model_validate({**g, "clusters": [bad_cluster] + g["clusters"][1:]})
+
+
 def test_redteam_rates():
     rep = RedTeamReport.model_validate(load("redteam.json"))
     for t in rep.tricks:

@@ -360,12 +360,16 @@ class FraudGraph(ContractModel):
         for e in self.edges:
             if e.source not in by_id or e.target not in by_id:
                 raise ValueError(f"edge references unknown node: {e.source} -> {e.target}")
+            if by_id[e.source].type == "entity" or by_id[e.target].type != "entity":
+                raise ValueError(f"edge must go from a deal to an entity: {e.source} -> {e.target}")
             if by_id[e.target].kind != e.entity_kind:
                 raise ValueError(f"edge entity_kind differs from target kind: {e.target}")
         for c in self.clusters:
             for d in c.deals:
                 if d not in by_id:
                     raise ValueError(f"cluster {c.id} references unknown node {d}")
+                if by_id[d].type == "entity":
+                    raise ValueError(f"cluster {c.id} lists entity node {d} as a deal")
         return self
 
 
