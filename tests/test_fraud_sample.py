@@ -152,3 +152,11 @@ def test_two_sample_runs_give_the_same_submission(sample_run):
         return dumps(build_submission(r.states, r.history_flags, r.errors, team="t", set_name="s"))
 
     assert dump(sample_run) == dump(again)
+
+
+@requires_sample
+def test_tuning_linked_deals_match_gold(sample_run, gold, tuning):
+    """Every tuning deal's linked_deals equals the answer key's set (current peers plus history ids)."""
+    for folder in tuning:
+        got = set(sample_run.states[folder].fraud.linked_deals)
+        assert got == set(gold[folder]["fraud"]["linked_deals"]), "tuning linked_deals differ from gold"

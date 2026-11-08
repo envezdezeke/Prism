@@ -15,6 +15,7 @@ from prism.engine.config import FraudConfig
 from prism.engine.state import PIPELINE, DealState
 from prism.fraud.baseline import Baseline
 from prism.fraud.graph import EntityGraph, build_graph
+from prism.fraud import links as fraud_links
 from prism.fraud.signals import LINK_MARK, FamilySignal, compute_signals
 
 _REASON_HEAD = "Held by the cross-deal fraud screen."
@@ -75,6 +76,21 @@ def decide(
             reason=build_reason(voting if cluster else {}, codes),
             linked_deals=partners if cluster else [],
         )
+    # Cluster pass (M18): links and history flags follow the independent-link rule. A held
+    # deal's linked_deals are replaced by its cluster peers and qualified history ids; the
+    # sticky fields (flagged, held, flagged_at, stage_at_flag, reason) are never touched.
+    # Without a graph and a baseline the link classes cannot be judged, so the flag pass's
+    # current-partner links stand and no cluster is built (hand-built unit tests only).
+    if graph is None or baseline is None:
+        return out
+    blocks = {f: out.per_deal.get(f, states[f].fraud) for f in states}
+    res = fraud_links.build_clusters(blocks, signals, graph, states, baseline, cfg)
+    for folder in sorted(out.per_deal):
+        block = out.per_deal[folder]
+        if block.flagged:
+            out.per_deal[folder] = block.model_copy(update={"linked_deals": res.links.get(folder, [])})
+    out.history_flags = list(res.history_flags)
+    out.clusters = list(res.clusters)
     return out
 
 

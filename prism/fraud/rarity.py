@@ -42,6 +42,9 @@ class FraudParams:
     max_edit_distance: int = 2  # F3 typo tolerance
     min_vendor_deals: int = 3  # F3: a "frequent" history vendor has at least this many deals
     dirichlet_alpha: float = 0.5  # F5 weekday smoothing
+    # history_flags.link_classes: (entity kind, link class id) pairs that merge kinds into one
+    # independent link class (M18). Empty means every kind is its own class.
+    link_classes: tuple[tuple[str, str], ...] = ()
 
     def weight(self, kind: str) -> float:
         return self.type_weights.get(kind, self.default_type_weight)
@@ -78,6 +81,7 @@ class FraudParams:
         alpha = (fams.get("F5") or {}).get("dirichlet_alpha", 0.5)
         if not _num(alpha) or alpha <= 0:
             raise ConfigError("fraud.yaml: F5.dirichlet_alpha must be a number > 0")
+        link_classes = _parse_link_classes(((cfg.raw or {}).get("history_flags") or {}).get("link_classes"))
         return cls(
             rho=cfg.f1_rarity_fraction,
             min_linked=cfg.f1_min_linked_deals,
@@ -91,7 +95,34 @@ class FraudParams:
             max_edit_distance=max_edit,
             min_vendor_deals=min_vendor,
             dirichlet_alpha=float(alpha),
+            link_classes=link_classes,
         )
+
+
+def _parse_link_classes(raw: Any) -> tuple[tuple[str, str], ...]:
+    """``history_flags.link_classes``: mapping of class id to a non-empty list of entity kinds."""
+    if raw is None:
+        return ()
+    from typing import get_args
+
+    from prism.contract import EntityKind
+
+    kinds = set(get_args(EntityKind))
+    if not isinstance(raw, Mapping):
+        raise ConfigError("fraud.yaml: history_flags.link_classes must be a mapping")
+    out: dict[str, str] = {}
+    for cls_id, members in raw.items():
+        if not isinstance(cls_id, str) or not cls_id:
+            raise ConfigError("fraud.yaml: history_flags.link_classes keys must be non-empty strings")
+        if not isinstance(members, (list, tuple)) or not members:
+            raise ConfigError(f"fraud.yaml: history_flags.link_classes.{cls_id} must be a non-empty list")
+        for k in members:
+            if k not in kinds:
+                raise ConfigError(f"fraud.yaml: history_flags.link_classes.{cls_id}: unknown entity kind {k!r}")
+            if k in out:
+                raise ConfigError(f"fraud.yaml: history_flags.link_classes: kind {k} listed twice")
+            out[k] = cls_id
+    return tuple(sorted(out.items()))
 
 
 def p_hat(df: int, n: int) -> float:

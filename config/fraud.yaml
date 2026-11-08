@@ -47,6 +47,11 @@ hold_rule:
 
 history_flags:
   min_links: 2             # independent links with a held cluster (M18)
+  # Optional: merge entity kinds that always travel together into one independent link
+  # class, e.g.  link_classes: {preparer_office: [preparer, phone]}
+  # Default (key absent): every entity kind is its own class and pdf_producer is the class
+  # "producer"; the same lookalike-vendor group (F3) and the same strongest deposit
+  # statistic (F5) are one class each.
 
 calibration:               # measurement split only; real runs use all history as baseline
   train_end: "2026-06-30"

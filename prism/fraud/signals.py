@@ -35,6 +35,10 @@ from prism.fraud.rarity import (
 )
 
 
+# Families compute_signals evaluates; the others show "not evaluated" in clusters.
+COMPUTED_FAMILIES: tuple[str, ...] = ("F1", "F3", "F5")
+
+
 @dataclass(frozen=True)
 class FamilySignal:
     family: str
@@ -279,6 +283,11 @@ def score_f5(
 
 def _fires(bits: float, tau: Optional[float]) -> bool:
     return bits > 0 and tau is not None and bits >= tau
+
+
+def fires(bits: float, tau: Optional[float]) -> bool:
+    """Public tau test: ``bits > 0`` and ``bits >= tau`` (never fires without a tau)."""
+    return _fires(bits, tau)
 
 
 def compute_signals(
