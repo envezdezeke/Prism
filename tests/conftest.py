@@ -41,6 +41,8 @@ def _vl_isolated(monkeypatch, tmp_path_factory):
     monkeypatch.setenv("NEMOTRON_MODE", "off")
     monkeypatch.setenv("PRISM_ENV_FILE", str(base / "absent.env"))
     monkeypatch.setenv("PRISM_NEMOTRON_CACHE_DIR", str(base / "cache"))
+    monkeypatch.setenv("PRISM_AGENT_CACHE_DIR", str(base / "agent_cache"))
+    monkeypatch.setenv("PRISM_AGENTS_DIR", str(base / "agents_out"))
     monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
     from prism.read import vl
 
