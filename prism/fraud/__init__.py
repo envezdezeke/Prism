@@ -12,6 +12,7 @@ Module map (data flows top to bottom; see prism/engine/state.py for the hand-off
 - calibrate: startup thresholds (tau) from the clean calibration set, recorded for audit
 - eval_baseline: time-split report on history alone
 - decide: hold rule (stub until Phase 5 proper)
+- graph_out: FraudGraph (UI contract I4) with rarity-weighted edges, evidence, first-visible times
 
 Time-split report (writes out/baseline_eval.json and out/baseline_eval.md):
 
