@@ -81,12 +81,18 @@ Short version below. The full rule-by-rule list is [`docs/DETAILS_CHECKLIST.md`]
 - [ ] Output JSON validates against `SUBMISSION_FORMAT.md` (keys = folder names, allowed enum values only).
 - [ ] Rehearse the drop: delete some arrivals, re-sync, confirm zero manual steps.
 
-## 5. Open questions for Vijay (post in the GS channel ASAP)
+## 5. Open questions for Vijay (the one list; post in the GS channel ASAP)
 
-1. How is the hidden set run: do we hand over code, or run it live in front of judges?
-2. During judging, how do organizers answer our human requests: through our UI, chat, email, a file? (PROJECT.md supports both an inbox UI and scripted personas; the answer decides which to polish.)
-3. Is there a live demo/presentation in addition to the JSON score? What are the score weights?
-4. Is "flag earlier" measured in sim time or by stage?
+Owner: Jesse. Record each answer in PROJECT.md Key Decisions. Ordered by how much score rides on the answer.
+
+1. **During judging, how do the "staff" answer our sign-off requests:** our UI, chat, email, a file, or an API they call? (Our build supports an inbox screen and scripted answers; the answer decides which to polish.)
+2. **How is the hidden set run, and how do the drop and the hidden set arrive?** Do we hand over code or run it live? Is it a new zip with its own `arrivals.jsonl`, or files added to the same folder?
+3. **Is `issues` scored on the end state of the run, or on every issue ever raised?** (We chose end state; checklist J14.)
+4. **If we request a fraud hold and Fraud Ops never answers, does the deal count as held?** (We chose yes; J5.)
+5. **Commitment letter:** is the RM's sign-off enough, or must the borrower's signature be a separate request? (We chose the RM confirms; J10.)
+6. **Is "flag earlier" measured in sim time or by stage?** What are the score weights? Is there a live demo or presentation besides the JSON score?
+7. **Does submission require a public GitHub repo,** given the data is confidential?
+8. **What team name goes in the output file's `team` field?**
 
 NVIDIA table: confirm which Nemotron model they recommend for tool calling and for vision (VL), the rate limits, and how the Brev credits work.
 
@@ -138,10 +144,10 @@ Settle these together; each blocks clean hand-offs.
 | 4 | **Jesse's role.** The plan has Jesse coding the UI for ~8h (H1–H9) plus the graph view; Jesse is finance, not a developer | Biggest schedule risk on Jesse's track | Jesse owns: the details checklist and judgment calls, answer key, credit-memo and alert wording, false-flag review, pitch. The UI gets built with Claude Code under Jesse's direction, kept plain (accuracy > looks) |
 | 5 | **Finance items aren't in the ROADMAP**: domain rules / judgment calls, credit-memo template, alert and request wording (§7 items 2–4) | The Committee stage can't exit without a credit memo; alerts must say 4 specific things | Add them to Jesse's track, ahead of UI polish |
 | 6 | **Judgment calls J1–J20** in `docs/DETAILS_CHECKLIST.md` | Zeke would otherwise guess at 2am | Jesse confirms or changes each; Zeke builds to them |
-| 7 | **Organizer questions** live in two places (§5 here, ONBOARDING §8) with different lists, and nobody owns asking them | Who answers human requests during judging, and how `issues` is scored, both change the build | Jesse owns asking Vijay; record the answers in PROJECT.md Key Decisions |
+| 7 | **Organizer questions** were in two places; now merged into §5 here, owned by Jesse | Who answers human requests during judging, and how `issues` is scored, both change the build | Jesse owns asking Vijay; record the answers in PROJECT.md Key Decisions |
 | 8 | **Jesse's machine is a Mac**; setup docs and DEMO-02 (clean-checkout run "on Jesse's machine") assume Windows | The clean-checkout test would fail on setup, not on our code | Mac notes added to ONBOARDING §4; Zeke keeps scripts cross-platform |
-| 9 | **Push access**: is Jesse (`FroyoMojo`) a collaborator on `envezdezeke/Prism`? | Jesse can't share the checklist or answer key otherwise | Zeke confirms or adds |
-| 10 | **ONBOARDING §7 says "we're aiming for best design"**, but the agreed priority is Goldman > Nemotron > UI | Mixed signals on where hours go | Change to "clean and plain; accuracy first" |
+| 9 | ~~Push access for Jesse~~ | | **Resolved 17:50:** Jesse pushed successfully |
+| 10 | ~~"Aiming for best design" vs. Goldman > Nemotron > UI~~ | | **Fixed:** ONBOARDING §7 and PROJECT.md now say accuracy first |
 | 11 | **Drop-day fixes vs. the blind headline.** ROADMAP's drop slot allows generic fixes, then a re-tagged baseline | Fixing before recording makes the "blind" number not blind | Record the first-run score and commit first (§3 item 6), then fix |
 | 12 | **NVIDIA asks for "external APIs and services"**; our agent's tools are engine functions inside our own program | Judges may read internal function calls as weak tool use | Have the agent call real HTTP services: our own API endpoints and the sim clock's API (`/now`, `/inbox`), and say so in the pitch |
 | 13 | **Goldman's slide says "leveraging AI/ML"**; our docs say "not a trained classifier" | A judge could hear "no ML" | Pitch wording: "unsupervised anomaly detection that learns what normal looks like from a year of history" (rarity scoring and deposit-pattern statistics *are* ML); "no classifier" is our reason it carries over to new tricks |

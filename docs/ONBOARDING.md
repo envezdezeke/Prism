@@ -101,11 +101,9 @@ If you use Claude Code, open the repo and run `/gsd-progress`. It reads STATE.md
 - A deal is held only on **3 agreeing signal families**. 1–2 families puts it on a visible "watch" list.
 - A flagged deal is frozen immediately, and Fraud Ops (victor.hale, backup monica.salas) is asked to confirm.
 - Nemotron runs through the hosted API (build.nvidia.com). Runs are recorded so the demo can replay them if the API is slow.
-- UI style is **clean, light fintech** (think Stripe or Ramp). We're aiming for best design.
+- UI style is **clean, light fintech**, kept plain: **accuracy first** (Goldman > Nemotron > UI). The Goldman score is graded on the output file, not the screens.
 - **Gates:** H10 (Sun 01:55) engine baseline frozen · H15.5 (07:25) Nemotron agents working · H18 (09:55) feature freeze → dry run, demo recording, pitch · submit by 11:40, hard deadline **Sun 12:00 CT**.
 
-## 8. Open questions for the organizers (whoever is near the help desk)
+## 8. Open questions for the organizers
 
-1. During judging, how do the "staff" answers reach us: a UI we run, files, or an API they call?
-2. How do the weekend drop and the hidden set arrive: a new zip with its own `arrivals.jsonl`, or files added to the same folder?
-3. Is `issues` scored on the end state of the run, or on every issue ever raised?
+One list, owned by Jesse: **[`HANDOFF.md` §5](../HANDOFF.md)**. Add new questions there, not here.
