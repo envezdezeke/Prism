@@ -52,14 +52,14 @@ Pipeline board with one held deal's red "Held: fraud review" badge visible (buil
 
 **Bullets**
 - Each fake application passes the bank's existing known-fraud checks on its own.
-- Rings are cheap because they reuse resources: one bookkeeper, one payment account, one document generator.
+- Rings are cheap because they reuse resources: one bookkeeper, one payment account, the same document software.
 - Every reuse leaves a trace that is rare in the bank's own history and shared across deals.
 
 **Speaker notes**
-Alone, each fake passes every check the bank runs. But rings are built cheaply. One person prepares the books for companies that claim to be unrelated. Equipment money heads to a lookalike of a real vendor's account. Bank statements come from a document generator. Each trace is rare in honest history, so Prism compares deals.
+Alone, each fake passes every check the bank runs. But rings are built cheaply. One person prepares the books for companies that claim to be unrelated. Equipment money heads to a lookalike of a real vendor's account. Their bank statements come out of the same document software. Each trace is rare in honest history, so Prism compares deals.
 
 **Visual**
-`[pending 07-01/07-03]` The fraud graph with the ring's deals joined by thick edges to a few shared entities; entity types only, no names. Fallback until it ships: text only, three plain-language catches in a row (hidden preparer, lookalike payment account, document fingerprint).
+`[pending 07-01/07-03]` The fraud graph with the ring's deals joined by thick edges to a few shared entities; entity types only, no names. Fallback until it ships: text only, three plain-language catches in a row (hidden preparer, lookalike payment account, shared document software).
 
 ---
 
@@ -67,7 +67,7 @@ Alone, each fake passes every check the bank runs. But rings are built cheaply. 
 
 **Bullets**
 - Unsupervised anomaly detection: every signal is surprise measured against a year of clean history. A rare shared entity scores high, a common one scores near zero.
-- Six evidence families: shared rare entity, sudden new activity, lookalike counterparty, document fingerprint, deposit pattern, and loan terms (shown, never votes).
+- Three families vote today: shared rare entity, lookalike counterparty and deposit pattern. Loan terms are shown and never vote. Sudden new activity and document fingerprint are next.
 - Hold only when a shared rare entity is present and at least two other families agree. One or two families gives a visible watch list, not a hold.
 - Thresholds come from false-alarm rates on clean deals only. They are never fitted to fraud examples.
 
@@ -112,6 +112,8 @@ A single scorecard table rendered from `eval/scorecard.md`: set, size, tuned on 
 ---
 
 ## Slide 6: Nemotron works around the engine, not inside the score
+
+> **Audit Sun 08:40 CT:** no Nemotron agent code is pushed yet (Zeke's Phase 6). Say only the bullets whose agent has shipped by the H18 freeze; if none has, cut this slide to one line: "Next: Nemotron agents to investigate and attack the engine, never inside the score."
 
 **Bullets**
 - Investigator agent: plans, calls our live HTTP API and the bank's clock service, and writes a cited evidence case for each held or watched cluster.
@@ -164,7 +166,7 @@ Setup before the talk: engine run finished on the sample week, API and UI runnin
 |---|---|---|---|
 | 0:00–0:12 | Pipeline board | Press "Replay from start", then "Next event" twice. | "This is the bank's pipeline on a simulated week. Files arrive, deals move through six stages, and each stage has a time limit. Amber means overdue, and the right person is already alerted." |
 | 0:12–0:25 | Pipeline board, held deal | Point at the red "Held: fraud review" badge. Open the deal and show the fraud panel. | "This deal was held at [[STAGE_AT_FLAG]], before any money went out. Here is the plain-English reason, and the deals it links to." |
-| 0:25–0:45 | Fraud graph `[pending 07-01/07-03]` | Click Fraud graph in the rail. Press "Replay from start", then "Next event" and watch links appear. Click one link and read its evidence sentence. When the clock reaches the hold, the cluster panel turns Held. End on the held deal's red badge and the investigation panel, labelled advisory `[pending 07-04]`. | "Watch the ring connect as files arrive. Three applications that claim to be unrelated share a bookkeeper, a payment account and a document fingerprint. Prism also found [[HISTORY_LINKS]] earlier funded loans from the same kit. The agent's note is advice. The rule engine decides." |
+| 0:25–0:45 | Fraud graph `[pending 07-01/07-03]` | Click Fraud graph in the rail. Press "Replay from start", then "Next event" and watch links appear. Click one link and read its evidence sentence. When the clock reaches the hold, the cluster panel turns Held. End on the held deal's red badge and the investigation panel, labelled advisory `[pending 07-04]`. | "Watch the ring connect as files arrive. Three applications that claim to be unrelated share a bookkeeper, a payment account and the same document software. Prism also found [[HISTORY_LINKS]] earlier funded loans from the same kit. The agent's note is advice. The rule engine decides." |
 | 0:45–1:00 | Inbox | Open the Inbox, select the Committee approval request, click Approve. | "Good deals keep moving. Every sign-off goes to the right person, with a backup when someone is out. No single person can push a loan through." |
 
 If something breaks: say "let me switch to the recording", jump to the same step in the video, and keep the script.
@@ -203,7 +205,7 @@ Scores are recomputed on every file arrival, and the hold fires on the first arr
 Nothing changes in the score. Prism checks for the key at startup; without it, Nemotron is switched off and the deterministic engine writes the same file. Any single failed call also falls back to off. The engine takes the folder and arrival log as arguments, so a new dataset runs with no code changes, and its thresholds recompute from whatever history ships with it.
 
 **Spare questions, if time allows**
-- *"Why bits?"* One unit lets six different signals be compared and summed for display, and it reads naturally: 10 bits means about one in a thousand by chance under clean history. The hold decision never uses the sum, only the rule.
+- *"Why bits?"* One unit lets different signals be compared and summed for display, and it reads naturally: 10 bits means about one in a thousand by chance under clean history. The hold decision never uses the sum, only the rule.
 - *"Why does the loan-terms family not vote?"* Young companies, round amounts and amounts just under an approval limit are common among honest small businesses, and they move together. Letting them vote would double-count and push good borrowers into holds.
 - *"Is this AI/ML?"* Yes: unsupervised anomaly detection that learns what normal looks like from a year of history, plus Nemotron agents. "No classifier" is our reason it carries over to a new trick, not a lack of machine learning.
 
