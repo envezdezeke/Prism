@@ -318,7 +318,7 @@ export function EvidenceDrawer({
               />
             )}
             {cluster !== null && (
-              <Section title={`Cluster ${cluster.id} · families`}>
+              <Section title={`Cluster ${cluster.id} · families, as of end of run`}>
                 <FamilyList cluster={cluster} />
               </Section>
             )}

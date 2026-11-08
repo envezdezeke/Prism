@@ -62,6 +62,10 @@ export function GraphCanvas({
   const [cache] = useState(() => new LayoutCache())
   const data = useMemo(() => cache.sync(view) as { nodes: N[]; links: L[] }, [cache, view])
   const needsFit = useRef(true)
+  // New nodes from the clock: refit once the layout settles so nothing grows off the canvas.
+  useEffect(() => {
+    needsFit.current = true
+  }, [view.nodes.length])
 
   useEffect(() => {
     const el = wrapRef.current
