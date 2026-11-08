@@ -17,19 +17,17 @@ Authorization header and is never logged, cached or put in an error message. Mod
 from __future__ import annotations
 
 import base64
-import hashlib
 import json
 import logging
-import os
 import re
 import time
-import urllib.error
-import urllib.request
+import urllib.request  # tests patch vl.urllib.request.urlopen (the shared module object)
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Optional, get_args
 
+from prism.agents import client
 from prism.contract import Fact, Product, PurposeCategory
 from prism.engine.config import REPO_ROOT
 from prism.engine.money import cents_to_number
@@ -40,8 +38,7 @@ from prism.read.text import _embedded_images, load_text
 
 log = logging.getLogger("prism")
 
-DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
-_ENV_PREFIXES = ("NVIDIA_", "NEMOTRON_", "PRISM_NEMOTRON_", "PRISM_ENV_")
+DEFAULT_BASE_URL = client.DEFAULT_BASE_URL
 _PNG_SIG = b"\x89PNG\r\n\x1a\n"
 _SIM_TIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?-06:00$")
 
@@ -70,61 +67,18 @@ _FIELD_HELP = {
 
 # ---------------------------------------------------------------- environment
 
-_ENV_CACHE: dict[tuple[str, int], dict[str, str]] = {}
-
-
-def _env_file() -> Path:
-    override = os.environ.get("PRISM_ENV_FILE")
-    return Path(override) if override else REPO_ROOT / ".env"
-
-
-def _dotenv() -> dict[str, str]:
-    p = _env_file()
-    try:
-        key = (str(p), p.stat().st_mtime_ns)
-    except OSError:
-        return {}
-    if key in _ENV_CACHE:
-        return _ENV_CACHE[key]
-    env: dict[str, str] = {}
-    try:
-        for line in p.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                k = k.strip()
-                if k.startswith(_ENV_PREFIXES):
-                    env[k] = v.strip().strip('"').strip("'")
-    except (OSError, UnicodeDecodeError):
-        env = {}
-    _ENV_CACHE.clear()
-    _ENV_CACHE[key] = env
-    return env
-
-
 def _env(name: str) -> str:
-    """Process env first, then the repo .env. Read at call time, never at import."""
-    v = os.environ.get(name)
-    if v is None or not v.strip():
-        v = _dotenv().get(name, "")
-    return (v or "").strip()
+    """Process env first, then the repo .env (shared client). Read at call time."""
+    return client.env(name)
 
 
 def _key_usable() -> bool:
-    key = _env("NVIDIA_API_KEY")
-    return bool(key) and "REPLACE_ME" not in key
+    return client.key_usable()
 
 
 def mode() -> str:
     """``off`` | ``replay`` | ``live`` (N9)."""
-    m = _env("NEMOTRON_MODE").casefold()
-    if m == "off":
-        return "off"
-    if m == "replay":
-        return "replay"
-    if m in ("", "live"):
-        return "live" if _key_usable() else "off"
-    return "off"
+    return client.mode()
 
 
 def _models() -> list[str]:
@@ -168,43 +122,12 @@ def _budget_left() -> bool:
 
 # ---------------------------------------------------------------- transport (the only network code)
 
-class _VLError(Exception):
-    """A failure reduced to a short message with no headers and no key."""
-
-    def __init__(self, message: str, retryable: bool = False) -> None:
-        super().__init__(message)
-        self.retryable = retryable
+_VLError = client.NemotronError  # alias: ``except vl._VLError`` / ``raise vl._VLError`` keep working
 
 
 def _transport(model: str, messages: list, *, timeout: float, max_tokens: int) -> str:
-    """POST one chat completion; return the reply text. Tests replace this function."""
-    key = _env("NVIDIA_API_KEY")
-    base = (_env("NVIDIA_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
-    body = json.dumps({"model": model, "messages": messages, "max_tokens": max_tokens,
-                       "temperature": 0}).encode("utf-8")
-    req = urllib.request.Request(
-        f"{base}/chat/completions", data=body, method="POST",
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - fixed https base from env
-            data = json.loads(r.read().decode("utf-8", errors="replace"))
-    except urllib.error.HTTPError as e:
-        code = int(getattr(e, "code", 0) or 0)
-        raise _VLError(f"http {code}", retryable=code == 429 or code >= 500) from None
-    except TimeoutError:
-        raise _VLError("timeout", retryable=True) from None
-    except (urllib.error.URLError, OSError) as e:
-        raise _VLError(f"network {type(e).__name__}", retryable=True) from None
-    except Exception as e:  # noqa: BLE001
-        raise _VLError(f"bad response {type(e).__name__}") from None
-    try:
-        content = data["choices"][0]["message"]["content"]
-    except Exception:  # noqa: BLE001
-        raise _VLError("no reply") from None
-    if not isinstance(content, str) or not content.strip():
-        raise _VLError("empty reply")
-    return content
+    """POST one chat completion through the shared client; return the reply text. Tests replace this."""
+    return client.text_reply(client.post_chat(model, messages, timeout=timeout, max_tokens=max_tokens))
 
 
 def _sleep(seconds: float) -> None:
@@ -214,19 +137,10 @@ def _sleep(seconds: float) -> None:
 # ---------------------------------------------------------------- cache
 
 def _cache_dir() -> Path:
-    override = _env("PRISM_NEMOTRON_CACHE_DIR")
-    if override:
-        return Path(override)
-    default = Path(str(_cfg().get("cache_dir_default", "out/nemotron_cache")))
-    return default if default.is_absolute() else REPO_ROOT / default
+    return client.cache_dir(str(_cfg().get("cache_dir_default", "out/nemotron_cache")))
 
 
-def _digest(*parts: Any) -> str:
-    h = hashlib.sha256()
-    for p in parts:
-        b = p if isinstance(p, (bytes, bytearray)) else str(p).encode("utf-8")
-        h.update(str(len(b)).encode("ascii") + b":" + bytes(b))
-    return h.hexdigest()
+_digest = client.digest
 
 
 def _cache_key(model: str, prompt: str, input_digest: str, fields: list[str]) -> str:
@@ -234,22 +148,11 @@ def _cache_key(model: str, prompt: str, input_digest: str, fields: list[str]) ->
 
 
 def _cache_read(key: str) -> Optional[dict]:
-    try:
-        rec = json.loads((_cache_dir() / f"{key}.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    ans = rec.get("answer") if isinstance(rec, dict) else None
-    return ans if isinstance(ans, dict) else None
+    return client.cache_read(_cache_dir(), key)
 
 
 def _cache_write(key: str, model: str, fields: list[str], answer: dict) -> None:
-    try:
-        d = _cache_dir()
-        d.mkdir(parents=True, exist_ok=True)
-        rec = {"model": model, "fields": sorted(fields), "answer": answer}
-        (d / f"{key}.json").write_text(json.dumps(rec, sort_keys=True, ensure_ascii=False), encoding="utf-8")
-    except OSError:
-        pass
+    client.cache_write(_cache_dir(), key, {"model": model, "fields": sorted(fields), "answer": answer})
 
 
 # ---------------------------------------------------------------- model output
@@ -484,23 +387,16 @@ def _build_input(doc: Any, fields: list[str]) -> Optional[tuple[list, str]]:
 def _call_model(model: str, messages: list) -> Optional[str]:
     """One model with bounded retries; every attempt costs one call of the budget. None on any failure."""
     cfg = _cfg()
-    retries = int(cfg.get("retries", 2))
-    sleeps = list(cfg.get("retry_sleep_seconds") or [2, 5])
-    for attempt in range(retries + 1):
-        if not _budget_left():
-            return None
+    timeout = float(cfg.get("timeout_seconds", 60))
+    max_tokens = int(cfg.get("max_tokens", 600))
+
+    def spend() -> None:
         _RUN.calls += 1
-        try:
-            return _transport(model, messages, timeout=float(cfg.get("timeout_seconds", 60)),
-                              max_tokens=int(cfg.get("max_tokens", 600)))
-        except _VLError as e:
-            if e.retryable and attempt < retries:
-                _sleep(float(sleeps[min(attempt, len(sleeps) - 1)]))
-                continue
-            return None
-        except Exception:  # noqa: BLE001 - a transport that raises anything else is a failure, not a crash
-            return None
-    return None
+
+    return client.call_with_retries(
+        lambda: _transport(model, messages, timeout=timeout, max_tokens=max_tokens),
+        retries=int(cfg.get("retries", 2)), sleeps=list(cfg.get("retry_sleep_seconds") or [2, 5]),
+        budget_left=_budget_left, spend=spend, sleep=lambda s: _sleep(s))
 
 
 def _answer(prompt_messages: list, input_digest: str, fields: list[str], how: str) -> Optional[tuple[str, dict]]:
