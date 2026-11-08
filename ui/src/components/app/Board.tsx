@@ -22,7 +22,7 @@ function DealCard({ row }: { row: BoardRow<DealDetail> }) {
     <li>
       <DealLink
         folder={deal.folder}
-        className="flex flex-col gap-1 rounded-md border border-line bg-surface px-3 py-2 text-ink transition-colors duration-150 hover:bg-subtle"
+        className="flex flex-col gap-1 rounded-md border border-line border-t-4 border-t-navy bg-surface px-3 py-2 text-ink transition-colors duration-150 hover:bg-subtle"
       >
         <div className="flex items-start justify-between gap-2">
           <span className="line-clamp-2 min-w-0 text-sm font-semibold" title={name}>
@@ -106,9 +106,9 @@ export function BoardView({
             const limit = stageLimit(col)
             return (
               <div key={stage} className="flex min-w-0 flex-col gap-2 bg-page">
-                <h2 className="flex items-baseline justify-between gap-2 text-xs font-semibold text-ink-2">
+                <h2 className="flex items-baseline justify-between gap-2 rounded-sm bg-navy px-2.5 py-2 text-xs font-bold uppercase tracking-wide text-surface">
                   <span>{stage}</span>
-                  <span className="font-normal tabular-nums">
+                  <span className="font-bold tabular-nums text-sky">
                     {col.length}
                     {limit ? ` · ${limit}` : ''}
                   </span>
