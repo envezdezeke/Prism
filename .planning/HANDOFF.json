@@ -7,37 +7,96 @@
   "status": "paused",
   "deadline": "2026-11-08 12:00 CT (hard)",
   "completed_tasks": [
-    {"id": "03-01..03-04", "name": "Phase 3 plans executed incl. Nemotron VL", "status": "done", "commit": "ad06f49"},
-    {"id": "03-review", "name": "03-REVIEW.md: 1 critical, 6 high, 10 medium, 9 low", "status": "done", "commit": "eaa5ec5"},
-    {"id": "03-verify", "name": "03-VERIFICATION.md: gaps_found (row-amount tamper not caught)", "status": "done", "commit": "aa9d015"},
-    {"id": "04-research", "name": "Phase 4 research", "status": "done", "commit": "9413834"},
-    {"id": "ui-hero", "name": "UI hero flow on branch ui/hero, pushed to origin", "status": "done"}
+    {
+      "id": "03-01..03-04",
+      "name": "Phase 3 plans executed incl. Nemotron VL",
+      "status": "done",
+      "commit": "ad06f49"
+    },
+    {
+      "id": "03-review",
+      "name": "03-REVIEW.md: 1 critical, 6 high, 10 medium, 9 low",
+      "status": "done",
+      "commit": "eaa5ec5"
+    },
+    {
+      "id": "03-verify",
+      "name": "03-VERIFICATION.md: gaps_found (row-amount tamper not caught)",
+      "status": "done",
+      "commit": "aa9d015"
+    },
+    {
+      "id": "04-research",
+      "name": "Phase 4 research",
+      "status": "done",
+      "commit": "9413834"
+    },
+    {
+      "id": "ui-hero",
+      "name": "UI hero flow on branch ui/hero, pushed to origin",
+      "status": "done"
+    }
   ],
-  "agents_running_at_handoff": [
-    {"what": "Phase 3 gap-closure executor on main (writes 03-05-PLAN.md, commits fixes to prism/read/**, then 03-05-SUMMARY.md). Items: row-amount tamper (verification gap/HI-03), CR-01, HI-04, HI-01, then HI-06/ME-01/HI-02 if time.", "check": "git log; ls .planning/phases/03-read-the-folder/03-05-SUMMARY.md"},
-    {"what": "Phase 4 planner (slim, max 2 plans) writing .planning/phases/04-move-the-deal/04-0N-PLAN.md (uncommitted)", "check": "ls .planning/phases/04-move-the-deal/"},
-    {"what": "Phase 5 planner (max 3 plans, tracer = fraud decide() flags + OLD_TRICK path before Intake exit) writing .planning/phases/05-catch-the-fakes/05-0N-PLAN.md (uncommitted)", "check": "ls .planning/phases/05-catch-the-fakes/"}
-  ],
+  "agents_running_at_handoff": [],
   "remaining_tasks": [
-    {"id": 1, "name": "When 03-05-SUMMARY exists: rerun gate/pytest, re-run verifier (gsd-verifier) -> passed, then `gsd_run query phase.complete 03`, commit tracking"},
-    {"id": 2, "name": "Merge ui/hero into main (expect ROADMAP.md conflict; keep both sides' edits)"},
-    {"id": 3, "name": "Commit Phase 4/5 plans; run gsd-plan-checker on each (or skip if time-critical); execute Phase 5 first priority (score), Phase 4 04-01 in parallel (disjoint files: prism/fraud vs prism/api+move)"},
-    {"id": 4, "name": "Final: gate.sh --final, UI on live API, demo dry run, push main"}
+    {
+      "id": 1,
+      "name": "When 03-05-SUMMARY exists: rerun gate/pytest, re-run verifier (gsd-verifier) -> passed, then `gsd_run query phase.complete 03`, commit tracking"
+    },
+    {
+      "id": 2,
+      "name": "Merge ui/hero into main (expect ROADMAP.md conflict; keep both sides' edits)"
+    },
+    {
+      "id": 3,
+      "name": "Commit Phase 4/5 plans; run gsd-plan-checker on each (or skip if time-critical); execute Phase 5 first priority (score), Phase 4 04-01 in parallel (disjoint files: prism/fraud vs prism/api+move)"
+    },
+    {
+      "id": 4,
+      "name": "Final: gate.sh --final, UI on live API, demo dry run, push main"
+    }
   ],
   "blockers": [],
   "human_actions_pending": [
-    {"action": "Decide red-team badge (mock shows 5 bypasses / 30 attempts)", "blocking": false},
-    {"action": "Confirm judged run end with organizers (D-02 = Fri 11/06 18:00 -06:00)", "blocking": false}
+    {
+      "action": "Decide red-team badge (mock shows 5 bypasses / 30 attempts)",
+      "blocking": false
+    },
+    {
+      "action": "Confirm judged run end with organizers (D-02 = Fri 11/06 18:00 -06:00)",
+      "blocking": false
+    }
   ],
   "decisions": [
-    {"decision": "Nemotron VL defaults to LIVE whenever an API key is present (code-review HI-05 accepted as intended behavior; do not change)", "phase": "03"},
-    {"decision": "Phase 4 slim (~2h): 04-01 live API read/reply + run end + past-deadline clamp; 04-02 cuttable OLD_TRICK e2e + wording", "phase": "04"},
-    {"decision": "Run end default = Fri 11/06 18:00 -06:00", "phase": "04"},
-    {"decision": "Phase 5 owns fraud.flagged/held/flagged_at/stage_at_flag incl. from OLD_TRICK issues; Move freezes/requests", "phase": "05"},
-    {"decision": "No Vultr deploy for now; merge ui/hero only after Phase 3 closes", "phase": "02"},
-    {"decision": "Executors run sequentially on main (workflow.use_worktrees=false); orchestrator owns STATE/ROADMAP/REQUIREMENTS writes; executors told not to touch them", "phase": "all"}
+    {
+      "decision": "Nemotron VL defaults to LIVE whenever an API key is present (code-review HI-05 accepted as intended behavior; do not change)",
+      "phase": "03"
+    },
+    {
+      "decision": "Phase 4 slim (~2h): 04-01 live API read/reply + run end + past-deadline clamp; 04-02 cuttable OLD_TRICK e2e + wording",
+      "phase": "04"
+    },
+    {
+      "decision": "Run end default = Fri 11/06 18:00 -06:00",
+      "phase": "04"
+    },
+    {
+      "decision": "Phase 5 owns fraud.flagged/held/flagged_at/stage_at_flag incl. from OLD_TRICK issues; Move freezes/requests",
+      "phase": "05"
+    },
+    {
+      "decision": "No Vultr deploy for now; merge ui/hero only after Phase 3 closes",
+      "phase": "02"
+    },
+    {
+      "decision": "Executors run sequentially on main (workflow.use_worktrees=false); orchestrator owns STATE/ROADMAP/REQUIREMENTS writes; executors told not to touch them",
+      "phase": "all"
+    }
   ],
-  "uncommitted_files": ["?? .planning/phases/03-read-the-folder/03-05-PLAN.md (being written by gap executor)"],
-  "next_action": "In the new chat: /gsd-resume-work, then check the three in-flight agents' outputs (they keep running and committing/writing after this chat ends).",
-  "context_notes": "Python: C:/Users/ezeki/AppData/Local/Programs/Python/Python313/python.exe, PYTHONUTF8=1. Root-pin guard script for sequential executors was in the old session scratchpad; regenerate from ~/.claude/gsd-core/references/worktree-path-safety.md step 0p with PINNED_ROOT='C:/Users/ezeki/hack/prism'. Score: TUNING facts 90/90 issues 10/10 route 32/40 stage 8/10 flag 7/10 held 7/10 links 8/10; TOTAL route 40/52 stage 10/13 flag 9/13 held 9/13 links 10/13."
+  "uncommitted_files": [
+    "?? .planning/phases/03-read-the-folder/03-05-PLAN.md (being written by gap executor)"
+  ],
+  "next_action": "/gsd-resume-work -> re-run gsd-verifier on phase 03 (expect passed) -> phase.complete 03 -> merge ui/hero -> execute 05-01 and 04-01 in parallel (disjoint files) -> 05-02 -> optional 04-02/05-03 -> gate --final, push main. Optional speedup: os.path.abspath in prism/read/docmodel.py halves reply latency.",
+  "context_notes": "Python: C:/Users/ezeki/AppData/Local/Programs/Python/Python313/python.exe, PYTHONUTF8=1. Root-pin guard script for sequential executors was in the old session scratchpad; regenerate from ~/.claude/gsd-core/references/worktree-path-safety.md step 0p with PINNED_ROOT='C:/Users/ezeki/hack/prism'. Score: TUNING facts 90/90 issues 10/10 route 32/40 stage 8/10 flag 7/10 held 7/10 links 8/10; TOTAL route 40/52 stage 10/13 flag 9/13 held 9/13 links 10/13.",
+  "update_after_handoff": "All in-flight agents finished: 03-05 gap fix committed (ba57042..b91eecf; HI-02 cut; gate OK, 862 passed); Phase 4 plans committed 3f78c85; Phase 5 plans committed b82f455."
 }
