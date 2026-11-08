@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-11-08T07:49:11.852Z",
+  "phase": "03",
+  "phase_name": "Read the Folder",
+  "phase_dir": ".planning/phases/03-read-the-folder",
+  "plan": 4,
+  "task": 3,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "03-01..03-04", "name": "All Phase 3 plans executed (VL included)", "status": "done", "commit": "ad06f49"},
+    {"id": "03-review", "name": "Code review written (03-REVIEW.md, uncommitted): 1 critical, 6 high, 10 medium, 9 low", "status": "done"},
+    {"id": "04-research", "name": "Phase 4 research", "status": "done", "commit": "9413834"}
+  ],
+  "remaining_tasks": [
+    {"id": "03-verify", "name": "Phase 3 verifier (was running at pause; writes 03-VERIFICATION.md)", "status": "in_progress"},
+    {"id": "03-complete", "name": "gsd phase.complete 03 (needs VERIFICATION passed)", "status": "not_started"},
+    {"id": "merge-ui", "name": "Merge ui/hero into main (expect ROADMAP.md conflict)", "status": "not_started"},
+    {"id": "04-plan", "name": "Phase 4 planner (was running at pause; writes 04-0N-PLAN.md), then plan-checker", "status": "in_progress"},
+    {"id": "05-plan", "name": "Plan Phase 5 (fraud decide stub = remaining Goldman score)", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "Code review CR-01 + HI-01..HI-06 are generalization risks on the hidden set (false STMT_TAMPER, false MISSING_DOC, sample-phrase classifier, VL live by default / placeholder names)", "type": "technical", "workaround": "Triage via /gsd-code-review-fix or a gap plan before H-freeze"}
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {"action": "Decide red-team badge (mock shows 5 bypasses / 30 attempts)", "context": "ui/hero demo", "blocking": false},
+    {"action": "Confirm judged run end with organizers (D-02 = Fri 11/06 18:00)", "context": "Phase 4", "blocking": false},
+    {"action": "Decide whether VL should default to live when key present (HI-05) and NEMOTRON_MODE=live in .env", "context": "determinism on hidden set", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "Phase 4 slim (~3h: live API read/reply, run end, past deadline times, OLD_TRICK e2e), then Phase 5", "rationale": "Remaining score is in Fraud", "phase": "04"},
+    {"decision": "Default run end = end of sim week Fri 11/06 18:00 -06:00", "rationale": "Shows full escalation ladder", "phase": "04"},
+    {"decision": "UI hero flow on ui/hero (pushed); merge after Phase 3 closes; no Vultr deploy yet", "rationale": "User instruction", "phase": "02"}
+  ],
+  "uncommitted_files": ["?? .planning/phases/03-read-the-folder/03-REVIEW.md"],
+  "next_action": "Check for 03-VERIFICATION.md and 04-0N-PLAN.md written by agents still running at pause; then phase.complete 03, triage 03-REVIEW.md, merge ui/hero, run plan-checker on Phase 4",
+  "context_notes": "Orchestrator was mid execute-phase 3 close-out and plan-phase 4. Sequential executors on main; ui/hero worktree at .claude/worktrees/agent-a01f866c3b9010f96."
+}
