@@ -24,10 +24,10 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 - [x] **READ-02**: Extract legal_name, EIN, amount_requested, purpose_category, product, term_months, guarantor_name, annual_revenue_stated, needed_by (ISO or null), each with source doc and confidence. (E)
 - [x] **READ-03**: Extract graph attributes: preparer name/firm/phone, registered agent + address, vendor name + remit bank/account, PDF producer/creator, business address, bank, guarantor DOB/DL, deposit features. (E)
 - [x] **READ-04**: Tyler's JPG ID is read by OCR (RapidOCR). An unreadable image counts as present-but-unverified, never as a mismatch. (E)
-- [ ] **READ-05**: `MISSING_DOC:<doc>` uses the requirements for the stage, the product and the business's age (Form 7004 accepted only for businesses under 2 years old; bank statements cover the 6 most recent full months). It fires only after 30 sim-minutes of quiet. (E)
-- [ ] **READ-06**: `MISSING_PAGE:<doc>` comes from the "Page X of N" markers, never from the PDF's page count. (E)
-- [ ] **READ-07**: `MISMATCH:<field>` uses normalization (exact EIN string, nickname tolerance, name-suffix stripping, $1 balance tolerance), with no false alarms on the trap deals. (E)
-- [ ] **READ-08**: The five OLD_TRICK checks run exactly as `rules/known_fraud_checks.md` states (STMT_TAMPER, REV_INFLATION, ID_MISMATCH, DUP_EIN, SHELL_ADDRESS). A missing page is not treated as tampering. (E)
+- [x] **READ-05**: `MISSING_DOC:<doc>` uses the requirements for the stage, the product and the business's age (Form 7004 accepted only for businesses under 2 years old; bank statements cover the 6 most recent full months). It fires only after 30 sim-minutes of quiet. (E)
+- [x] **READ-06**: `MISSING_PAGE:<doc>` comes from the "Page X of N" markers, never from the PDF's page count. (E)
+- [x] **READ-07**: `MISMATCH:<field>` uses normalization (exact EIN string, nickname tolerance, name-suffix stripping, $1 balance tolerance), with no false alarms on the trap deals. (E)
+- [x] **READ-08**: The five OLD_TRICK checks run exactly as `rules/known_fraud_checks.md` states (STMT_TAMPER, REV_INFLATION, ID_MISMATCH, DUP_EIN, SHELL_ADDRESS). A missing page is not treated as tampering. (E)
 
 ### Move the deal (MOVE)
 
@@ -118,10 +118,10 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 | READ-02 | Phase 3 | Complete |
 | READ-03 | Phase 3 | Complete |
 | READ-04 | Phase 3 | Complete |
-| READ-05 | Phase 3 | Pending |
-| READ-06 | Phase 3 | Pending |
-| READ-07 | Phase 3 | Pending |
-| READ-08 | Phase 3 | Pending |
+| READ-05 | Phase 3 | Complete |
+| READ-06 | Phase 3 | Complete |
+| READ-07 | Phase 3 | Complete |
+| READ-08 | Phase 3 | Complete |
 | MOVE-01 | Phase 4 | Pending |
 | MOVE-02 | Phase 4 | Pending |
 | MOVE-03 | Phase 4 | Pending |
