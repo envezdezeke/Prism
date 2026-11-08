@@ -3,9 +3,9 @@ import { Bot, Crosshair, Maximize2, Minus, Network, Plus } from 'lucide-react'
 import { describeError } from '../../api/client.ts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useDealDetails, useDeals, useGraph, useInvestigator, useRedteam } from '../../data/queries.ts'
+import { useDealDetails, useDeals, useGraph, useInvestigator } from '../../data/queries.ts'
 import { AgentReplay } from './AgentReplay.tsx'
-import { clusterHoldAt, defaultClusterId, graphAt, redteamTotals } from '../../graph/graphview.ts'
+import { clusterHoldAt, defaultClusterId, graphAt } from '../../graph/graphview.ts'
 import type { GGraph } from '../../graph/graphview.ts'
 import { readPalette } from '../../graph/palette.ts'
 import type { GraphPalette } from '../../graph/palette.ts'
@@ -74,7 +74,6 @@ export function FraudGraphView({
   const deals = useDeals()
   const boardFolders = useMemo(() => (deals.data ?? []).map((d) => d.folder), [deals.data])
   const { details } = useDealDetails(boardFolders)
-  const redteam = useRedteam()
   const [selection, setSelection] = useState<Selection>(null)
   const [fitMode, setFitMode] = useState<'focus' | 'all'>('focus')
   const [fitToken, setFitToken] = useState(0)
@@ -119,7 +118,6 @@ export function FraudGraphView({
     )
   }
 
-  const rt = redteam.data ? redteamTotals(redteam.data.tricks) : null
   const ringVisible = cluster?.deals.filter((d) => view.nodes.some((n) => n.id === d)) ?? []
 
   return (
@@ -206,11 +204,6 @@ export function FraudGraphView({
                 ? `Held since ${fmtSimTime(hold.at)} · ${ringVisible.length} of ${cluster.deals.length} ring deals on screen`
                 : `${ringVisible.length} of ${cluster.deals.length} ring deals on screen as of ${fmtSimTime(now)}`}
             </span>
-            {rt && (
-              <Badge variant="chip" title={`${rt.falseFlags} false ${rt.falseFlags === 1 ? 'flag' : 'flags'} across the synthetic tricks`}>
-                Red-team: {rt.bypasses} {rt.bypasses === 1 ? 'bypass' : 'bypasses'} / {rt.attempts} attempts
-              </Badge>
-            )}
           </div>
         )}
       </PageHeader>
