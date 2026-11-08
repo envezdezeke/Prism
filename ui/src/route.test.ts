@@ -29,3 +29,17 @@ test('empty, pipeline, unknown and malformed hashes give the pipeline route with
   assert.deepEqual(parseHash('#/deals/'), { view: 'pipeline' })
   assert.deepEqual(parseHash('#/deals'), { view: 'pipeline' })
 })
+
+test('inbox, alerts and graph routes round-trip', () => {
+  const routes = [
+    { view: 'inbox' as const },
+    { view: 'alerts' as const },
+    { view: 'graph' as const, clusterId: null },
+    { view: 'graph' as const, clusterId: 'C-001' },
+    { view: 'graph' as const, clusterId: 'ring & co/1' },
+  ]
+  for (const r of routes) assert.deepEqual(parseHash(buildHash(r)), r)
+  assert.equal(buildHash({ view: 'graph', clusterId: 'C-001' }), '#/graph/C-001')
+  assert.deepEqual(parseHash('#/graph/'), { view: 'graph', clusterId: null })
+  assert.deepEqual(parseHash('#/graph/%E0%A4%A'), { view: 'graph', clusterId: null })
+})

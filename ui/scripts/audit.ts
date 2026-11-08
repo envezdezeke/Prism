@@ -24,9 +24,36 @@ const RULES: Rule[] = [
   { name: 'raw hex colour outside index.css', re: /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/, allow: ['src/index.css'] },
   { name: 'Tailwind default-palette colour class', re: new RegExp(`\\b(?:${UTIL})-(?:${PALETTE})-\\d{2,3}\\b`) },
   {
-    name: 'hold or destructive colour outside Badges.tsx, components/ui/, index.css',
+    // Red is still only for a fraud hold (D-05). D-31 adds the held card's edge and the clock-bar hold
+    // line; D-27 adds the lit ring in the fraud graph and its evidence drawer.
+    name: 'hold or destructive colour outside the hold surfaces (Badges, Board, ClockBar, FraudGraph, EvidenceDrawer, components/ui/, index.css)',
     re: /\b(?:bg|text|border|ring|fill|stroke|outline|divide)-(?:hold|destructive)(?:-soft|-foreground)?\b/,
-    allow: ['src/components/app/Badges.tsx', 'src/components/ui/', 'src/index.css'],
+    allow: [
+      'src/components/app/Badges.tsx',
+      'src/components/app/Board.tsx',
+      'src/components/app/ClockBar.tsx',
+      'src/components/app/FraudGraph.tsx',
+      'src/components/app/EvidenceDrawer.tsx',
+      'src/components/ui/',
+      'src/index.css',
+    ],
+  },
+  {
+    // D-24: motion is CSS only (transitions and keyframes in index.css).
+    name: 'animation library import',
+    re: /\bfrom\s+['"](?:framer-motion|motion(?:\/[^'"]*)?|gsap|@react-spring\/[^'"]+|react-spring|animejs|lottie[^'"]*|@formkit\/auto-animate[^'"]*)['"]/,
+  },
+  {
+    // D-23: react-force-graph-2d is the one graph library. No second graph or chart stack.
+    name: 'graph or chart library other than react-force-graph-2d',
+    re: /\bfrom\s+['"](?:d3(?:-[a-z]+)?|cytoscape[^'"]*|sigma[^'"]*|vis-network[^'"]*|reactflow|@xyflow\/[^'"]+|recharts|chart\.js|react-force-graph(?!-2d)[^'"]*|force-graph|3d-force-graph)['"]/,
+  },
+  { name: 'innerHTML write', re: /\.innerHTML\s*=|\bouterHTML\s*=/ },
+  {
+    // Canvas colours come from CSS custom properties (src/graph/palette.ts), never literals.
+    name: 'rgb or hsl colour literal outside index.css',
+    re: /\b(?:rgba?|hsla?)\(\s*\d/,
+    allow: ['src/index.css'],
   },
   {
     name: 'ok (green) colour outside Badges.tsx, Inbox.tsx, DealDetail.tsx, components/ui/',
@@ -91,6 +118,14 @@ function hexHueSat(hex: string): { h: number; s: number } {
   return { h, s }
 }
 
+// D-03 forbids the brand sky blue; a lifted navy for the dark view must not drift onto it.
+function nearGoldmanBlue(hex: string): boolean {
+  let x = hex.slice(1)
+  if (x.length === 3 || x.length === 4) x = [...x].map((c) => c + c).join('')
+  const d = [0x73, 0x99, 0xc6].map((v, k) => v - parseInt(x.slice(k * 2, k * 2 + 2), 16))
+  return Math.hypot(d[0], d[1], d[2]) < 48
+}
+
 function toPx(v: string): number | null {
   const m = /^(-?[\d.]+)(px|rem)$/.exec(v.trim())
   if (!m) return null
@@ -111,12 +146,18 @@ for (const file of files) {
         const px = toPx(radius[1])
         if (px !== null && px > 6) fails.push(`AUDIT FAIL ${path}:${i + 1} --radius above 6px (${radius[1].trim()})`)
       }
+      // No general dark theme. The one dark scope is the investigation view (D-25).
       if (/\.dark\b|prefers-color-scheme\s*:\s*dark|data-theme\s*=\s*["']?dark/.test(line)) {
         fails.push(`AUDIT FAIL ${path}:${i + 1} dark theme selector`)
+      }
+      const scope = /\[data-view\s*=\s*["']?([\w-]+)/.exec(line)
+      if (scope && scope[1] !== 'investigate') {
+        fails.push(`AUDIT FAIL ${path}:${i + 1} data-view scope other than investigate (${scope[1]})`)
       }
       for (const hex of line.match(/#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g) ?? []) {
         const { h, s } = hexHueSat(hex)
         if (s > 0.15 && h >= 250 && h <= 320) fails.push(`AUDIT FAIL ${path}:${i + 1} purple-range colour ${hex}`)
+        if (nearGoldmanBlue(hex)) fails.push(`AUDIT FAIL ${path}:${i + 1} colour too close to the forbidden sky blue ${hex}`)
       }
       for (const m of line.matchAll(/oklch\(\s*[\d.%]+\s+([\d.]+)\s+([\d.]+)/g)) {
         const c = parseFloat(m[1])
