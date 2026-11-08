@@ -1,8 +1,10 @@
 # Prism: Devpost Submission (draft)
 
-> Owner: Jesse. Draft, Sat 2026-11-07. Paste each section into the matching Devpost field.
+> Owner: Jesse. Draft Sat 2026-11-07; revised Sun 2026-11-08 (plan 07-09) to match `docs/pitch/PITCH_OUTLINE.md`. Paste each section into the matching Devpost field.
 > **This page is public.** Before pasting, check: no borrower, business or staff names, no tax IDs, no history deal IDs, no folder names, no dollar figures from the data pack, and no challenge text beyond the public title. Describe the data only as "a 13-deal sample" and "a year of the bank's loan history".
-> Anything in `[[double brackets]]` is a placeholder. Fill it from the committed scorecard (`eval/scorecard.md`) or delete the sentence. Never estimate.
+> Anything in `[[double brackets]]` is a placeholder. Fill it from its committed source (the table at the bottom of `PITCH_OUTLINE.md` names the file for each; `eval/scorecard.md` for most) and name the commit, or delete the sentence. Never estimate or round up. No result number is filled as of Sun 02:30 CT because no committed record exists yet.
+> Use "an honest borrower with a messy file", never a name. Screenshots come from the mock data. The organizer questions will not be asked (PROJECT.md, Sun 02:45), so public video, slides and this page use generic labels with no sample names (assumed answer 10, D-49); a video that shows live sample deal names stays unlisted.
+> **Build status check.** The audits of Sun 02:30 CT found READ extraction and the fraud decision still stubs, no Nemotron code, and the fraud graph, investigation and red-team screens not built (plans 07-01, 07-03, 07-04, 07-05). Sentences tagged `[pending ...]` describe those. 07-10 keeps a tagged sentence only if the feature ships, then deletes the tag; any other sentence that is not true of the build at submission is cut as well.
 
 **Tagline (one line):** Prism catches coordinated loan fraud before the money goes out, without blocking honest borrowers, and shows its evidence for every decision.
 
@@ -22,9 +24,9 @@ Prism runs a commercial lending desk on a simulated clock:
 
 - **Reads** each borrower's loan folder (PDFs, spreadsheet exports, a phone photo) and identifies each document by its content, not its filename. It extracts the deal facts, with the source document and a confidence level for each one, and flags documents or pages that are missing or facts that disagree between documents. It does not raise false alarms on messy but honest paperwork.
 - **Moves** each deal through six stages, from Intake to Closed (where money goes out). It enforces each stage's exit requirements and never advances a deal that is waiting on a document. Sign-off requests go to the right person, with a backup when someone is out of office. When a stage runs past its time limit, Prism alerts and then escalates in plain English: whose deal it is, how long it has been stuck, what it is waiting on and what unblocks it. Deals with a funding deadline get priority.
-- **Writes a credit memo** at Committee: debt coverage, revenue support, time in business, relationship history, a rule-based 1 to 5 risk grade, a recommendation and conditions of approval. Every number is computed. None of it is generated text.
-- **Catches fraud rings.** Prism builds a graph of deals and everything they share: preparers, phone numbers, registered agents, vendors and their payment accounts, document software, addresses, banks and guarantors. It scores each shared entity by how rare it is in a year of the bank's own history. It then puts the deal on hold as soon as enough independent evidence agrees, often at Intake, and always before Closed. It also links the held deals to earlier loans in history that were built from the same kit, including ones already funded.
-- **Shows its work.** A clean web cockpit has a pipeline board, a sign-off inbox, an alert feed, a deal page with click-through provenance for every fact, and a fraud graph that replays with the clock as the ring connects.
+- **Writes a credit memo** at Committee [pending: live engine run, MOVE-10]: debt coverage, revenue support, time in business, relationship history, a rule-based 1 to 5 risk grade, a recommendation and conditions of approval. Every number is computed. None of it is generated text. Its four-line version is the Committee approval request in the sign-off inbox; there is no separate memo screen.
+- **Catches fraud rings.** Prism builds a graph of deals and everything they share: preparers, phone numbers, registered agents, vendors and their payment accounts, document software, addresses, banks and guarantors. It scores each shared entity by how rare it is in a year of the bank's own history. It then puts the deal on hold as soon as enough independent evidence agrees, often at Intake, and before Closed. It also links the held deals to earlier loans in history that were built from the same kit, including ones already funded.
+- **Shows its work.** A clean web cockpit has a pipeline board on a simulated clock (Next event and Replay from start), a sign-off inbox, an alert feed, and a deal page that shows the source document and confidence for every fact. A fraud graph replays with the clock as the ring connects, and each link carries a plain-English evidence sentence [pending 07-01/07-03].
 
 ## How we built it
 
@@ -55,8 +57,8 @@ Every flag on a good history deal got a written finance review, because "no know
 
 **Nemotron agents work around the engine, never inside the score.**
 
-- An **investigator** (ReAct loop) and a **prosecutor/defender** pair use read-only HTTP tools against our FastAPI service and the simulation's clock API. They write cited evidence cases for each held or watched cluster, and a deterministic check marks any claim without an evidence ID.
-- An **adaptive red team** invents new fraud tricks, sees only which ones were caught (never the thresholds), and evolves them over generations.
+- An **investigator** (ReAct loop) and a **prosecutor/defender** pair [pending: Nemotron agents, 07-04] use read-only HTTP tools: real calls to our FastAPI service and the simulation's clock API. They write cited evidence cases for each held or watched cluster, and a deterministic check marks any claim without an evidence ID. Nemotron advises; the rule engine decides.
+- An **adaptive red team** [pending: 07-05] invents new fraud tricks, sees only which ones were caught (never the thresholds), and evolves them over generations.
 - A **vision reader** handles documents the parser cannot read. It may fill a field only when the parser left it empty, the value passes a format check and a second document agrees. It can never raise an issue or a hold.
 - Every call goes through a record-and-replay cache keyed on the full request, so runs replay exactly. The scored output is byte-identical with Nemotron on, in replay, or off.
 
@@ -64,7 +66,7 @@ Every flag on a good history deal got a written finance review, because "no know
 
 ## Challenges we ran into
 
-- **Strange is not fake.** The sample includes honest borrowers who look odd: messy spreadsheets, a phone photo of an ID, an international business, an address shared with many other companies. Most single signals fire on someone honest. That is why we require three independent families to agree, and why the loan-terms family cannot vote.
+- **Strange is not fake.** The sample includes honest borrowers who look odd: messy spreadsheets, a phone photo of an ID, an international business, an address shared with many other companies. An honest borrower with a messy file must not be flagged. Most single signals fire on someone honest. That is why we require three independent families to agree, and why the loan-terms family cannot vote.
 - **Proving generalization when the test trick is hidden.** Once we had studied the sample's trick, the sample was no longer a fair fraud test. We had to build a separate validation ladder: a time-ordered history replay, held-out synthetic families, an adversarial red team and a blind run on new data.
 - **Time.** Files only become visible when they arrive. The clock can jump six hours at once, and every missed alert in between still has to be raised with the right timestamp. Staff work business hours, but time limits run around the clock.
 - **Keeping a language model away from the score.** We wanted Nemotron doing real work, but a fraud hold has to be explainable and reproducible. The answer was strict boundaries: read-only tools, required citations, validation before any field fill, and a replay cache.
@@ -72,13 +74,13 @@ Every flag on a good history deal got a written finance review, because "no know
 
 ## Accomplishments that we're proud of
 
-- **Blind result:** [[BLIND DROP: x of y fake deals held before Closed, z false flags on good deals, first hold at stage S]], recorded from a frozen engine before anyone opened the files ([[COMMIT HASH]]).
-- **Held-out history:** [[HISTORY REPLAY: f flags among n good deals; after written review, a were scheme members and b were false positives; first flag at deal k of the scheme]].
-- **Fraud types it never saw:** [[SYNTHETIC: x% of ring deals held, y% of honest twins flagged, per held-out family]], against our pre-set bar of at least 70% held and at most 5% flagged.
-- **Red team:** [[RED-TEAM: n invented tricks; catch rate by generation]].
-- **Sample week:** the ring held before any money went out, earlier funded members found in history ([[SAMPLE: history links x/y]]), and [[TRAP SUITE: 0 false holds across n odd-but-honest borrowers]].
-- **Reading accuracy:** [[READ ACCURACY: x% of fields correct against our hand-labelled answer key]].
-- A fraud model whose every hold can be explained in one click, from the plain-English reason down to the probability behind each piece of evidence.
+- **Blind result:** [[BLIND_HELD]] of [[BLIND_TOTAL]] fake deals held before Closed, [[BLIND_FALSE_FLAGS]] false flags on good deals, first hold at stage [[BLIND_FIRST_STAGE]], recorded from a frozen engine before anyone opened the files (commit [[BLIND_COMMIT]]). If the blind record does not exist by H18, lead with the held-out history result below instead (D-24).
+- **Held-out history:** [[HIST_FLAGS]] flags among [[HIST_GOOD_N]] good deals; after written review, [[HIST_SCHEME]] were scheme members and [[HIST_FALSE_POS]] were false positives; first flag at deal [[HIST_FIRST_DEAL]] of the scheme.
+- **Fraud types it never saw:** [[SYN_HELD_PCT]] of ring deals held and [[SYN_TWIN_PCT]] of honest twins flagged, per held-out family, against our pre-set bar of at least 70% held and at most 5% flagged.
+- **Red team** [pending: 07-05]: [[RED_TRICKS]] invented tricks; catch rate by generation [[RED_CATCH_BY_GEN]].
+- **Sample week:** the ring held at stage [[SAMPLE_STAGE]], before any money went out, earlier funded members found in history ([[SAMPLE_LINKS]]), and [[SAMPLE_FALSE_HOLDS]] false holds across [[TRAP_N]] odd-but-honest borrowers.
+- **Reading accuracy:** [[READ_ACCURACY]] of fields correct against our hand-labelled answer key.
+- A fraud model whose every hold carries a plain-English reason and the evidence sentence behind each link [pending 07-03].
 
 ## What we learned
 
@@ -104,14 +106,14 @@ Python · pandas · NetworkX · pypdf · pdfplumber · RapidOCR · FastAPI · Py
 
 ## For the Goldman Sachs track (DealPilot)
 
-Prism covers the full commercial loan lifecycle the track asks for. **Read:** content-based document identification, fact extraction with provenance, and missing or mismatched information, with no false alarms on messy but honest files. **Move:** six stages in order, exit requirements enforced, sign-offs routed to the right person or their backup, alerts and escalations as stages run over, and funding deadlines respected. **Fraud:** coordinated rings held before Closed, as early as the evidence allows, with linked current deals and earlier history deals found. Its fraud detection is unsupervised anomaly detection learned from the bank's own history, so it is built for the idea rather than the example. No sample-specific value appears anywhere in the detector. Every threshold recomputes from new data. Our pitch number is the first blind run on new data: [[BLIND DROP: x/y held, z false flags]]. Every scored field comes from deterministic, reproducible code.
+Prism covers the full commercial loan lifecycle the track asks for. **Read:** content-based document identification, fact extraction with provenance, and missing or mismatched information, with no false alarms on messy but honest files. **Move:** six stages in order, exit requirements enforced, sign-offs routed to the right person or their backup, alerts and escalations as stages run over, and funding deadlines respected. **Fraud:** coordinated rings held before Closed, as early as the evidence allows, with linked current deals and earlier history deals found. Its fraud detection is unsupervised anomaly detection learned from the bank's own history, so it is built for the idea rather than the example. No sample-specific value appears anywhere in the detector. Every threshold recomputes from new data. Our pitch number is the first blind run on new data: [[BLIND_HELD]] of [[BLIND_TOTAL]] held, [[BLIND_FALSE_FLAGS]] false flags. Every scored field comes from deterministic, reproducible code.
 
 ## For the NVIDIA Nemotron track
 
-Nemotron does agent work, not chat. **Beyond a chatbot:** an investigator, a prosecutor/defender pair and an adaptive red team each run on their own without a user prompting them. **Multi-step workflows:** the investigator plans, calls tools, observes the results and revises over up to eight steps, and the red team evolves its attacks over several generations based on what was caught. **Tool integration with external services:** agents call real HTTP endpoints, our FastAPI engine and the simulation's clock and inbox API, and every call is logged in a trace shown in the UI. Nemotron's vision model reads documents the parser cannot. **Real-world impact:** loan-fraud operations at a bank, where agent output must be cited and checked before anyone acts on it. Measured value: [[RED-TEAM: catch rate by generation]], [[CITATION: uncited claim rate]] and [[VL: fill accuracy x/y on masked documents]]. Agents run on `nemotron-3.5-super-vl-120b` (agents, red team, vision), `nemotron-3.5-lightning-30b` (fast text) and `nemotron-3-nano-omni-30b` reasoning (vision fallback), with a record-and-replay cache so the demo runs offline.
+Nemotron does agent work, not chat. **Beyond a chatbot:** an investigator, a prosecutor/defender pair and an adaptive red team each run on their own without a user prompting them. **Multi-step workflows:** the investigator plans, calls tools, observes the results and revises over up to eight steps, and the red team evolves its attacks over several generations based on what was caught. **Tool integration with external services:** agents call real HTTP endpoints, our FastAPI engine and the simulation's clock and inbox API, and every call is logged in a trace shown in the UI [pending 07-04]. Nemotron's vision model reads documents the parser cannot. **Real-world impact:** loan-fraud operations at a bank, where agent output must be cited and checked before anyone acts on it. Measured value: red-team catch rate by generation [[RED_CATCH_BY_GEN]], uncited claim rate [[UNCITED_RATE]] and vision fill accuracy on masked documents [[VL_FILL]]. Agents run on `nemotron-3.5-super-vl-120b` (agents, red team, vision), `nemotron-3.5-lightning-30b` (fast text) and `nemotron-3-nano-omni-30b` reasoning (vision fallback), with a record-and-replay cache so the demo runs offline.
 
 ## Links
 
-- Repository: [[REPO URL]] (code only; the challenge data is not included)
-- Demo video: [[DEMO VIDEO URL]]
+- Repository: [[REPO_URL]] (code only; the challenge data is not included; depends on the repository decision, 07-09 Task 3)
+- Demo video: [[DEMO_VIDEO_URL]]
 - Model specification: `docs/model/prism_model.pdf`
