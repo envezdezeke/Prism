@@ -20,6 +20,9 @@ export interface GraphControls {
   focusOn: (ids: Set<string>, ms?: number) => void
 }
 
+// What the Nemotron replay is working on: the nodes it reads, their linked nodes, and its colour.
+export type AgentFocus = { ids: Set<string>; near: Set<string>; color: string }
+
 export type Selection = { kind: 'edge'; edge: GEdge } | { kind: 'node'; id: string } | null
 
 interface NodeData {
@@ -40,6 +43,8 @@ const LABEL_PX = 13
 const EDGE_LABEL_PX = 12
 const DEAL_R = 7
 const ENTITY_SIDE = 8
+// Entities are small circles (radius in graph units).
+const ENTITY_R = 5.5
 // A new edge fades in over this many real milliseconds when the clock reveals it (D-29).
 const FADE_MS = 600
 // Canvas-only halo on ring elements (D-30). Never applied to anything else.
@@ -61,7 +66,9 @@ export function GraphCanvas({
   fitToken,
   controlsRef,
   onZoom,
+  agentFocus = null,
 }: {
+  agentFocus?: AgentFocus | null
   controlsRef?: React.MutableRefObject<GraphControls | null>
   onZoom?: (k: number) => void
   view: GraphView
@@ -184,19 +191,24 @@ export function GraphCanvas({
     if (n.type === 'entity') {
       const s = ENTITY_SIDE
       const tint = p[kindGroup(n.kind)]
+      void s
+      ctx.beginPath()
+      ctx.arc(x, y, ENTITY_R, 0, 2 * Math.PI)
       ctx.fillStyle = withAlpha(tint, alpha)
-      ctx.fillRect(x - s / 2, y - s / 2, s, s)
+      ctx.fill()
       if (lit) {
         ctx.strokeStyle = p.hold
         ctx.lineWidth = 1.5
-        ctx.strokeRect(x - s / 2, y - s / 2, s, s)
+        ctx.stroke()
       }
     }
     ctx.restore()
     if (n.type !== 'entity') {
       drawCard(obj, ctx, scale, { inFocus, inRing, lit, alpha })
+      drawAgentMark(obj, ctx, scale)
       return
     }
+    drawAgentMark(obj, ctx, scale)
 
     if (selectedNode === n.id) {
       ctx.beginPath()
@@ -211,12 +223,12 @@ export function GraphCanvas({
     const fs = LABEL_PX / textScale(scale)
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
-    ctx.font = `${n.type === 'entity' ? 400 : 600} ${fs}px 'Geist Variable', ui-sans-serif, sans-serif`
+    ctx.font = `${n.type === 'entity' ? 400 : 600} ${fs}px 'Inter Variable', ui-sans-serif, sans-serif`
     ctx.fillStyle = withAlpha(lit ? p.hold : n.type === 'entity' ? p.ink2 : p.navy, inFocus ? 1 : 0.4)
     const top = y + (n.type === 'entity' ? ENTITY_SIDE / 2 : DEAL_R) + 4 / textScale(scale)
     ctx.fillText(n.label, x, top)
     if (n.type === 'entity' && inFocus) {
-      ctx.font = `400 ${(LABEL_PX - 1) / textScale(scale)}px 'Geist Variable', ui-sans-serif, sans-serif`
+      ctx.font = `400 ${(LABEL_PX - 1) / textScale(scale)}px 'Inter Variable', ui-sans-serif, sans-serif`
       ctx.fillStyle = withAlpha(p.ink2, 0.9)
       ctx.fillText(entityKindLabel(n.kind), x, top + fs * 1.25)
     }
@@ -240,7 +252,7 @@ export function GraphCanvas({
     const badge = 8 / k
     const history = n.type === 'history_deal'
     const subtitle = st.inRing ? (st.lit ? 'Held: ring' : 'Ring: not held yet') : history ? 'Prior deal' : st.inFocus ? 'Linked, not held' : 'Not linked'
-    const font = (w: number, size: number): string => `${w} ${size}px 'Geist Variable', ui-sans-serif, sans-serif`
+    const font = (w: number, size: number): string => `${w} ${size}px 'Inter Variable', ui-sans-serif, sans-serif`
     ctx.font = font(600, fs)
     const tw = ctx.measureText(n.label).width
     ctx.font = font(400, sub)
@@ -296,6 +308,37 @@ export function GraphCanvas({
     ctx.font = font(400, sub)
     ctx.fillStyle = st.lit ? p.hold : st.inRing ? p.risk : p.ink2
     ctx.fillText(subtitle, tx, top + pad + fs * 1.2)
+    ctx.restore()
+  }
+
+  // The replay's highlight: the card or circle the agent is reading gets a soft coloured glow and
+  // outline; linked nodes get a thin outline. No extra shapes on the canvas.
+  const drawAgentMark = (obj: N, ctx: CanvasRenderingContext2D, scale: number): void => {
+    if (!agentFocus) return
+    const id = String(obj.id)
+    const main = agentFocus.ids.has(id)
+    if (!main && !agentFocus.near.has(id)) return
+    const k = textScale(scale)
+    const x = obj.x ?? 0
+    const y = obj.y ?? 0
+    ctx.save()
+    ctx.strokeStyle = agentFocus.color
+    ctx.lineWidth = (main ? 2.5 : 1.5) / k
+    if (main) {
+      ctx.shadowColor = agentFocus.color
+      ctx.shadowBlur = 18
+    } else {
+      ctx.globalAlpha = 0.7
+    }
+    ctx.beginPath()
+    const c = obj.__card
+    if (c && obj.node.type !== 'entity') {
+      const g = 4 / k
+      ctx.roundRect(x - c.w / 2 - g, y - c.h / 2 - g, c.w + 2 * g, c.h + 2 * g, 8 / k)
+    } else {
+      ctx.arc(x, y, ENTITY_R + 3 / k, 0, 2 * Math.PI)
+    }
+    ctx.stroke()
     ctx.restore()
   }
 
@@ -362,6 +405,18 @@ export function GraphCanvas({
       ctx.strokeStyle = withAlpha(inFocus ? p.navy : p.edge, base * fade)
     }
     ctx.stroke()
+    if (agentFocus) {
+      const a = endId(obj.source)
+      const b = endId(obj.target)
+      if ((agentFocus.ids.has(a) && agentFocus.near.has(b)) || (agentFocus.ids.has(b) && agentFocus.near.has(a)) || (agentFocus.ids.has(a) && agentFocus.ids.has(b))) {
+        ctx.shadowBlur = 0
+        ctx.globalAlpha = 0.9
+        ctx.lineWidth = (2.25 + e.weight * 0.9) / scale
+        ctx.strokeStyle = agentFocus.color
+        ctx.stroke()
+        ctx.globalAlpha = 1
+      }
+    }
     if (selected) {
       ctx.shadowBlur = 0
       ctx.lineWidth = (3 + e.weight * 0.9) / scale
@@ -374,7 +429,7 @@ export function GraphCanvas({
     if (inFocus && fade > 0.5 && (scale >= 1.2 || selected)) {
       const label = `${entityKindLabel(e.entity_kind).toLowerCase()} · ${e.rarity.toFixed(2)}`
       const fs = EDGE_LABEL_PX / textScale(scale)
-      ctx.font = `400 ${fs}px 'Geist Variable', ui-sans-serif, sans-serif`
+      ctx.font = `400 ${fs}px 'Inter Variable', ui-sans-serif, sans-serif`
       const mx = (sx + tx) / 2
       const my = (sy + ty) / 2
       const w = ctx.measureText(label).width + 6 / textScale(scale)

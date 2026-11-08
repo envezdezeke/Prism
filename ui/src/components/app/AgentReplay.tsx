@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FileSearch, FileText, History, Network, Pause, Play, RotateCcw, SkipForward, Sparkles, Users, X } from 'lucide-react'
 import type { InvestigatorTrace, TraceStep } from '../../api/types.ts'
 import type { GEdge, GNode } from '../../graph/graphview.ts'
-import type { GraphControls } from './GraphCanvas.tsx'
+import type { AgentFocus, GraphControls } from './GraphCanvas.tsx'
 
 // Playback of a recorded Nemotron investigator trace over the fraud graph. Display only: the
 // deterministic engine made the hold; nothing here changes a scored output.
@@ -31,6 +31,12 @@ TOOLS.doc_forensics = { ...TOOLS.deal_documents, label: 'Document forensics', sa
 TOOLS.deposit_pattern = { color: 'var(--color-agent-other)', label: 'Deposit pattern', icon: Sparkles, say: () => 'Scanning deposit history for a staged pattern…' }
 const FALLBACK: ToolLook = { color: 'var(--color-agent-other)', label: 'Lookup', icon: Sparkles, say: (t) => `Looking into ${t}…` }
 const mix = (c: string, pct: number): string => `color-mix(in srgb, ${c} ${pct}%, transparent)`
+// Canvas needs a real colour, not a CSS variable.
+function resolveColor(c: string): string {
+  const m = /var\((--[\w-]+)\)/.exec(c)
+  if (!m || typeof document === 'undefined') return c
+  return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || c
+}
 const look = (tool: string): ToolLook => TOOLS[tool] ?? FALLBACK
 
 const MS = { travel: 1100, scan: 1500, collect: 700 }
@@ -135,7 +141,9 @@ export function AgentReplay({
   clusterDeals,
   controls,
   onClose,
+  onFocus,
 }: {
+  onFocus: (f: AgentFocus | null) => void
   trace: InvestigatorTrace
   nodes: GNode[]
   edges: GEdge[]
@@ -152,8 +160,8 @@ export function AgentReplay({
   const [cards, setCards] = useState<Card[]>([])
   const [cursor, setCursor] = useState<Pt>({ x: 40, y: 40 })
   const [trail, setTrail] = useState<Pt[]>([])
-  const [targetPts, setTargetPts] = useState<Pt[]>([])
-  const [neighPts, setNeighPts] = useState<{ from: Pt; to: Pt }[]>([])
+  const [, setTargetPts] = useState<Pt[]>([])
+  const [, setNeighPts] = useState<{ from: Pt; to: Pt }[]>([])
   const [flyer, setFlyer] = useState<{ from: Pt; to: Pt; go: boolean } | null>(null)
   const cursorRef = useRef(cursor)
 
@@ -165,6 +173,17 @@ export function AgentReplay({
     [step, nodes, clusterDeals],
   )
   const neigh = useMemo(() => neighbours(target.ids, edges), [target, edges])
+
+  // Tell the canvas what to highlight: the node(s) being read, and while scanning, their links.
+  useEffect(() => {
+    if (phase === 'done') {
+      onFocus(null)
+      return
+    }
+    const color = resolveColor(tl.color)
+    onFocus({ ids: new Set(target.ids), near: phase === 'travel' ? new Set() : new Set(neigh), color })
+  }, [phase, target, neigh, tl.color, onFocus])
+  useEffect(() => () => onFocus(null), [onFocus])
 
   // Frame the nodes of each step.
   useEffect(() => {
@@ -199,7 +218,7 @@ export function AgentReplay({
           const next = { x: cur.x + (goal.x - cur.x) * Math.min(k, 1), y: cur.y + (goal.y - cur.y) * Math.min(k, 1) }
           cursorRef.current = next
           setCursor(next)
-          setTrail((t) => [...t.slice(-11), next])
+          setTrail((t) => [...t.slice(-6), next])
         }
       }
       raf = requestAnimationFrame(tick)
@@ -269,58 +288,6 @@ export function AgentReplay({
   return (
     <div ref={wrap} className="pointer-events-none absolute inset-0 z-10" aria-live="polite">
       
-      <svg className="absolute inset-0 h-full w-full overflow-visible">
-        {scanning &&
-          neighPts.map((l, i) => (
-            <line
-              key={`n${i}`}
-              x1={l.from.x}
-              y1={l.from.y}
-              x2={l.to.x}
-              y2={l.to.y}
-              stroke={tl.color}
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeDasharray="6 6"
-              opacity={0.85}
-            >
-              <animate attributeName="stroke-dashoffset" from="24" to="0" dur="0.6s" repeatCount="indefinite" />
-            </line>
-          ))}
-        {scanning &&
-          neighPts.map((l, i) => (
-            <circle key={`nc${i}`} cx={l.to.x} cy={l.to.y} r={9} fill="none" stroke={tl.color} strokeWidth={2} opacity={0.7}>
-              <animate attributeName="r" values="6;12;6" dur="1.2s" begin={`${i * 0.12}s`} repeatCount="indefinite" />
-            </circle>
-          ))}
-        {phase !== 'done' &&
-          targetPts.map((p, i) => (
-            <line
-              key={`t${i}`}
-              x1={cursor.x}
-              y1={cursor.y}
-              x2={p.x}
-              y2={p.y}
-              stroke={tl.color}
-              strokeWidth={1.5}
-              strokeDasharray="3 5"
-              opacity={0.6}
-            />
-          ))}
-        {targetPts.map((p, i) => (
-          <g key={`r${i}`}>
-            <circle cx={p.x} cy={p.y} r={26} fill={mix(tl.color, 8)} stroke={tl.color} strokeWidth={2.5} strokeDasharray="10 7">
-              <animateTransform attributeName="transform" type="rotate" from={`0 ${p.x} ${p.y}`} to={`360 ${p.x} ${p.y}`} dur="3s" repeatCount="indefinite" />
-            </circle>
-            {scanning && (
-              <circle cx={p.x} cy={p.y} r={26} fill="none" stroke={tl.color} strokeWidth={2}>
-                <animate attributeName="r" from="26" to="70" dur="1.1s" repeatCount="indefinite" />
-                <animate attributeName="opacity" from="0.8" to="0" dur="1.1s" repeatCount="indefinite" />
-              </circle>
-            )}
-          </g>
-        ))}
-      </svg>
 
       {phase !== 'done' && <Cursor at={cursor} color={tl.color} trail={trail} />}
 

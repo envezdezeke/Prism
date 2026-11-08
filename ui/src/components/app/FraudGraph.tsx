@@ -16,7 +16,7 @@ import { useUiStore } from '../../state/uiStore.ts'
 import { simToMs } from '../../time/timeview.ts'
 import { EvidenceDrawer } from './EvidenceDrawer.tsx'
 import { GraphCanvas } from './GraphCanvas.tsx'
-import type { GraphControls, Selection } from './GraphCanvas.tsx'
+import type { AgentFocus, GraphControls, Selection } from './GraphCanvas.tsx'
 import { Caption, ErrorState, IconEmptyState, LoadingState, PageHeader } from './Primitives.tsx'
 
 // The graph shares the light navy/sky palette with every other tab; the canvas reads it from the tokens.
@@ -42,15 +42,15 @@ function Legend() {
         Prior deal
       </li>
       <li className={item}>
-        <span aria-hidden="true" className="size-2 bg-graph-document" />
+        <span aria-hidden="true" className="size-2 rounded-full bg-graph-document" />
         Document party
       </li>
       <li className={item}>
-        <span aria-hidden="true" className="size-2 bg-graph-identity" />
+        <span aria-hidden="true" className="size-2 rounded-full bg-graph-identity" />
         Identity
       </li>
       <li className={item}>
-        <span aria-hidden="true" className="size-2 bg-graph-money" />
+        <span aria-hidden="true" className="size-2 rounded-full bg-graph-money" />
         Money
       </li>
       <li className={item}>
@@ -80,6 +80,7 @@ export function FraudGraphView({
   const controls = useRef<GraphControls | null>(null)
   const [zoom, setZoom] = useState(1)
   const [replaying, setReplaying] = useState(false)
+  const [agentFocus, setAgentFocus] = useState<AgentFocus | null>(null)
 
   const activeId = clusterId ?? defaultClusterId(graph)
   const cluster = graph.clusters.find((c) => c.id === activeId) ?? null
@@ -222,6 +223,7 @@ export function FraudGraphView({
               fitToken={fitToken}
               controlsRef={controls}
               onZoom={setZoom}
+              agentFocus={replaying ? agentFocus : null}
             />
           )}
           {replaying && trace.data && (
@@ -232,6 +234,7 @@ export function FraudGraphView({
               clusterDeals={cluster?.deals ?? []}
               controls={controls}
               onClose={() => setReplaying(false)}
+              onFocus={setAgentFocus}
             />
           )}
           <div className={`pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-3 ${replaying ? 'invisible' : ''}`}>
