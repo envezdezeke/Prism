@@ -21,7 +21,7 @@ or the full path to `python.exe`. In Git Bash, activate with `source .venv/Scrip
 ```bash
 # 1. Engine
 python -m venv .venv                 # Windows: py -3.13 -m venv .venv
-source .venv/bin/activate            # Windows Git Bash: source .venv/Scripts/activate; cmd/PowerShell: .venv\Scriptsctivate
+source .venv/bin/activate            # Windows Git Bash: source .venv/Scripts/activate; cmd/PowerShell: .venv\Scripts\activate
 pip install -e ".[dev]"
 
 # Needed in EVERY new shell (the documents contain non-ASCII characters):
@@ -31,8 +31,9 @@ export PYTHONUTF8=1                  # Windows PowerShell: $env:PYTHONUTF8=1
 #      data/participant/shared_folder/      one folder per deal
 #      data/participant/sim/arrivals.jsonl  when each file arrives
 #      data/participant/{history,contacts,rules}/
-#    Then, with DATA=data/participant:
-python -m prism run --folder data/participant/shared_folder --arrivals data/participant/sim/arrivals.jsonl     --data-root data/participant --out out/submission.json
+#    Then:
+python -m prism run --folder data/participant/shared_folder --arrivals data/participant/sim/arrivals.jsonl \
+    --data-root data/participant --out out/submission.json
 python -m prism validate out/submission.json --folder data/participant/shared_folder
 #    A new drop or the hidden set runs the same way: point --folder/--arrivals at it, and check that its
 #    sim/assignments.json lists every deal folder (a folder missing there gets no credit officer).
