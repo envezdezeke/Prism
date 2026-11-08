@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,16 +12,25 @@ from pydantic import TypeAdapter, ValidationError
 from prism.api.app import create_app
 from prism.contract import (
     ISSUE_RE,
+    AlertFeedItem,
     Clock,
     ClockAdvance,
+    DealDetail,
+    DealSummary,
+    Submission,
     parse_sim_time,
 )
+from prism.derive import derive
 
 ROOT = Path(__file__).resolve().parents[1]
 FIX = ROOT / "fixtures"
 
 FIXTURE_MODELS: dict[str, object] = {
     "clock.json": Clock,
+    "deals.json": list[DealSummary],
+    "deal_detail.json": dict[str, DealDetail],
+    "alerts.json": list[AlertFeedItem],
+    "submission.json": Submission,
 }
 
 
@@ -158,3 +168,91 @@ def test_mock_off_is_503(monkeypatch):
 def test_mock_unset_serves_fixtures(monkeypatch):
     monkeypatch.delenv("MOCK", raising=False)
     assert TestClient(create_app()).get("/api/clock").status_code == 200
+
+
+# ------------------------------------------------------------ deals slice
+
+def details() -> dict[str, DealDetail]:
+    return TypeAdapter(dict[str, DealDetail]).validate_python(load("deal_detail.json"))
+
+
+def test_derived_fixtures_are_fresh():
+    for name, content in derive(details()).items():
+        assert load(name) == content, f"{name} is stale; run python -m prism.derive"
+
+
+def test_detail_keys_and_facts_agree():
+    for folder, d in details().items():
+        assert d.folder == folder
+        facts = d.facts
+        assert d.legal_name == (facts.legal_name.value if facts.legal_name else None)
+        assert d.amount_requested == (facts.amount_requested.value if facts.amount_requested else None)
+        assert d.needed_by == (facts.needed_by.value if facts.needed_by else None)
+
+
+def test_issue_strings_valid():
+    for d in details().values():
+        for i in d.issues + d.resolved_issues:
+            assert ISSUE_RE.fullmatch(i), i
+
+
+def test_hold_and_watch_flags():
+    for d in details().values():
+        if d.held:
+            assert d.fraud.held and d.fraud.flagged
+        if d.watch:
+            assert not d.fraud.flagged and not d.held
+
+
+def test_required_scenarios():
+    ds = list(details().values())
+    assert any(d.held for d in ds)
+    assert any(d.watch for d in ds)
+    assert any(any(i.startswith("MISSING_DOC:") for i in d.issues) for d in ds)
+    assert any(d.needed_by for d in ds)
+    assert any({a.level for a in d.alerts} >= {"alert", "escalation"} for d in ds)
+
+
+def test_deals_endpoint(client):
+    r = client.get("/api/deals")
+    assert r.status_code == 200
+    assert len(r.json()) == 5
+
+
+def test_deal_detail_endpoint_encodings(client):
+    for folder in details():
+        assert client.get(f"/api/deals/{folder}").status_code == 200
+        r = client.get("/api/deals/" + quote(folder, safe=""))
+        assert r.status_code == 200
+        assert r.json()["folder"] == folder
+    assert client.get("/api/deals/nope").status_code == 404
+
+
+def test_alerts_newest_first(client):
+    r = client.get("/api/alerts")
+    assert r.status_code == 200
+    ats = [parse_sim_time(a["at"]) for a in r.json()]
+    assert ats == sorted(ats, reverse=True)
+
+
+def test_submission_endpoint(client):
+    r = client.get("/api/submission")
+    assert r.status_code == 200
+    Submission.model_validate(r.json())
+
+
+@pytest.mark.parametrize("path", ["/api/deals", "/api/deals/x", "/api/alerts", "/api/submission"])
+def test_deals_routes_503_when_mock_off(monkeypatch, path):
+    monkeypatch.setenv("MOCK", "0")
+    assert TestClient(create_app()).get(path).status_code == 503
+
+
+def test_no_sample_folder_names_in_fixtures():
+    sample = ROOT / "data" / "participant" / "shared_folder"
+    if not sample.is_dir():
+        pytest.skip("sample data not present")
+    names = [p.name.lower() for p in sample.iterdir() if p.is_dir()]
+    for f in FIX.glob("*.json"):
+        text = f.read_text(encoding="utf-8").lower()
+        for n in names:
+            assert n not in text, f"{f.name} contains sample folder name"
