@@ -7,6 +7,11 @@ interface UiState {
   openDeal: (folder: string) => void
   showPipeline: () => void
   go: (route: Route) => void
+  // Top-bar deal search: filters the pipeline board and offers jump-to-deal matches.
+  query: string
+  setQuery: (q: string) => void
+  railCollapsed: boolean
+  toggleRail: () => void
 }
 
 // Node (tests) has no location; the store then simply holds the route in memory.
@@ -29,6 +34,10 @@ export const useUiStore = create<UiState>((set, get) => {
     openDeal: (folder) => go({ view: 'deal', folder }),
     showPipeline: () => go({ view: 'pipeline' }),
     go,
+    query: '',
+    setQuery: (query) => set({ query }),
+    railCollapsed: false,
+    toggleRail: () => set({ railCollapsed: !get().railCollapsed }),
   }
 })
 

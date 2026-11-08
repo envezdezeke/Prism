@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { CircleAlert } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DASH, NULL_TOOLTIP } from '../../lib/format.ts'
 import { buildHash } from '../../route.ts'
@@ -84,6 +85,56 @@ export function ErrorState({
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Page header used by every screen: title, an uppercase breadcrumb subtitle, then a toolbar row.
+export function PageHeader({
+  title,
+  crumbs,
+  toolbar,
+  children,
+}: {
+  title: ReactNode
+  crumbs: string[]
+  toolbar?: ReactNode
+  children?: ReactNode
+}) {
+  return (
+    <header className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <PageTitle>{title}</PageTitle>
+        <p className="pl-4 text-xs font-semibold tracking-wide text-ink-2 uppercase">{['Prism', ...crumbs].join(' / ')}</p>
+      </div>
+      {children}
+      {toolbar && <div className="flex flex-wrap items-center gap-2 border-y border-line py-2">{toolbar}</div>}
+    </header>
+  )
+}
+
+// Empty state with an outline icon, a headline, one sentence and at most one action.
+export function IconEmptyState({
+  icon: Icon,
+  heading,
+  children,
+  action,
+}: {
+  icon: LucideIcon
+  heading: string
+  children?: ReactNode
+  action?: { label: string; onClick: () => void }
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-md border border-line bg-surface px-6 py-10 text-center">
+      <Icon className="size-8 text-ink-2" strokeWidth={1.5} aria-hidden="true" />
+      <p className="text-base font-semibold text-navy">{heading}</p>
+      {children && <div className="max-w-md text-sm text-ink-2">{children}</div>}
+      {action && (
+        <Button size="sm" className="mt-2" onClick={action.onClick}>
+          {action.label}
+        </Button>
+      )}
     </div>
   )
 }

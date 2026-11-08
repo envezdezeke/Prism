@@ -11,8 +11,10 @@ import { useClockStore } from '../../state/clockStore.ts'
 import { boardAt, simToMs, sortBoardRows } from '../../time/timeview.ts'
 import type { BoardRow } from '../../time/timeview.ts'
 import { NeededByBadge, SlaBar, StatusBadge } from './Badges.tsx'
-import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle } from './Primitives.tsx'
+import { FastForward, Inbox, Network, SearchX, X } from 'lucide-react'
+import { Caption, DealLink, ErrorState, IconEmptyState, LoadingState, NullValue, PageHeader } from './Primitives.tsx'
 import { Button } from '@/components/ui/button'
+import { useUiStore } from '../../state/uiStore.ts'
 
 function DealCard({ row, clusterId, pulse }: { row: BoardRow<DealDetail>; clusterId: string | null; pulse: boolean }) {
   const { deal } = row
@@ -105,7 +107,9 @@ export function BoardView({
   onRetryFailed,
   clusterOf = () => null,
   pulsed = new Set<string>(),
+  filter = null,
 }: {
+  filter?: { query: string; total: number; clear: () => void } | null
   rows: BoardRow<DealDetail>[]
   now: string
   failedCount: number
@@ -115,14 +119,42 @@ export function BoardView({
 }) {
   const when = fmtSimTime(now)
   const sorted = sortBoardRows(rows)
+  const end = useClockStore((s) => s.end)
+  const advanceHours = useClockStore((s) => s.advanceHours)
+  const atEnd = end !== '' && simToMs(now) >= simToMs(end)
+  const advance = (): void => advanceHours(24)
   const byStage = (stage: Stage) => sorted.filter((r) => r.stage === stage)
 
   return (
     <section aria-label="Pipeline board" className="flex flex-col gap-2">
-      <PageTitle>Pipeline</PageTitle>
-      <Caption>
-        {rows.length} {rows.length === 1 ? 'deal' : 'deals'} as of {when} · As of end of run: amount, needed-by and Watch
-      </Caption>
+      <PageHeader
+        title="Pipeline"
+        crumbs={['Pipeline', 'Board']}
+        toolbar={
+          <>
+            <Button variant="outline" size="sm" onClick={advance} disabled={atEnd}>
+              <FastForward aria-hidden="true" />
+              Advance 1 day
+            </Button>
+            <a href={buildHash({ view: 'graph', clusterId: null })} className="inline-flex h-7 items-center gap-1 rounded-sm border border-primary bg-surface px-2 text-sm font-semibold text-primary hover:bg-subtle">
+              <Network className="size-4" aria-hidden="true" />
+              Fraud graph
+            </a>
+            {filter && (
+              <span className="flex items-center gap-2 text-sm text-ink">
+                Showing {rows.length} of {filter.total} matching “{filter.query}”
+                <Button variant="outline" size="sm" onClick={filter.clear}>
+                  <X aria-hidden="true" />
+                  Clear filter
+                </Button>
+              </span>
+            )}
+            <Caption className="ml-auto">
+              {rows.length} {rows.length === 1 ? 'deal' : 'deals'} as of {when} · As of end of run: amount, needed-by and Watch
+            </Caption>
+          </>
+        }
+      />
       {failedCount > 0 && (
         <p className="text-sm text-ink">
           {failedCount} {failedCount === 1 ? 'deal' : 'deals'} could not be loaded.{' '}
@@ -131,10 +163,15 @@ export function BoardView({
           </Button>
         </p>
       )}
-      {rows.length === 0 && (
-        <EmptyState heading="No deals have arrived yet.">
+      {rows.length === 0 && filter && (
+        <IconEmptyState icon={SearchX} heading="No deals match your search." action={{ label: 'Clear filter', onClick: filter.clear }}>
+          Nothing on the board matches “{filter.query}” as of {when}.
+        </IconEmptyState>
+      )}
+      {rows.length === 0 && !filter && (
+        <IconEmptyState icon={Inbox} heading="No deals have arrived yet." action={atEnd ? undefined : { label: 'Advance 1 day', onClick: advance }}>
           No deals have arrived as of {when}. Advance the clock to bring files in.
-        </EmptyState>
+        </IconEmptyState>
       )}
       <div className="overflow-x-auto">
         <div className="grid grid-cols-[repeat(6,minmax(10rem,1fr))] gap-2">
@@ -176,7 +213,11 @@ export function Board() {
   const folders = useMemo(() => (deals.data ?? []).map((d) => d.folder), [deals.data])
   const { details, isLoading, errors, refetchFailed } = useDealDetails(folders)
 
-  const rows = useMemo(() => boardAt(details, simToMs(now)), [details, now])
+  const query = useUiStore((s) => s.query)
+  const setQuery = useUiStore((s) => s.setQuery)
+  const allRows = useMemo(() => boardAt(details, simToMs(now)), [details, now])
+  const q = query.trim().toLowerCase()
+  const rows = q === '' ? allRows : allRows.filter((r) => r.deal.folder.toLowerCase().includes(q) || (r.deal.legal_name ?? '').toLowerCase().includes(q))
   const pulsed = useHoldPulse(isLoading ? [] : rows)
   const graph = useGraph()
   const clusterOf = (folder: string): string | null =>
@@ -198,6 +239,7 @@ export function Board() {
         onRetryFailed={refetchFailed}
         clusterOf={clusterOf}
         pulsed={pulsed}
+        filter={q === '' ? null : { query, total: allRows.length, clear: () => setQuery('') }}
       />
     </>
   )
