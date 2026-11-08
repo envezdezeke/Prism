@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   simToMs, fmtSimTime, fmtDuration, stageAt, slaPctAt, roundPct, heldAt, inboxAt, alertsAt, boardAt,
-  msToSim, clampMs, nextEventAfter, sortBoardRows,
+  msToSim, clampMs, nextEventAfter, sortBoardRows, stageLogAt, requestsAt,
 } from './timeview.ts'
 
 // Repo-relative fixtures folder (ui/src/time/ -> repo root), so the test also runs on Windows.
@@ -197,4 +197,84 @@ test('slaPctAt stops accruing at the end of the final stage entry (declined deal
   // an open entry keeps accruing
   const open: any = { ...d, stage_log: [{ stage: 'Intake', entered_at: '2026-11-02T08:00-06:00', exited_at: null }] }
   assert.equal(slaPctAt(open, open.stage_log[0].entered_at, simToMs('2026-11-02T16:00-06:00')), 1)
+})
+
+// ---- detail-page views (plan 03)
+
+test('alertsAt accepts items with only an at field (the detail alerts have no id or deal), newest first by default', () => {
+  const items = detail["Mama Rosa's Kitchen"].alerts
+  const t = simToMs('2026-11-04T18:00-06:00')
+  const out = alertsAt(items, t)
+  assert.equal(out.length, 2)
+  assert.equal(out[0].level, 'escalation')
+  assert.equal(out[1].level, 'alert')
+  // before the first alert nothing is visible; at its time only the first
+  assert.equal(alertsAt(items, simToMs('2026-11-04T11:59-06:00')).length, 0)
+  assert.equal(alertsAt(items, simToMs('2026-11-04T12:00-06:00')).length, 1)
+  assert.deepEqual(alertsAt(items, t, 'oldest').map((a: any) => a.level), ['alert', 'escalation'])
+})
+
+test('stageLogAt: Mama Rosas Intake exited, Credit still open at 10:30 and 11:00, exit and decision hidden until reached', () => {
+  const log = detail["Mama Rosa's Kitchen"].stage_log
+  const at1030 = stageLogAt(log, simToMs('2026-11-02T10:30-06:00'))
+  assert.deepEqual(at1030.map((e) => e.stage), ['Intake', 'Credit'])
+  assert.equal(at1030[0].open, false)
+  assert.equal(at1030[0].decision, 'advanced')
+  assert.equal(at1030[0].exited_at, '2026-11-02T10:00-06:00')
+  assert.equal(at1030[1].open, true)
+  assert.equal(at1030[1].exited_at, null)
+  assert.equal(at1030[1].decision, null)
+  // the why explains the exit at 12:00, so it stays hidden while the entry is open and the exit is in the future
+  assert.equal(at1030[1].why, '')
+  assert.ok(at1030[0].why.length > 0)
+  // an entry that never exits keeps its why (it describes where the deal stands)
+  const committee = stageLogAt(log, simToMs('2026-11-04T18:00-06:00'))[2]
+  assert.equal(committee.open, true)
+  assert.ok(committee.why.length > 0)
+  const at1100 = stageLogAt(log, simToMs('2026-11-02T11:00-06:00'))
+  assert.equal(at1100.length, 2)
+  assert.equal(at1100[1].open, true)
+  assert.equal(at1100[1].decision, null)
+  const at1230 = stageLogAt(log, simToMs('2026-11-02T12:30-06:00'))
+  assert.deepEqual(at1230.map((e) => [e.stage, e.open]), [['Intake', false], ['Credit', false], ['Committee', true]])
+  assert.equal(at1230[1].decision, 'advanced')
+  assert.equal(stageLogAt(log, simToMs('2026-11-02T08:00-06:00')).length, 0)
+})
+
+test('stageLogAt does not mutate its input', () => {
+  const log = detail["Mama Rosa's Kitchen"].stage_log
+  const before = JSON.stringify(log)
+  stageLogAt(log, simToMs('2026-11-02T10:30-06:00'))
+  assert.equal(JSON.stringify(log), before)
+})
+
+test('requestsAt: Mama Rosas credit_decision is unanswered at 11:00, answered approve once answered_at is reached', () => {
+  const reqs = detail["Mama Rosa's Kitchen"].human_requests
+  assert.equal(requestsAt(reqs, simToMs('2026-11-02T10:00-06:00')).length, 0)
+  const at1100 = requestsAt(reqs, simToMs('2026-11-02T11:00-06:00'))
+  assert.equal(at1100.length, 1)
+  assert.equal(at1100[0].answer, null)
+  assert.equal(at1100[0].answered_at, null)
+  const at1200 = requestsAt(reqs, simToMs('2026-11-02T12:00-06:00'))
+  assert.equal(at1200[0].answer, 'approve')
+  assert.equal(at1200[0].answered_at, '2026-11-02T11:50-06:00')
+  // the committee request appears at 12:15 and is never answered
+  const later = requestsAt(reqs, simToMs('2026-11-04T18:00-06:00'))
+  assert.equal(later.length, 2)
+  assert.equal(later[1].answer, null)
+})
+
+test('Bayou Bistro and Grill: no hold and no fraud_hold request at 11:00, both by 11:35', () => {
+  const d = detail['Bayou Bistro & Grill']
+  assert.equal(heldAt(d, simToMs('2026-11-03T11:00-06:00')), false)
+  assert.equal(heldAt(d, simToMs('2026-11-03T11:30-06:00')), true)
+  assert.equal(requestsAt(d.human_requests, simToMs('2026-11-03T11:00-06:00')).length, 0)
+  assert.equal(requestsAt(d.human_requests, simToMs('2026-11-03T11:34-06:00')).length, 0)
+  assert.equal(requestsAt(d.human_requests, simToMs('2026-11-03T11:35-06:00')).length, 1)
+  // the hold decision is hidden before the stage exits at 11:30
+  const before = stageLogAt(d.stage_log, simToMs('2026-11-03T11:00-06:00'))
+  assert.equal(before[0].open, true)
+  assert.equal(before[0].decision, null)
+  assert.equal(before[0].why, '')
+  assert.equal(stageLogAt(d.stage_log, simToMs('2026-11-03T11:30-06:00'))[0].decision, 'held')
 })

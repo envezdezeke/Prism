@@ -137,8 +137,39 @@ export function inboxAt(items: InboxLike[], t: number): InboxLike[] {
     })
 }
 
-export function alertsAt(items: AlertLike[], t: number): AlertLike[] {
-  return items.filter((a) => simToMs(a.at) <= t).sort((a, b) => simToMs(b.at) - simToMs(a.at))
+// Alerts visible at t. Needs only an `at` field, so the detail's alerts (no id or deal) work too.
+// Newest first for the feed; pass 'oldest' for the detail list.
+export function alertsAt<T extends { at: string }>(items: T[], t: number, order: 'newest' | 'oldest' = 'newest'): T[] {
+  const sign = order === 'newest' ? -1 : 1
+  return items.filter((a) => simToMs(a.at) <= t).sort((a, b) => sign * (simToMs(a.at) - simToMs(b.at)))
+}
+
+// Stage log entries that have started by t. An entry whose exit is after t (or never) is open: its exit
+// time and decision are hidden until t reaches them, so a screen can never show the future (D-18).
+// An entry that will exit later also hides its `why`, which explains that exit; an entry that never
+// exits keeps it, since it then describes where the deal stands.
+export function stageLogAt<T extends StageLogEntry>(log: T[], t: number): (T & { open: boolean })[] {
+  const out: (T & { open: boolean })[] = []
+  for (const e of log) {
+    if (simToMs(e.entered_at) > t) continue
+    const open = e.exited_at == null || simToMs(e.exited_at) > t
+    if (!open) out.push({ ...e, open })
+    else out.push({ ...e, exited_at: null, decision: null, why: e.exited_at == null ? e.why : '', open })
+  }
+  return out
+}
+
+// Requests sent by t. The answer and answered_at are shown only once answered_at has been reached.
+export function requestsAt<T extends { at: string; answer?: string | null; answered_at?: string | null }>(
+  requests: T[],
+  t: number,
+): T[] {
+  return requests
+    .filter((r) => simToMs(r.at) <= t)
+    .map((r) => {
+      const answered = r.answer != null && r.answered_at != null && simToMs(r.answered_at) <= t
+      return answered ? { ...r } : { ...r, answer: null, answered_at: null }
+    })
 }
 
 export interface BoardRow<T extends DetailLike = DetailLike> {

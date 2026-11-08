@@ -4,16 +4,16 @@ import type { DealDetail as DealDetailData, Fact } from '../../api/types.ts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useDealDetail } from '../../data/queries.ts'
+import { useDealDetail, useDeals } from '../../data/queries.ts'
 import { fmtDuration, fmtHours, fmtMoney, fmtPct, fmtSimTime } from '../../lib/format.ts'
-import { factFields, factValueText } from '../../labels.ts'
-import { personLabel } from '../../people.ts'
+import { alertLevelLabel, factFields, factValueText, isClearedAnswer, issueLabel, optionLabel, requestTypeLabel } from '../../labels.ts'
+import { personLabel, roleForAlert, roleForRequest } from '../../people.ts'
 import { useClockStore } from '../../state/clockStore.ts'
 import { useUiStore } from '../../state/uiStore.ts'
-import { boardAt, simToMs } from '../../time/timeview.ts'
+import { alertsAt, boardAt, heldAt, requestsAt, simToMs, stageLogAt } from '../../time/timeview.ts'
 import type { BoardRow } from '../../time/timeview.ts'
 import { StatusBadge } from './Badges.tsx'
-import { Caption, EmptyState, ErrorState, LoadingState, NullValue, PageTitle, PipelineLink } from './Primitives.tsx'
+import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle, PipelineLink } from './Primitives.tsx'
 
 const HOUR_MS = 3600_000
 
@@ -140,12 +140,216 @@ function FactsSection({ deal }: { deal: DealDetailData }) {
   )
 }
 
+function IssueList({ issues, empty, muted }: { issues: string[]; empty: string; muted?: boolean }) {
+  if (issues.length === 0) return <p className="text-sm text-ink-2">{empty}</p>
+  return (
+    <ul className="flex flex-col gap-1">
+      {issues.map((code) => (
+        <li key={code} className={`text-sm ${muted ? 'text-ink-2' : 'text-ink'}`}>
+          {issueLabel(code)}
+          <span className="text-xs text-ink-2"> · {code}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// Issues have no timestamps: they are the end-of-run lists (D-18).
+function IssuesSection({ deal }: { deal: DealDetailData }) {
+  return (
+    <section aria-label="Issues" className="flex flex-col gap-2">
+      <div className="flex items-baseline gap-2">
+        <h2 className="text-base font-semibold">Issues</h2>
+        <Caption>As of end of run</Caption>
+      </div>
+      <IssueList issues={deal.issues} empty="No open issues." />
+      <h3 className="pt-2 text-xs font-semibold text-ink-2">Resolved</h3>
+      <IssueList issues={deal.resolved_issues} empty="No resolved issues." muted />
+    </section>
+  )
+}
+
+const sentence = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
+
+function StageLogSection({ deal, nowMs }: { deal: DealDetailData; nowMs: number }) {
+  const entries = stageLogAt(deal.stage_log, nowMs)
+  return (
+    <section aria-label="Stage log" className="flex flex-col gap-2">
+      <h2 className="text-base font-semibold">Stage log</h2>
+      <ol className="flex flex-col gap-4 border-l border-line pl-4">
+        {entries.map((e) => (
+          <li key={`${e.stage}-${e.entered_at}`} className="flex flex-col gap-1">
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-base font-semibold">{e.stage}</h3>
+              {e.open && <Caption>Current</Caption>}
+            </div>
+            <p className="text-sm tabular-nums text-ink-2">
+              Entered {fmtSimTime(e.entered_at)} ·{' '}
+              {e.exited_at == null
+                ? `Open for ${fmtDuration(nowMs - simToMs(e.entered_at))}`
+                : `Exited ${fmtSimTime(e.exited_at)}`}
+            </p>
+            <p className="text-base">
+              <span className="font-semibold">Decision:</span>{' '}
+              {e.decision == null ? <NullValue title="No decision recorded yet" /> : sentence(e.decision)}
+            </p>
+            <p className="text-base">
+              <span className="font-semibold">Why:</span>{' '}
+              {e.why === '' ? <NullValue title="Recorded when the stage exits" /> : e.why}
+            </p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+function RequestsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: number; when: string }) {
+  const requests = requestsAt(deal.human_requests, nowMs)
+  return (
+    <section aria-label="Human requests" className="flex flex-col gap-2">
+      <h2 className="text-base font-semibold">Human requests</h2>
+      {requests.length === 0 ? (
+        <p className="text-sm text-ink-2">No requests on this deal as of {when}.</p>
+      ) : (
+        <div className="rounded-md border border-line bg-surface">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Sent</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>To</TableHead>
+                <TableHead>Message</TableHead>
+                <TableHead>Answer</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((r) => {
+                const who = personLabel(r.to, roleForRequest(r.type))
+                return (
+                  <TableRow key={`${r.type}-${r.at}`} className="align-top">
+                    <TableCell className="whitespace-nowrap tabular-nums">{fmtSimTime(r.at)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{requestTypeLabel(r.type)}</TableCell>
+                    <TableCell className="whitespace-nowrap" title={who.title}>
+                      {who.label}
+                    </TableCell>
+                    <TableCell className="whitespace-normal">{r.message}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {r.answer == null ? (
+                        'Pending'
+                      ) : (
+                        <span className={isClearedAnswer(r.answer) ? 'text-ok' : undefined}>
+                          {optionLabel(r.answer)}
+                          {r.answered_at != null && ` · ${fmtSimTime(r.answered_at)}`}
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function AlertsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: number; when: string }) {
+  const alerts = alertsAt(deal.alerts, nowMs, 'oldest')
+  return (
+    <section aria-label="Alerts" className="flex flex-col gap-2">
+      <h2 className="text-base font-semibold">Alerts</h2>
+      {alerts.length === 0 ? (
+        <p className="text-sm text-ink-2">No alerts on this deal as of {when}.</p>
+      ) : (
+        <div className="rounded-md border border-line bg-surface">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="border-l-2 border-transparent">Time</TableHead>
+                <TableHead>Level</TableHead>
+                <TableHead>To</TableHead>
+                <TableHead>Message</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {alerts.map((a) => {
+                const who = personLabel(a.to, roleForAlert(a.level))
+                const edge = a.level === 'escalation' ? 'border-risk' : 'border-transparent'
+                return (
+                  <TableRow key={`${a.at}-${a.level}`} className="align-top">
+                    <TableCell className={`whitespace-nowrap border-l-2 tabular-nums ${edge}`}>{fmtSimTime(a.at)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{alertLevelLabel(a.level, a.message)}</TableCell>
+                    <TableCell className="whitespace-nowrap" title={who.title}>
+                      {who.label}
+                    </TableCell>
+                    <TableCell className="whitespace-normal">{a.message}</TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// Sober on purpose (D-16): the red badge is the only red, and nothing is shown that the contract does not
+// give. A held deal's reason, stage at flag and links appear only once the hold has happened at the clock time.
+function FraudPanel({ deal, now, boardFolders }: { deal: DealDetailData; now: string; boardFolders: string[] }) {
+  const f = deal.fraud
+  const held = heldAt(deal, simToMs(now))
+  const linked = f.linked_deals ?? []
+  return (
+    <section aria-label="Fraud status" className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4">
+      <h2 className="text-base font-semibold">Fraud status</h2>
+      {held ? (
+        <>
+          <StatusBadge held watch={false} />
+          <p className="text-sm text-ink-2">
+            Frozen at {f.stage_at_flag ?? 'its stage'}
+            {f.flagged_at != null && ` as of ${fmtSimTime(f.flagged_at)}`}
+          </p>
+          {f.reason != null && <p className="text-base">{f.reason}</p>}
+          {linked.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <h3 className="text-xs font-semibold text-ink-2">Linked</h3>
+              <ul className="flex flex-col gap-1 text-sm">
+                {linked.map((name) => (
+                  <li key={name}>{boardFolders.includes(name) ? <DealLink folder={name}>{name}</DealLink> : name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      ) : deal.watch ? (
+        <>
+          <StatusBadge held={false} watch />
+          <p className="text-sm text-ink-2">Shown for review. Not held.</p>
+          <Caption>As of end of run</Caption>
+        </>
+      ) : f.flagged && !f.held ? (
+        <>
+          <Badge variant="outline">Flagged</Badge>
+          <p className="text-sm text-ink-2">Flagged, not held.</p>
+        </>
+      ) : (
+        <p className="text-sm text-ink-2">No hold or watch flag.</p>
+      )}
+    </section>
+  )
+}
+
 // The screen as a pure function of (fetched detail, clock now): the same boardAt the board uses decides
 // the stage, SLA and held state, so the two screens agree at every clock time and one clock change
 // can never show a mixed state.
-export function DealDetailView({ detail, now }: { detail: DealDetailData; now: string }) {
+export function DealDetailView({ detail, now, boardFolders }: { detail: DealDetailData; now: string; boardFolders: string[] }) {
   const name = detail.legal_name ?? detail.folder
-  const row = boardAt([detail], simToMs(now))[0]
+  const nowMs = simToMs(now)
+  const when = fmtSimTime(now)
+  const row = boardAt([detail], nowMs)[0]
   const showFolder = detail.legal_name != null && detail.legal_name !== detail.folder
 
   if (row === undefined) {
@@ -178,9 +382,14 @@ export function DealDetailView({ detail, now }: { detail: DealDetailData; now: s
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-8">
           <FactsSection deal={detail} />
+          <IssuesSection deal={detail} />
+          <StageLogSection deal={detail} nowMs={nowMs} />
+          <RequestsSection deal={detail} nowMs={nowMs} when={when} />
+          <AlertsSection deal={detail} nowMs={nowMs} when={when} />
         </div>
         <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
           <SummaryPanel row={row} />
+          <FraudPanel deal={detail} now={now} boardFolders={boardFolders} />
         </div>
       </div>
     </div>
@@ -191,6 +400,7 @@ export function DealDetail({ folder }: { folder: string }) {
   const now = useClockStore((s) => s.now)
   const showPipeline = useUiStore((s) => s.showPipeline)
   const q = useDealDetail(folder)
+  const deals = useDeals()
   const name = q.data ? (q.data.legal_name ?? q.data.folder) : null
 
   useEffect(() => {
@@ -218,5 +428,5 @@ export function DealDetail({ folder }: { folder: string }) {
       </div>
     )
   }
-  return <DealDetailView detail={q.data} now={now} />
+  return <DealDetailView detail={q.data} now={now} boardFolders={(deals.data ?? []).map((d) => d.folder)} />
 }
