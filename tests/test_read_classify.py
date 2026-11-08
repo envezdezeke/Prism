@@ -101,6 +101,15 @@ def test_pdf_statement_period_is_end_date_month(tmp_path):
     assert classify(_doc(write_pdf(tmp_path / "o.pdf", [TEXTS["application"]]))).period is None
 
 
+@pytest.mark.parametrize("value", [
+    "05/01/2026 - 05/31/2026", "May 1, 2026 - May 31, 2026", "1 May 2026 to 31 May 2026",
+    "2026-05-01 to 2026-05-31", "5/1/26 through 5/31/26",
+])
+def test_statement_period_reads_non_iso_period_dates(value):
+    dt = DocText(kind="pdf", plain=f"Business Checking Statement\nStatement period: {value}\nOpening balance $1.00")
+    assert statement_period(dt) == "2026-05"
+
+
 def test_statement_period_none():
     assert statement_period(DocText(kind="pdf", plain="nothing here")) is None
     assert statement_period(DocText(kind="csv", rows=(("a", "b", "c"),))) is None

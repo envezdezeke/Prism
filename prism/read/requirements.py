@@ -153,6 +153,15 @@ def _latest(state: Any, doc_class: str) -> Any:
     return got[-1][1] if got else None
 
 
+def _statement_month(doc: Any) -> Optional[str]:
+    """The month classify read from the content, else the month the statement parser found."""
+    if getattr(doc, "period", None):
+        return doc.period
+    ps = docmodel.parsed(doc)
+    period = getattr(ps, "period", None)
+    return period if isinstance(period, str) and period else None
+
+
 def latest_application(state: Any) -> Optional[docmodel.ParsedApplication]:
     app = _latest(state, "application")
     return app if isinstance(app, docmodel.ParsedApplication) else None
@@ -228,7 +237,7 @@ def required_labels(state: Any) -> list[str]:
         elif req.kind == "statements":
             if ref is None:
                 continue
-            have = {d.period for d in present if d.period}
+            have = {p for p in (_statement_month(d) for d in present) if p}
             out.extend(f"{req.label}_{m}" for m in statement_window(ref, cfg.window_months) if m not in have)
         elif req.kind == "financials":
             if not _financials_ok(state, req.doc_class):

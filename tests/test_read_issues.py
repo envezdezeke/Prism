@@ -16,7 +16,7 @@ from prism.engine.visibility import parse_time
 from prism.read import docmodel, requirements
 from prism.read import issues as read_issues
 from prism.read.docmodel import (Guarantor, Parsed7004, ParsedApplication, ParsedCert, ParsedFinancials,
-                                 ParsedId, ParsedTax)
+                                 ParsedId, ParsedStatement, ParsedTax)
 from tests.read_fixtures import make_state
 from tests.test_read_forms import ID_ROWS
 from tests.statement_fixtures import write_statement
@@ -179,6 +179,12 @@ def test_statement_with_unknown_period_counts_for_nothing(tmp_path, monkeypatch)
     w = complete_world(tmp_path, monkeypatch, months=MONTHS[:5])
     w.add("bank_statement", None, period=None)
     assert missing_docs(w.state()) == ["MISSING_DOC:bank_statement_2026-10"]
+
+
+def test_statement_month_found_by_the_statement_parser_counts_when_classify_found_none(tmp_path, monkeypatch):
+    w = complete_world(tmp_path, monkeypatch, months=MONTHS[:5])
+    w.add("bank_statement", ParsedStatement(period="2026-10", signs_verified=True), period=None)
+    assert missing_docs(w.state()) == []
 
 
 def test_window_anchors_on_last_arrival_when_no_application_date(tmp_path, monkeypatch):

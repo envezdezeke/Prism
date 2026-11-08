@@ -120,6 +120,28 @@ def parse_date(text: Any) -> Optional[str]:
     return None
 
 
+def dates_in(text: Any) -> list[str]:
+    """Every date written in ``text`` (ISO, M/D/YY, "May 1, 2026", "1 May 2026") as ISO, in reading order."""
+    if not isinstance(text, str):
+        return []
+    spans: list[tuple[int, int, str]] = []
+    for rx, ok in ((_ISO_RE, None), (_US_RE, None), (_MDY_RE, 1), (_DMY_RE, 2)):
+        for m in rx.finditer(text):
+            if ok is not None and m.group(ok).casefold() not in _MONTHS:
+                continue
+            spans.append((m.start(), m.end(), m.group(0)))
+    out: list[str] = []
+    last_end = -1
+    for start, end, tok in sorted(spans):
+        if start < last_end:  # overlaps a date already taken
+            continue
+        iso = parse_date(tok)
+        if iso:
+            out.append(iso)
+            last_end = end
+    return out
+
+
 def _none_markers() -> set[str]:
     return {str(x).strip().casefold() for x in (get_config().raw.get("none_markers") or [])}
 

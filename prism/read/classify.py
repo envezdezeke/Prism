@@ -15,7 +15,7 @@ from typing import Any, Optional
 
 from prism.engine.state import Doc
 from prism.read.labels import extract_labeled
-from prism.read.normalize import parse_date
+from prism.read.normalize import dates_in, parse_date
 from prism.read.settings import get_config
 from prism.read.text import DocText, load_text, page_markers
 
@@ -133,7 +133,7 @@ def statement_period(dt: DocText) -> Optional[str]:
         labels = {"period": list((get_config().classify.get("period") or {}).get("labels") or [])}
         text = dt.plain or dt.layout
         found = extract_labeled(text, labels, max_lines=2).get("period", "")
-        parsed = [d for d in (parse_date(m) for m in _ISO_DATE.findall(found)) if d]
+        parsed = dates_in(found)
         if parsed:
             return parsed[-1][:7]
         us = [d for d in (parse_date(m) for m in _LINE_US_DATE.findall(text)) if d]

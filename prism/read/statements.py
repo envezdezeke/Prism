@@ -21,7 +21,7 @@ from prism.read import docmodel
 from prism.read.classify import statement_period
 from prism.read.docmodel import ParsedStatement, Txn
 from prism.read.labels import extract_labeled
-from prism.read.normalize import last4, money_to_cents, parse_date
+from prism.read.normalize import dates_in, last4, money_to_cents, parse_date
 from prism.read.requirements import get_issues_config
 from prism.read.text import DocText, page_markers, pdf_tables
 
@@ -60,9 +60,7 @@ def _first_money(text: str) -> Optional[int]:
 
 
 def _dates_in(text: str) -> list[str]:
-    spans = [(m.start(), m.group(0)) for m in _ISO_DATE.finditer(text or "")]
-    spans += [(m.start(), m.group(0)) for m in _US_DATE.finditer(text or "")]
-    return [d for _s, tok in sorted(spans) if (d := parse_date(tok))]
+    return dates_in(text or "")
 
 
 # ---------------------------------------------------------------- page markers
