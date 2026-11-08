@@ -24,7 +24,7 @@ Tip: generate TypeScript types from `/openapi.json` (for example with `openapi-t
 | GET | `/api/deals` | none | `list[DealSummary]` |
 | GET | `/api/deals/{folder}` | none | `DealDetail` (404 `unknown deal`) |
 | GET | `/api/clock` | none | `Clock` |
-| POST | `/api/clock/advance` | `ClockAdvance` (exactly one of `hours` or `to`) | `Clock` (clamped to the end) |
+| POST | `/api/clock/advance` | `ClockAdvance` (exactly one of `hours` or `to`) | `Clock` (clamped to start..end) |
 | POST | `/api/clock/replay` | optional `ClockReplay` (`speed`) | `Clock` (now = start) |
 | GET | `/api/inbox?status=pending\|answered` | none | `list[InboxItem]` |
 | POST | `/api/inbox/{item_id}/reply` | `InboxReply` (`option`, `note`) | `InboxItem` (404 unknown, 409 already answered, 422 bad option) |

@@ -143,6 +143,8 @@ def test_advance_clock(client):
     r = client.post("/api/clock/advance", json={"hours": 100000})
     assert r.json()["now"] == load("clock.json")["end"]
     assert client.post("/api/clock/advance", json={}).status_code == 422
+    r = client.post("/api/clock/advance", json={"to": "2020-01-01T00:00-06:00"})
+    assert r.json()["now"] == load("clock.json")["start"]
 
 
 def test_advance_clock_overflow_clamps(client):

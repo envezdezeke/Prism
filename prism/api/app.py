@@ -71,7 +71,7 @@ def create_app() -> FastAPI:
                 now = end
         else:
             now = parse_sim_time(body.to)  # type: ignore[arg-type]
-        now = min(now, end)
+        now = max(parse_sim_time(clock["start"]), min(now, end))
         return {**clock, "now": format_sim_time(now)}
 
     @api.post("/clock/replay", response_model=Clock)
