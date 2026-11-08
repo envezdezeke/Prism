@@ -7,7 +7,8 @@ full recompute too; its dict is merged into ``state.features`` by the caller (ne
 """
 from __future__ import annotations
 
-from typing import Any
+import re
+from typing import Any, Optional
 
 from prism.contract import Extracted, Fact
 from prism.engine.config import Rules
@@ -19,24 +20,56 @@ from prism.read.settings import get_config
 FACT_FIELDS: tuple[str, ...] = tuple(Extracted.model_fields)
 
 
+def _purpose_category(text: Optional[str], product: Optional[str]) -> tuple[Optional[str], float]:
+    """Ordered keyword table (config); product fallback for equipment loans; else None (never guess)."""
+    conf = get_config().confidence
+    folded = " ".join((text or "").casefold().split())
+    for entry in get_config().raw.get("purpose_keywords") or []:
+        for word in entry.get("words") or []:
+            w = re.escape(str(word).casefold())
+            pat = rf"\b{w}(?:s|es)?\b" if len(str(word)) <= 4 else rf"\b{w}"
+            if folded and re.search(pat, folded):
+                return str(entry["category"]), conf["keyword"]
+    if product == "Equipment Loan":
+        return "equipment", conf["inferred"]
+    return None, 0.0
+
+
+def _application_facts(doc, app, conf) -> dict[str, Fact]:
+    facts: dict[str, Fact] = {}
+
+    def put(name: str, value: Any, confidence: float) -> None:
+        if value is not None:
+            facts[name] = Fact(value=value, source_doc=doc.path, confidence=confidence)
+
+    put("legal_name", app.legal_name, conf["label"])
+    put("ein", app.ein, conf["label"])
+    put("amount_requested", None if app.amount_cents is None else cents_to_number(app.amount_cents),
+        conf["label"])
+    category, cat_conf = _purpose_category(app.purpose_text, app.product)
+    put("purpose_category", category, cat_conf)
+    put("product", app.product, conf["label"])
+    put("term_months", app.term_months, conf["label"])
+    put("guarantor_name", app.guarantors[0].name if app.guarantors else None, conf["label"])
+    if app.revenue_cents is not None:
+        put("annual_revenue_stated", cents_to_number(app.revenue_cents), conf["label"])
+    elif app.revenue_range_cents is not None:
+        lo, hi = app.revenue_range_cents
+        put("annual_revenue_stated", cents_to_number((lo + hi) // 2), conf["range"])
+    put("needed_by", app.needed_by, conf["label"])
+    return facts
+
+
 def extract_facts(state: DealState, rules: Rules) -> dict[str, Fact]:
     """Return the facts known from the visible docs, keyed by Extracted field. Never raises."""
-    facts: dict[str, Fact] = {}
     try:
-        conf = get_config().confidence
         apps = docmodel.parsed_all(state, "application")
-        if apps:
-            # latest arrival wins; parsed_all sorts by (arrive_at, path) so the last one is latest
-            doc, app = apps[-1]
-            if app.legal_name:
-                facts["legal_name"] = Fact(value=app.legal_name, source_doc=doc.path,
-                                           confidence=conf["label"])
-            if app.amount_cents is not None:
-                facts["amount_requested"] = Fact(value=cents_to_number(app.amount_cents),
-                                                 source_doc=doc.path, confidence=conf["label"])
+        if not apps:
+            return {}
+        doc, app = apps[-1]  # latest arrival wins; parsed_all sorts by (arrive_at, path)
+        return _application_facts(doc, app, get_config().confidence)
     except Exception:  # noqa: BLE001
-        return facts
-    return facts
+        return {}
 
 
 def extract_entities(state: DealState, rules: Rules) -> list[EntityRef]:

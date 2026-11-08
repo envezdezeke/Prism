@@ -126,3 +126,9 @@ def split_sections(text: str, headings: Mapping[str, Sequence[str]]) -> dict[str
             continue
         out.setdefault(cur, []).append(ln)
     return {k: "\n".join(v) for k, v in out.items() if k == "" or v or k in out}
+
+
+def scan_labeled(text: str, labels: Mapping[str, Sequence[str]], stops: Sequence[str] = (),
+                 max_lines: int = 4) -> list[tuple[str, str]]:
+    """Every (field, value) label hit in document order (used to group repeated blocks)."""
+    return list(_scan(text, labels, stops, max_lines))

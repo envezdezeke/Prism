@@ -24,6 +24,7 @@ confidence:
   range: 0.5
   inferred: 0.5
   vl: 0.55
+  keyword: 0.6          # purpose chosen from a keyword hit
 
 classify:
   title_lines: 6
@@ -67,3 +68,133 @@ labels:
     guarantor_dl: ["Driver license", "Driver's license", "Driver license number"]
     affiliated: ["Affiliated businesses", "Affiliates"]
     application_date: ["Application date", "Date of application", "Date submitted"]
+
+sections:                # heading regexes (applied per line); the guarantor section is the owner block
+  business: ['^\s*section\s+\w+\W+business']
+  loan: ['^\s*section\s+\w+\W+loan']
+  guarantor: ['^\s*section\s+\w+\W+.*(owner|guarantor)']
+
+none_markers:            # a label present with one of these values is "declared none", not missing
+  - "no specific date"
+  - "n/a"
+  - "na"
+  - "none"
+  - "not provided"
+  - "not applicable"
+  - "tbd"
+  - "unknown"
+  - "-"
+  - "--"
+  - "–"
+  - "—"
+
+signature:
+  markers: ["/s/"]
+  labels: ["Signature", "Signed by", "Applicant signature"]
+
+product_synonyms:        # first contained phrase wins (casefolded); values are the four Product enums
+  "revolving line of credit": "Revolving Line of Credit"
+  "line of credit": "Revolving Line of Credit"
+  "revolving": "Revolving Line of Credit"
+  "loc": "Revolving Line of Credit"
+  "equipment loan": "Equipment Loan"
+  "equipment financing": "Equipment Loan"
+  "equipment": "Equipment Loan"
+  "working capital loan": "Working Capital Loan"
+  "working capital": "Working Capital Loan"
+  "term loan": "Term Loan"
+  "term": "Term Loan"
+
+purpose_keywords:        # ordered; first category with a hit wins; short words match whole words
+  - {category: payroll, words: ["payroll", "wages", "salar"]}
+  - {category: refinance, words: ["refinanc", "pay off", "payoff", "consolidat"]}
+  - {category: equipment, words: ["equipment", "vehicle", "truck", "trailer", "tractor", "van", "printer", "lift", "machine", "oven", "cooler", "mower", "forklift", "press"]}
+  - {category: expansion, words: ["expan", "hire", "hiring", "pilot", "launch", "new location", "second location", "open a"]}
+  - {category: inventory, words: ["inventory", "stock"]}
+  - {category: working_capital, words: ["receivable", "working capital", "bridge", "operating", "cash flow", "seasonal"]}
+
+term_units:
+  months: ["month", "months", "mo", "mos"]
+  years: ["year", "years", "yr", "yrs"]
+
+nicknames:               # groups of a formal first name and its common short forms (generic English)
+  - [robert, bob, rob, bobby, bert, robbie]
+  - [william, bill, will, billy, willy, liam]
+  - [james, jim, jimmy, jamie]
+  - [richard, rick, dick, rich, ricky, richie]
+  - [margaret, maggie, peggy, meg, marge, greta]
+  - [elizabeth, liz, beth, betty, eliza, lizzie, liza]
+  - [john, jack, johnny, jon]
+  - [michael, mike, mikey, mick]
+  - [thomas, tom, tommy]
+  - [charles, charlie, chuck, chas]
+  - [joseph, joe, joey]
+  - [edward, ed, eddie, ted, teddy, ned]
+  - [daniel, dan, danny]
+  - [matthew, matt]
+  - [anthony, tony]
+  - [donald, don, donnie]
+  - [steven, stephen, steve, stevie]
+  - [kenneth, ken, kenny]
+  - [andrew, andy, drew]
+  - [joshua, josh]
+  - [christopher, chris, topher]
+  - [nicholas, nick, nicky]
+  - [benjamin, ben, benny]
+  - [samuel, sam, sammy]
+  - [alexander, alex, al, xander]
+  - [jonathan, jon, jonny]
+  - [timothy, tim, timmy]
+  - [lawrence, larry, laurence]
+  - [gerald, jerry, gerry]
+  - [raymond, ray]
+  - [patrick, pat, paddy]
+  - [theodore, ted, teddy, theo]
+  - [frederick, fred, freddie, freddy]
+  - [walter, walt]
+  - [eugene, gene]
+  - [catherine, katherine, kathryn, kate, katie, kathy, cathy, kit]
+  - [patricia, pat, patty, trish, tricia]
+  - [jennifer, jen, jenny]
+  - [deborah, debra, deb, debbie]
+  - [barbara, barb, barbie]
+  - [susan, sue, susie, suzy]
+  - [dorothy, dot, dottie]
+  - [victoria, vicky, vicki, tori]
+  - [rebecca, becky, becca]
+  - [jessica, jess, jessie]
+  - [cynthia, cindy]
+  - [samantha, sam, sammy]
+  - [christine, christina, chris, chrissy, tina]
+  - [pamela, pam]
+  - [kimberly, kim]
+  - [stephanie, steph]
+  - [abigail, abby]
+  - [jacqueline, jackie]
+  - [josephine, josie]
+  - [vincent, vince]
+  - [leonard, leo, len, lenny]
+  - [douglas, doug]
+  - [gregory, greg]
+  - [phillip, philip, phil]
+  - [ronald, ron, ronnie]
+  - [harold, harry, hal]
+  - [henry, hank]
+  - [peter, pete]
+  - [albert, al, bert]
+  - [arthur, art, artie]
+  - [franklin, frank, frankie]
+  - [francis, frank, frankie, fran]
+  - [lawrence, larry]
+  - [carlos, charles]
+  - [jose, joe]
+  - [juan, john]
+  - [luis, louis, lou]
+  - [miguel, michael, mike]
+  - [antonio, anthony, tony]
+  - [francisco, frank, paco, pancho]
+  - [alejandro, alex, alexander]
+  - [ricardo, richard, rick]
+  - [eduardo, edward, ed]
+  - [fernando, fern]
+  - [guillermo, william, bill]

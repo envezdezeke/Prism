@@ -13,9 +13,9 @@ from typing import Optional, Sequence, Union
 
 Line = Union[str, Sequence[tuple[int, str]]]  # a str is drawn at x=72; a list of (x, text) cells is a column row
 
-_TOP = 760
-_STEP = 15
-_LINES_PER_PAGE = 46
+_TOP = 775
+_STEP = 12
+_LINES_PER_PAGE = 62
 
 
 def _esc(text: str) -> bytes:
