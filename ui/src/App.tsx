@@ -41,7 +41,10 @@ function Rail() {
     status === 'ready' && inbox.data !== undefined ? pendingCount(inboxAt(inbox.data, simToMs(now), answers)) : null
   return (
     <aside aria-label="Primary" className="min-h-screen w-50 shrink-0 bg-navy">
-      <p className="border-b border-surface/15 px-4 py-4 text-base font-bold tracking-wide text-surface">Prism</p>
+      <p className="flex items-center gap-2.5 border-b border-surface/15 px-4 py-4 text-base font-bold tracking-wide text-surface">
+        <img src="/prism.svg" alt="" className="size-7" />
+        Prism
+      </p>
       <nav aria-label="Views">
         <ul className="flex flex-col">
           {NAV_ITEMS.map((item) => {
