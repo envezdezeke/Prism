@@ -3,9 +3,9 @@ import { describeError } from '../../api/client.ts'
 import { STAGES } from '../../api/types.ts'
 import type { DealDetail, Stage } from '../../api/types.ts'
 import { useDealDetails, useDeals } from '../../data/queries.ts'
-import { fmtHours, fmtMoney, fmtPct, fmtSimTime, fmtSla } from '../../lib/format.ts'
+import { fmtDuration, fmtHours, fmtMoney, fmtPct, fmtSimTime, fmtSla } from '../../lib/format.ts'
 import { useClockStore } from '../../state/clockStore.ts'
-import { boardAt, simToMs, sortBoardRows } from '../../time/timeview.ts'
+import { boardAt, simToMs, sortBoardRows, stageLimitsFrom } from '../../time/timeview.ts'
 import type { BoardRow } from '../../time/timeview.ts'
 import { NeededByBadge, SlaBar, StatusBadge } from './Badges.tsx'
 import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle } from './Primitives.tsx'
@@ -15,9 +15,9 @@ function DealCard({ row }: { row: BoardRow<DealDetail> }) {
   const { deal } = row
   const name = deal.legal_name ?? deal.folder
   // Amber follows the displayed value: above 100 percent once rounded.
-  const over = Math.round(row.slaFraction * 100) > 100
+  const frac = row.slaFraction
+  const over = frac !== null && Math.round(frac * 100) > 100
   const showFolder = deal.legal_name != null && deal.legal_name !== deal.folder
-  const slaText = fmtSla(row.slaFraction, deal.sla_hours)
   return (
     <li>
       <DealLink
@@ -50,19 +50,26 @@ function DealCard({ row }: { row: BoardRow<DealDetail> }) {
           className={`text-xs tabular-nums ${over ? 'text-risk' : 'text-ink-2'}`}
           title={row.held ? 'SLA clock stopped at the hold' : undefined}
         >
-          {slaText}
+          {frac === null || row.limitHours === null ? (
+            <>
+              {fmtDuration(row.dwellMs)} / <NullValue title="The limit for this stage is not in the data" />
+            </>
+          ) : (
+            fmtSla(frac, row.limitHours)
+          )}
         </span>
-        <SlaBar pct={row.slaFraction} label={`SLA ${fmtPct(row.slaFraction)} of the stage limit`} />
+        {frac !== null && <SlaBar pct={frac} label={`SLA ${fmtPct(frac)} of the stage limit`} />}
       </DealLink>
     </li>
   )
 }
 
-// The stage limit is shown only when every deal in the column shares it (UI-SPEC row 8).
+// The stage limit is shown only when every card in the column has the same known limit for that stage
+// (UI-SPEC row 8). A card whose limit is unknown (an earlier stage, CR-01) hides the header limit.
 function stageLimit(col: BoardRow<DealDetail>[]): string | null {
   if (col.length === 0) return null
-  const first = col[0].deal.sla_hours
-  return col.every((r) => r.deal.sla_hours === first) ? fmtHours(first) : null
+  const first = col[0].limitHours
+  return first !== null && col.every((r) => r.limitHours === first) ? fmtHours(first) : null
 }
 
 export function BoardView({
@@ -139,7 +146,9 @@ export function Board() {
   const folders = useMemo(() => (deals.data ?? []).map((d) => d.folder), [deals.data])
   const { details, isLoading, errors, refetchFailed } = useDealDetails(folders)
 
-  const rows = useMemo(() => boardAt(details, simToMs(now)), [details, now])
+  // Limits come from every deal's summary, so they stay known while some details are still loading.
+  const limits = useMemo(() => stageLimitsFrom(deals.data ?? []), [deals.data])
+  const rows = useMemo(() => boardAt(details, simToMs(now), limits), [details, now, limits])
 
   if (deals.isPending) return <LoadingState>Loading deals.</LoadingState>
   if (deals.isError) {

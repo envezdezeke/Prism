@@ -11,12 +11,10 @@ import { personLabel, roleForAlert, roleForRequest } from '../../people.ts'
 import { useClockStore } from '../../state/clockStore.ts'
 import { useAnswersStore } from '../../state/answersStore.ts'
 import { useUiStore } from '../../state/uiStore.ts'
-import { alertsAt, boardAt, heldAt, inboxAt, requestsAt, requestsWithOverlay, simToMs, stageLogAt } from '../../time/timeview.ts'
+import { alertsAt, boardAt, heldAt, inboxAt, requestsAt, requestsWithOverlay, simToMs, stageLimitsFrom, stageLogAt } from '../../time/timeview.ts'
 import type { BoardRow, InboxLike, SessionAnswers } from '../../time/timeview.ts'
 import { StatusBadge } from './Badges.tsx'
 import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle, PipelineLink } from './Primitives.tsx'
-
-const HOUR_MS = 3600_000
 
 function Breadcrumb({ name }: { name: string | null }) {
   return (
@@ -41,7 +39,8 @@ function Row({ label, children, title }: { label: string; children: React.ReactN
 // Side panel. Stage, time in stage and SLA follow the clock; the rows below the caption are static (D-18).
 function SummaryPanel({ row }: { row: BoardRow<DealDetailData> }) {
   const { deal } = row
-  const over = Math.round(row.slaFraction * 100) > 100
+  const frac = row.slaFraction
+  const over = frac !== null && Math.round(frac * 100) > 100
   const rm = deal.rm == null ? null : personLabel(deal.rm, 'Relationship manager')
   return (
     <section aria-label="Summary" className="flex flex-col gap-2 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
@@ -49,11 +48,15 @@ function SummaryPanel({ row }: { row: BoardRow<DealDetailData> }) {
       <dl className="flex flex-col gap-2">
         <Row label="Stage">{row.stage}</Row>
         <Row label="Stage entered">{fmtSimTime(row.enteredAt)}</Row>
-        <Row label="Time in stage">{fmtDuration(row.slaFraction * deal.sla_hours * HOUR_MS)}</Row>
+        <Row label="Time in stage">{fmtDuration(row.dwellMs)}</Row>
         <Row label="SLA" title={row.held ? 'SLA clock stopped at the hold' : undefined}>
-          <span className={over ? 'text-risk' : undefined}>
-            {fmtPct(row.slaFraction)} of {fmtHours(deal.sla_hours)}
-          </span>
+          {frac === null || row.limitHours === null ? (
+            <NullValue title="The limit for this stage is not in the data" />
+          ) : (
+            <span className={over ? 'text-risk' : undefined}>
+              {fmtPct(frac)} of {fmtHours(row.limitHours)}
+            </span>
+          )}
         </Row>
       </dl>
       <Caption>As of end of run</Caption>
@@ -385,19 +388,22 @@ export function DealDetailView({
   detail,
   now,
   boardFolders,
+  stageLimits = {},
   inboxItems = [],
   answers = {},
 }: {
   detail: DealDetailData
   now: string
   boardFolders: string[]
+  // Per-stage limits from every deal's summary (stageLimitsFrom); needed for a deal's earlier stages.
+  stageLimits?: Record<string, number>
   inboxItems?: InboxLike[]
   answers?: SessionAnswers
 }) {
   const name = detail.legal_name ?? detail.folder
   const nowMs = simToMs(now)
   const when = fmtSimTime(now)
-  const row = boardAt([detail], nowMs)[0]
+  const row = boardAt([detail], nowMs, stageLimits)[0]
   const showFolder = detail.legal_name != null && detail.legal_name !== detail.folder
 
   if (row === undefined) {
@@ -484,6 +490,7 @@ export function DealDetail({ folder }: { folder: string }) {
       detail={q.data}
       now={now}
       boardFolders={(deals.data ?? []).map((d) => d.folder)}
+      stageLimits={stageLimitsFrom(deals.data ?? [])}
       inboxItems={inbox.data ?? []}
       answers={answers}
     />

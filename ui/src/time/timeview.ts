@@ -103,9 +103,10 @@ export function stageAt(log: StageLogEntry[], t: number): StageLogEntry | null {
   return cur
 }
 
-// Held deals freeze their SLA at flagged_at (contract: sla_pct freezes while held).
-// The end of the deal's final stage entry also ends the clock (held, declined or closed deals stop accruing).
-export function slaPctAt(deal: DetailLike, enteredAt: string, t: number): number {
+// Time spent in the stage entry that began at `enteredAt`, as of t. Held deals freeze at flagged_at
+// (contract: sla_pct freezes while held). The end of the deal's final stage entry also ends the clock
+// (held, declined or closed deals stop accruing). A duration needs no limit, so it is always known.
+export function dwellMsAt(deal: DetailLike, enteredAt: string, t: number): number {
   const f = deal.fraud
   const frozen = f.held && f.flagged_at != null && simToMs(f.flagged_at) <= t
   let end = frozen ? simToMs(f.flagged_at as string) : t
@@ -114,7 +115,28 @@ export function slaPctAt(deal: DetailLike, enteredAt: string, t: number): number
     const exit = simToMs(last.exited_at)
     if (exit <= t && exit < end) end = exit
   }
-  return (end - simToMs(enteredAt)) / HOUR_MS / deal.sla_hours
+  return end - simToMs(enteredAt)
+}
+
+// Fraction of a stage limit used. `limitHours` defaults to the deal's own sla_hours, which is the limit of
+// its FINAL stage only; pass the entry's own stage limit for any earlier stage (CR-01).
+export function slaPctAt(deal: DetailLike, enteredAt: string, t: number, limitHours: number = deal.sla_hours): number {
+  return dwellMsAt(deal, enteredAt, t) / HOUR_MS / limitHours
+}
+
+// The contract carries one sla_hours per deal: the limit of that deal's final stage. A stage's limit is
+// therefore known from the deals that end in it, and only when they all agree (a delegated committee limit
+// can differ per deal). Stages with no such deal, or a disagreement, are left out: the limit is unknown.
+export function stageLimitsFrom(deals: { stage: string; sla_hours: number }[]): Record<string, number> {
+  const seen = new Map<string, number | null>()
+  for (const d of deals) {
+    const prev = seen.get(d.stage)
+    if (prev === undefined) seen.set(d.stage, d.sla_hours)
+    else if (prev !== d.sla_hours) seen.set(d.stage, null)
+  }
+  const out: Record<string, number> = {}
+  for (const [stage, hours] of seen) if (hours !== null) out[stage] = hours
+  return out
 }
 
 // Display rounding: round half up to 2 decimals, matches fixture values.
@@ -222,22 +244,36 @@ export interface BoardRow<T extends DetailLike = DetailLike> {
   deal: T
   stage: string
   enteredAt: string
-  // Raw, unrounded SLA fraction (1 = 100%). Round only at display time.
-  slaFraction: number
+  // Time in the shown stage entry, as of t. Always known.
+  dwellMs: number
+  // The shown stage's own limit in hours, or null when the contract gives no way to know it (CR-01).
+  limitHours: number | null
+  // Raw, unrounded SLA fraction (1 = 100%) of THAT limit, or null when the limit is unknown.
+  // Round only at display time.
+  slaFraction: number | null
   held: boolean
 }
 
 // One row per deal that has arrived by time t; deals not yet arrived are omitted.
-export function boardAt<T extends DetailLike>(details: T[], t: number): BoardRow<T>[] {
+// `limits` is the per-stage limit map (stageLimitsFrom over every deal); it defaults to the given details.
+// The deal's own final stage always uses its own sla_hours.
+export function boardAt<T extends DetailLike>(
+  details: T[],
+  t: number,
+  limits: Record<string, number> = stageLimitsFrom(details),
+): BoardRow<T>[] {
   const rows: BoardRow<T>[] = []
   for (const deal of details) {
     const cur = stageAt(deal.stage_log, t)
     if (cur === null) continue
+    const limitHours = cur.stage === deal.stage ? deal.sla_hours : Object.hasOwn(limits, cur.stage) ? limits[cur.stage] : null
     rows.push({
       deal,
       stage: cur.stage,
       enteredAt: cur.entered_at,
-      slaFraction: slaPctAt(deal, cur.entered_at, t),
+      dwellMs: dwellMsAt(deal, cur.entered_at, t),
+      limitHours,
+      slaFraction: limitHours === null ? null : slaPctAt(deal, cur.entered_at, t, limitHours),
       held: heldAt(deal, t),
     })
   }

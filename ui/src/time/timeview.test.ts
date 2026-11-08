@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import {
   simToMs, fmtSimTime, fmtDuration, stageAt, slaPctAt, roundPct, heldAt, inboxAt, alertsAt, boardAt,
   msToSim, clampMs, nextEventAfter, sortBoardRows, stageLogAt, requestsAt, pendingCount, requestsWithOverlay,
+  stageLimitsFrom,
 } from './timeview.ts'
 
 // Repo-relative fixtures folder (ui/src/time/ -> repo root), so the test also runs on Windows.
@@ -109,7 +110,7 @@ test('boardAt at the snapshot: Intake 3, Credit 1, Committee 1, Bayou held', () 
   assert.ok(held.includes('Bayou Bistro & Grill'))
   for (const r of rows) {
     const s = deals.find((d) => d.folder === r.deal.folder)
-    assert.equal(roundPct(r.slaFraction), s.sla_pct, r.deal.folder)
+    assert.equal(roundPct(r.slaFraction!), s.sla_pct, r.deal.folder)
     assert.equal(r.held, s.held, r.deal.folder)
   }
 })
@@ -165,6 +166,8 @@ test('sortBoardRows: held first, then soonest needed-by (none last), then longes
     deal: { folder, needed_by },
     stage: 'Intake',
     enteredAt,
+    dwellMs: 0,
+    limitHours: 8,
     slaFraction: 0,
     held,
   })
@@ -355,4 +358,39 @@ test('overlay: requestsWithOverlay leaves other deals, other types and fixture a
   assert.equal(requestsWithOverlay("Mama Rosa's Kitchen", mama, inbox, o)[0].answer, 'approve')
   const none = requestsWithOverlay('Lone Star Dental', detail['Lone Star Dental'].human_requests, inbox, {})
   assert.equal(none[0].answer, null)
+})
+
+// CR-01: an earlier stage is measured against THAT stage's limit, not the final stage's sla_hours.
+test('CR-01 stageLimitsFrom: limit per stage from deals that end in it, only when they agree', () => {
+  const limits = stageLimitsFrom(deals)
+  assert.equal(limits.Intake, 8)
+  assert.equal(limits.Credit, 48)
+  assert.equal(limits.Committee, 48)
+  assert.equal(limits.Closed, undefined)
+  const split = stageLimitsFrom([
+    { stage: 'Committee', sla_hours: 48 },
+    { stage: 'Committee', sla_hours: 24 },
+  ] as any)
+  assert.equal(split.Committee, undefined)
+})
+
+test('CR-01 Lone Star Dental at Intake on Tue 11/03 12:00 shows 44% of an 8h limit, not 7% of 48h', () => {
+  const t = simToMs('2026-11-03T12:00-06:00')
+  const row = boardAt([detail['Lone Star Dental']], t, stageLimitsFrom(deals))[0]
+  assert.equal(row.stage, 'Intake')
+  assert.equal(row.limitHours, 8)
+  assert.equal(row.dwellMs, 3.5 * 3600_000)
+  assert.equal(roundPct(row.slaFraction!), 0.44)
+})
+
+test('CR-01 an earlier stage whose limit is unknown gives an unknown SLA, never the final stage limit', () => {
+  const t = simToMs('2026-11-03T12:00-06:00')
+  const row = boardAt([detail['Lone Star Dental']], t, {})[0]
+  assert.equal(row.limitHours, null)
+  assert.equal(row.slaFraction, null)
+  assert.equal(row.dwellMs, 3.5 * 3600_000)
+  // the deal's own final stage always uses its own limit
+  const end = boardAt([detail['Lone Star Dental']], SNAP, {})[0]
+  assert.equal(end.limitHours, 48)
+  assert.notEqual(end.slaFraction, null)
 })
