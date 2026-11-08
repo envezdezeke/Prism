@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { describeError, getClock, postAdvance, postReplay } from '../api/client.ts'
+import { ApiError, describeError, getClock, postAdvance, postReplay } from '../api/client.ts'
 import { clampMs, msToSim, simToMs } from '../time/timeview.ts'
 
 type ClockStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -28,6 +28,9 @@ let syncTimer: ReturnType<typeof setTimeout> | null = null
 let playTimer: ReturnType<typeof setInterval> | null = null
 // Only the newest write's outcome may touch syncError.
 let syncSeq = 0
+// The server clock as far as this browser knows it (ms): the time read at load, then each confirmed write.
+// A target before it is a rewind, which the API only accepts through replay.
+let serverMs = 0
 
 const SYNC_DEBOUNCE_MS = 300
 const TICK_MS = 1000
@@ -58,12 +61,30 @@ export const useClockStore = create<ClockState>((set, get) => {
     )
   }
 
+  // Sends one absolute target (D-21). The API never rewinds on advance, so a backward move replays to the
+  // start first. A 422 from advance means the server clock is already ahead of the target (a stateless mock
+  // never moves off its fixture time): the browser owns the clock, so that is not a failure to report.
+  const pushClock = async (target: string): Promise<void> => {
+    const ms = simToMs(target)
+    if (ms < serverMs) {
+      await postReplay()
+      serverMs = simToMs(get().start)
+    }
+    try {
+      await postAdvance(target)
+      serverMs = ms
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 422) return
+      throw e
+    }
+  }
+
   const scheduleSync = (): void => {
     clearSyncTimer()
     syncTimer = setTimeout(() => {
       syncTimer = null
       const seq = ++syncSeq
-      report(seq, postAdvance(get().now))
+      report(seq, pushClock(get().now))
     }, SYNC_DEBOUNCE_MS)
   }
 
@@ -101,6 +122,7 @@ export const useClockStore = create<ClockState>((set, get) => {
       set({ status: 'loading', error: '' })
       try {
         const c = await getClock()
+        serverMs = simToMs(c.now)
         set({ now: c.now, start: c.start, end: c.end, status: 'ready' })
       } catch (e) {
         set({ status: 'error', error: describeError(e) })
@@ -123,6 +145,7 @@ export const useClockStore = create<ClockState>((set, get) => {
       stopPlayback()
       clearSyncTimer()
       setNow(start, false)
+      serverMs = simToMs(start)
       report(++syncSeq, postReplay())
       get().play()
     },
