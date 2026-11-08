@@ -119,3 +119,59 @@ def test_decide_does_not_mutate_states():
     states = states_of(st, make_state("Bolt Inc"))
     run(ring_signals(), states)
     assert not st.fraud.flagged
+
+
+# ---------------------------------------------------------------- OLD_TRICK path (Task 2)
+
+def test_old_trick_issue_alone_flags_and_holds():
+    st = make_state("Acme Co", issues=["OLD_TRICK:STMT_TAMPER"])
+    out = run([], states_of(st))
+    fr = out.per_deal["Acme Co"]
+    assert fr.flagged and fr.held
+    assert fr.flagged_at == format_sim_time(at(T1))
+    assert fr.stage_at_flag == "Intake"
+    assert fr.linked_deals == []
+
+
+def test_old_trick_reason_names_codes_sorted_and_fraud_ops():
+    st = make_state("Acme Co", issues=["OLD_TRICK:STMT_TAMPER", "OLD_TRICK:REV_INFLATION",
+                                       "OLD_TRICK:ID_MISMATCH"])
+    reason = run([], states_of(st)).per_deal["Acme Co"].reason
+    assert "ID_MISMATCH, REV_INFLATION and STMT_TAMPER" in reason
+    assert "Fraud Operations" in reason
+    two = make_state("Acme Co", issues=["OLD_TRICK:STMT_TAMPER", "OLD_TRICK:REV_INFLATION"])
+    assert "REV_INFLATION and STMT_TAMPER" in run([], states_of(two)).per_deal["Acme Co"].reason
+
+
+def test_old_trick_and_cluster_give_one_flag_checks_first():
+    st = make_state("Acme Co", issues=["OLD_TRICK:STMT_TAMPER"])
+    out = run(ring_signals(), states_of(st, make_state("Bolt Inc")))
+    fr = out.per_deal["Acme Co"]
+    assert fr.flagged and fr.held
+    reason = fr.reason
+    assert reason.index("STMT_TAMPER") < reason.index("deposits are all round hundreds")
+    assert fr.linked_deals == ["Bolt Inc"]
+
+
+def test_ordinary_issues_never_flag():
+    st = make_state("Acme Co", issues=["MISSING_DOC:tax_return", "MISSING_PAGE:bank_statement",
+                                       "MISMATCH:legal_name"])
+    assert "Acme Co" not in run([], states_of(st)).per_deal
+
+
+def test_old_trick_flag_is_sticky_when_the_issue_goes_away():
+    st = make_state("Acme Co", issues=["OLD_TRICK:STMT_TAMPER"])
+    states = states_of(st)
+    first = run([], states).per_deal["Acme Co"]
+    st.fraud = first
+    st.issues = []
+    second = run([], states, t=T2).per_deal["Acme Co"]
+    assert second == first
+
+
+def test_sticky_old_trick_deal_does_not_gain_links_from_a_lone_f1():
+    st = make_state("Acme Co", issues=["OLD_TRICK:STMT_TAMPER"])
+    states = states_of(st, make_state("Bolt Inc"))
+    st.fraud = run([], states).per_deal["Acme Co"]
+    f1 = ring_signals()[0]
+    assert run([f1], states, t=T2).per_deal["Acme Co"].linked_deals == []

@@ -73,3 +73,28 @@ def test_ring_tuning_deals_are_held_at_intake_in_the_sim_week(sample_run, gold, 
         t = parse_sim_time(st.fraud.flagged_at)
         assert st.docs and t >= min(d.arrive_at for d in st.docs)
         assert all(e.stage == "Intake" for e in st.stage_log)
+
+
+def _old_trick_gold(gold, tuning):
+    """Gold-flagged tuning deals with no ring partners (the OLD_TRICK path)."""
+    return [f for f in _flagged_gold(gold, tuning) if not gold[f]["fraud"]["linked_deals"]]
+
+
+@requires_sample
+def test_old_trick_tuning_deal_is_flagged_with_no_links(sample_run, gold, tuning):
+    deals = _old_trick_gold(gold, tuning)
+    assert deals
+    for folder in deals:
+        st = sample_run.states[folder]
+        assert st.fraud.flagged and st.fraud.held
+        assert st.fraud.linked_deals == []
+        assert any(i.startswith("OLD_TRICK:") for i in st.issues + st.resolved_issues)
+
+
+@requires_sample
+def test_tuning_flag_and_held_match_the_answer_key(sample_run, gold, tuning):
+    for folder in tuning:
+        want = gold[folder]["fraud"]
+        got = sample_run.states[folder].fraud
+        assert got.flagged == want["flagged"], "flag differs from the answer key on a tuning deal"
+        assert got.held == want["held"], "held differs from the answer key on a tuning deal"

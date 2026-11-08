@@ -18,6 +18,7 @@ from prism.fraud.graph import EntityGraph, build_graph
 from prism.fraud.signals import LINK_MARK, FamilySignal, compute_signals
 
 _REASON_HEAD = "Held by the cross-deal fraud screen."
+_OLD_TRICK = "OLD_TRICK:"
 
 
 @dataclass
@@ -55,21 +56,24 @@ def decide(
         state = states[folder]
         fams = fired.get(folder, {})
         partners = _current_partners(folder, fams, states, cfg)
+        voting = {f: s for f, s in fams.items() if f not in cfg.non_voting}
+        cluster = _hold_met(set(voting), cfg)
         prev = state.fraud
         if prev.flagged:
-            links = sorted(set(prev.linked_deals) | set(partners))
+            # Sticky (M17): only linked_deals may grow, and only from a tick that met the rule.
+            links = sorted(set(prev.linked_deals) | (set(partners) if cluster else set()))
             out.per_deal[folder] = prev.model_copy(update={"linked_deals": links})
             continue
-        voting = {f: s for f, s in fams.items() if f not in cfg.non_voting}
-        if not _hold_met(set(voting), cfg):
+        codes = old_trick_codes(state)
+        if not cluster and not codes:
             continue
         out.per_deal[folder] = Fraud(
             flagged=True,
             held=True,
             flagged_at=format_sim_time(now),
             stage_at_flag=stage_in_force(state, now),
-            reason=build_reason(voting),
-            linked_deals=partners,
+            reason=build_reason(voting if cluster else {}, codes),
+            linked_deals=partners if cluster else [],
         )
     return out
 
@@ -109,13 +113,34 @@ def stage_in_force(state: DealState, t: datetime) -> str:
     return stage
 
 
-def build_reason(voting: Mapping[str, FamilySignal]) -> str:
-    """Plain-words reason: a head sentence, then one sentence per fired voting family.
+def old_trick_codes(state: DealState) -> list[str]:
+    """Sorted failed known-fraud check codes from the deal's open OLD_TRICK issues."""
+    return sorted({i[len(_OLD_TRICK):] for i in state.issues if i.startswith(_OLD_TRICK)} - {""})
 
-    F1-style evidence is cut at LINK_MARK so partner ids never appear in the reason.
-    Built by concatenation (no format() on document-derived text).
+
+def _join_words(items: Sequence[str]) -> str:
+    if len(items) <= 2:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def build_reason(voting: Mapping[str, FamilySignal], codes: Sequence[str] = ()) -> str:
+    """Plain-words reason: failed known-fraud checks first, then the cross-deal screen.
+
+    Each failed code appears verbatim (Move's fraud message reads them back). F1-style
+    evidence is cut at LINK_MARK so partner ids never appear in the reason. Built by
+    concatenation (no format() on document-derived text).
     """
-    parts = [_REASON_HEAD]
+    parts: list[str] = []
+    if codes:
+        parts.append(
+            "Known-fraud check " + _join_words(list(codes))
+            + " failed on this deal's own documents, so it goes straight to Fraud Operations"
+            + " under bank policy."
+        )
+    if not voting:
+        return " ".join(parts)
+    parts.append(_REASON_HEAD)
     for fam in sorted(voting):
         evidence = voting[fam].evidence.partition(LINK_MARK)[0].strip().rstrip(".")
         label = FAMILY_LABELS.get(fam, fam)
