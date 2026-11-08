@@ -9,6 +9,7 @@ The tables below are generic English and US address words, never sample data.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
@@ -24,7 +25,18 @@ LEGAL_SUFFIXES: dict[str, str] = {
 ADDRESS_ABBREVIATIONS: dict[str, str] = {
     "st": "street", "ave": "avenue", "rd": "road", "dr": "drive", "blvd": "boulevard",
     "ln": "lane", "ste": "suite", "hwy": "highway",
+    "pkwy": "parkway", "ct": "court", "pl": "place", "cir": "circle", "trl": "trail", "fwy": "freeway",
+    # Directionals: "W Spring Valley Rd" and "West Spring Valley Road" are one address.
+    "n": "north", "s": "south", "e": "east", "w": "west",
+    "ne": "northeast", "nw": "northwest", "se": "southeast", "sw": "southwest",
 }
+
+_ZIP4 = re.compile(r"\b(\d{5})-\d{4}\b")
+
+
+def _fold_accents(t: str) -> str:
+    """"José Núñez" -> "jose nunez": strip combining marks after NFKD decomposition."""
+    return "".join(c for c in unicodedata.normalize("NFKD", t) if not unicodedata.combining(c))
 
 
 @dataclass(frozen=True)
@@ -38,7 +50,7 @@ def canon_text(s: Optional[str]) -> str:
     """Casefolded, punctuation-insensitive, whitespace-collapsed text ("" for None)."""
     if s is None:
         return ""
-    t = str(s).casefold()
+    t = _fold_accents(str(s)).casefold()
     for ch in (".", "'", "’", "`"):
         t = t.replace(ch, "")
     t = t.replace("&", " and ")
@@ -62,7 +74,8 @@ def canon_phone(s: Optional[str]) -> str:
 
 
 def canon_address(s: Optional[str]) -> str:
-    tokens = {ADDRESS_ABBREVIATIONS.get(t, t) for t in canon_text(s).split()}
+    text = _ZIP4.sub(r"\1", str(s)) if s is not None else None
+    tokens = {ADDRESS_ABBREVIATIONS.get(t, t) for t in canon_text(text).split()}
     return " ".join(sorted(tokens))
 
 
