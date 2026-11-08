@@ -30,12 +30,12 @@ Prism runs a commercial lending desk on a simulated clock:
 
 ## How we built it
 
-**The fraud model is anomaly detection measured in one unit: bits of surprise.** For every observation we estimate how likely it is under a year of clean history and score it as `-log2 P`, with smoothing so nothing is ever infinitely surprising. A bookkeeper seen on one in two hundred honest deals scores high. An address shared by many deals that repaid scores near zero. Evidence falls into six families:
+**The fraud model is anomaly detection measured in one unit: bits of surprise.** For every observation we estimate how likely it is under a year of clean history and score it as `-log2 P`, with smoothing so nothing is ever infinitely surprising. A bookkeeper seen on one in two hundred honest deals scores high. An address shared by many deals that repaid scores near zero. Evidence falls into six families. Three vote today (1, 3 and 5), loan terms are shown only, and 2 and 4 are designed but not yet built:
 
 1. **Shared rare entity:** deal-to-deal links weighted by the rarity of what they share (a rarity-weighted Adamic–Adar index), discounted when an entity's history deals mostly repaid.
-2. **Novelty and burst:** an entity that is new, or suddenly used far above its long-run rate (Poisson tail).
+2. **Novelty and burst** (next, not yet built): an entity that is new, or suddenly used far above its long-run rate (Poisson tail).
 3. **Lookalike counterparty:** a vendor whose name nearly matches a well-known vendor but whose legal suffix or payment account differs.
-4. **Document fingerprint:** software that is rare for that kind of document, for example a bank statement that was not produced by a statement system.
+4. **Document fingerprint** (next, not yet built): software that is rare for that kind of document, for example a bank statement that was not produced by a statement system.
 5. **Deposit pattern:** round-number share and weekday concentration against the history distribution (entropy and KL divergence), with beta-binomial shrinkage so a few large deposits do not look suspicious by accident.
 6. **Loan terms:** amounts just under an approval limit, young entity, no funding date. This family is shown as context and never votes, because these traits are common among honest small businesses.
 
@@ -106,7 +106,7 @@ Python · pandas · NetworkX · pypdf · pdfplumber · RapidOCR · FastAPI · Py
 
 ## For the Goldman Sachs track (DealPilot)
 
-Prism covers the full commercial loan lifecycle the track asks for. **Read:** content-based document identification, fact extraction with provenance, and missing or mismatched information, with no false alarms on messy but honest files. **Move:** six stages in order, exit requirements enforced, sign-offs routed to the right person or their backup, alerts and escalations as stages run over, and funding deadlines respected. **Fraud:** coordinated rings held before Closed, as early as the evidence allows, with linked current deals and earlier history deals found. Its fraud detection is unsupervised anomaly detection learned from the bank's own history, so it is built for the idea rather than the example. No sample-specific value appears anywhere in the detector. Every threshold recomputes from new data. Our pitch number is the first blind run on new data: [[BLIND_HELD]] of [[BLIND_TOTAL]] held, [[BLIND_FALSE_FLAGS]] false flags. Every scored field comes from deterministic, reproducible code.
+Prism covers the full commercial loan lifecycle the track asks for. **Read:** content-based document identification, fact extraction with provenance, and missing or mismatched information, with no false alarms on messy but honest files. **Move:** six stages in order, exit requirements enforced, sign-offs routed to the right person or their backup, alerts and escalations as stages run over, and funding deadlines respected. **Fraud:** coordinated rings held before Closed, as early as the evidence allows, with the linked current deals named. Its fraud detection is unsupervised anomaly detection learned from the bank's own history, so it is built for the idea rather than the example. No sample-specific value appears anywhere in the detector. Every threshold recomputes from new data. Our pitch number is the first blind run on new data: [[BLIND_HELD]] of [[BLIND_TOTAL]] held, [[BLIND_FALSE_FLAGS]] false flags. Every scored field comes from deterministic, reproducible code.
 
 ## For the NVIDIA Nemotron track
 

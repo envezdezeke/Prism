@@ -199,7 +199,7 @@
     <div class="col-text">
       <ul>
         <li>Each fake application passes the bank's existing known-fraud checks on its own.</li>
-        <li>Rings are cheap because they reuse resources: one bookkeeper, one payment account, one document generator.</li>
+        <li>Rings are cheap because they reuse resources: one bookkeeper, one payment account, the same document software.</li>
         <li>Every reuse leaves a trace that is rare in the bank's own history and shared across deals.</li>
       </ul>
     </div>
@@ -220,7 +220,7 @@
     <div class="col-text dense">
       <ul>
         <li><strong>Unsupervised anomaly detection.</strong> Every signal is surprise measured against a year of clean history. A rare shared entity scores high, a common one near zero.</li>
-        <li>Six evidence families: shared rare entity, sudden new activity, lookalike counterparty, document fingerprint, deposit pattern, and loan terms (shown, never votes).</li>
+        <li>Three families vote today: shared rare entity, lookalike counterparty and deposit pattern. Loan terms are shown and never vote. Sudden new activity and document fingerprint are next.</li>
         <li>Hold only when a shared rare entity is present and at least two other families agree. Fewer is a visible watch list, not a hold.</li>
         <li>Thresholds come from false-alarm rates on clean deals only, never fitted to fraud examples.</li>
       </ul>
@@ -283,10 +283,10 @@
   <div class="body">
     <div class="col-text dense">
       <ul>
-        <li><strong>Investigator:</strong> plans, calls our real HTTP API and the bank's clock service, and writes a cited evidence case for each held or watched cluster.</li>
-        <li><strong>Prosecutor and defender:</strong> two briefs on the same evidence. The rule still decides.</li>
-        <li><strong>Adaptive red team:</strong> invents new fraud tricks, sees only which were caught, and evolves them: <span class="ph">[[RED_TRICKS]]</span> tricks, catch rate by generation <span class="ph">[[RED_CATCH_BY_GEN]]</span>.</li>
-        <li><strong>Vision reader</strong> for documents the parser cannot read, validated before it can fill a field. The scored output is identical with Nemotron on or off.</li>
+        <li><strong>Investigator:</strong> plans, calls our real HTTP API and the bank's clock service, and writes a cited evidence case for each held or watched cluster. <span class="pending">pending Phase 6</span></li>
+        <li><strong>Prosecutor and defender:</strong> two briefs on the same evidence. The rule still decides. <span class="pending">pending Phase 6</span></li>
+        <li><strong>Adaptive red team:</strong> invents new fraud tricks, sees only which were caught, and evolves them: <span class="ph">[[RED_TRICKS]]</span> tricks, catch rate by generation <span class="ph">[[RED_CATCH_BY_GEN]]</span>. <span class="pending">pending Phase 6</span></li>
+        <li><strong>Vision reader</strong> for documents the parser cannot read, validated before it can fill a field. The scored output is identical with Nemotron on or off. <span class="pending">pending Phase 6</span></li>
       </ul>
     </div>
     <div class="col-fig">
