@@ -10,7 +10,7 @@ Prism (team Prism) is our HackUTD 2026 entry for the Goldman Sachs challenge, al
 
 ### Constraints
 
-- **Timeline**: ~21 hours, 2 people. Priority order when cutting: Goldman score > Nemotron > UI.
+- **Timeline**: ~20 hours, 2 people; hard deadline Sun 2026-11-08 12:00 CT. Priority order when cutting: Goldman score > Nemotron > UI.
 - **Tech stack**: Python (pandas, networkx, pypdf) engine behind FastAPI; React + Vite + Tailwind frontend with a force-graph library. Nemotron via the build.nvidia.com API / Brev. Python at `C:/Users/ezeki/AppData/Local/Programs/Python/Python313/python.exe` (plain `python` is the Microsoft Store stub).
 - **No Claude in product**: the team chose Nemotron + deterministic code.
 - **Determinism**: every scored field in the submission JSON must come from deterministic code. Nemotron output is advisory or validated before it can affect a score (a hold, an extraction, a linked deal).

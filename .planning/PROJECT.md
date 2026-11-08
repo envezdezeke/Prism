@@ -37,7 +37,7 @@ Prism (team Prism) is our HackUTD 2026 entry for the Goldman Sachs challenge, al
 - [ ] Fallback document reader (Nemotron VL). Reads documents the deterministic parser can't (JPG ID photo, unknown layouts). Its output is validated by the deterministic engine.
 - [ ] Nemotron-written plain-words messages (credit memo, sign-off requests, alerts), with deterministic templates as a fallback. Parse free-text human replies into actions.
 
-**UI (best-design ambition)**
+**UI (clean and plain; accuracy first: Goldman > Nemotron > UI)**
 - [ ] Clean, light fintech web UI. Pipeline board per deal, sim clock controls (advance/scrub), human inbox, alert feed, deal detail with extracted facts, issues and stage log.
 - [ ] Interactive fraud graph as the hero visual: the ring "lights up" as shared rare entities connect deals, with the evidence for each edge shown.
 
@@ -52,7 +52,7 @@ Prism (team Prism) is our HackUTD 2026 entry for the Goldman Sachs challenge, al
 
 ## Context
 
-**Event.** HackUTD 2026, Goldman Sachs "DealPilot — Move the Deal. Stop the Fraud." challenge, stacked with the NVIDIA Nemotron prize track. 2 people (Ezekiel: quant/engine/pipeline; teammate: finance/UI/pitch), ~20 hours (Sat 15:55 → Sun 12:00 CT deadline) as of 2026-11-07. Repo: github.com/envezdezeke/Prism (remote already has one commit, so pull before the first push).
+**Event.** HackUTD 2026, Goldman Sachs "DealPilot — Move the Deal. Stop the Fraud." challenge, stacked with the NVIDIA Nemotron prize track. 2 people (Ezekiel: quant/engine/pipeline; teammate: finance/UI/pitch), ~20 hours (Sat 15:55 → Sun 12:00 CT deadline) as of 2026-11-07. Repo: github.com/envezdezeke/Prism (private). Pull before you start and before you push.
 
 **Judging (Goldman).** READ = correct facts plus spotting what's missing or doesn't match, with no false alarms. MOVE = stages in order, the right human asked, alerts and escalations, no advancing while waiting on docs, needed-by dates met. FRAUD = held before Closed (earlier scores more), pattern spotted in the first few deals, each false flag costs a lot, linked deals and history found. A **hidden set with a different trick** is run too: "build for the idea, not the examples."
 
@@ -93,7 +93,7 @@ Prism (team Prism) is our HackUTD 2026 entry for the Goldman Sachs challenge, al
 - questions for Vijay Kumar (the Goldman Sachs contact in the event channel);
 - pitch framing and Jesse's finance work items.
 
-The answer key is `eval/gold.json`. The repo is private.
+The answer key will be `eval/gold.json` (Jesse, labelled blind; not yet written as of Sat 17:45). Every scored rule and the decided judgment calls: `docs/DETAILS_CHECKLIST.md`. The repo is private.
 
 **Prior team experience.** Won 1st place at RowdyHacks (UTSA Investment Society track) with a FastAPI + deterministic quant pipeline, judged by replaying the model against a rubric. Same discipline applies here: a deterministic, auditable engine, then self-score against the format.
 
@@ -115,7 +115,7 @@ The answer key is `eval/gold.json`. The repo is private.
 | Deterministic engine owns all scored outputs; Nemotron is advisory/validated | Reproducible scoring, explainable flags, no LLM variance on a heavily penalized false-flag metric | — Pending |
 | Fraud = entity graph + rarity-vs-history scoring + forensic/deposit anomalies, multi-signal agreement before a hold | Carries over to an unseen trick; false flags cost a lot, so one weird signal ≠ fraud | — Pending |
 | Nemotron used for investigator agent, red-team generator, VL fallback reader, comms/reply parsing | Meets "beyond a chatbot" (agents, tools, multi-modal, sim/eval) without risking the scored path | — Pending |
-| FastAPI + React/Vite, clean light fintech design | Matches team experience; splits cleanly between 2 people; competes for best design | — Pending |
+| FastAPI + React/Vite, clean light fintech design | Matches team experience; splits cleanly between 2 people; the Goldman score is graded on the output file, so the UI serves the demo and the NVIDIA track | — Pending |
 | Human loop = interactive inbox UI + scripted responder personas | How judges answer during judging is unknown; supports both live and headless runs | — Pending |
 | Engine takes `--folder` / `--arrivals` so new drops run with no code changes | Weekend drop and hidden set arrive late | — Pending |
 | Data pack gitignored under `data/` | Challenge material is participant-only | ✓ Good |
