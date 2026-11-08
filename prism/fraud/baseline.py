@@ -366,4 +366,8 @@ def build_baseline(history_dir: Optional[Path], cfg: FraudConfig) -> Baseline:
     deposit_rows = _read_csv(hist / "monthly_deposits.csv", warnings, required=False)
     base = Baseline.from_rows(deal_rows or (), deposit_rows or (), params=params)
     base.warnings[:0] = warnings
+    # Lazy import: calibrate imports signals imports baseline, so a top-level import is circular.
+    from prism.fraud.calibrate import compute_thresholds
+
+    base.calibration = compute_thresholds(base, params)
     return base
