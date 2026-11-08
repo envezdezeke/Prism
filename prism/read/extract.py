@@ -130,5 +130,20 @@ def extract_entities(state: DealState, rules: Rules) -> list[EntityRef]:
 
 
 def extract_features(state: DealState, rules: Rules) -> dict[str, Any]:
-    """Return features (deposit_months, profile) to merge into state.features. Stub: empty."""
-    return {}
+    """Return features (profile, deposit_months) to merge into state.features (D-09, D-10, D-14).
+
+    Only what can be determined: an empty result is ``{}`` so the merge never clobbers a profile written
+    elsewhere. Never sets ``fraud_watch`` (D-15) and never raises."""
+    out: dict[str, Any] = {}
+    try:
+        from prism.read import features
+
+        profile = features.build_profile(state, rules)
+        if profile:
+            out["profile"] = profile
+        months = features.build_deposit_months(state)
+        if months:
+            out["deposit_months"] = months
+    except Exception:  # noqa: BLE001
+        return {}
+    return out
