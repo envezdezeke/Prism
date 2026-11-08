@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { getDeal, getDeals, describeError } from '../api/client.ts'
+import { getAlerts, getDeal, getDeals, getInbox, describeError } from '../api/client.ts'
 import type { DealDetail } from '../api/types.ts'
 
 // One deal's detail. Shares the cache key with the board's per-deal queries, so a deal the board has
@@ -9,6 +9,15 @@ export function useDealDetail(folder: string) {
     queryKey: ['deal', folder],
     queryFn: () => getDeal(folder),
   })
+}
+
+// Inbox and alert lists. Same defaults as every query (no refetch on focus, never stale) and never the clock.
+export function useInbox() {
+  return useQuery({ queryKey: ['inbox'], queryFn: getInbox })
+}
+
+export function useAlerts() {
+  return useQuery({ queryKey: ['alerts'], queryFn: getAlerts })
 }
 
 export function useDeals() {

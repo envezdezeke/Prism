@@ -29,3 +29,18 @@ test('empty, pipeline, unknown and malformed hashes give the pipeline route with
   assert.deepEqual(parseHash('#/deals/'), { view: 'pipeline' })
   assert.deepEqual(parseHash('#/deals'), { view: 'pipeline' })
 })
+
+test('inbox and alerts routes build and parse #/inbox and #/alerts', () => {
+  assert.equal(buildHash({ view: 'inbox' }), '#/inbox')
+  assert.equal(buildHash({ view: 'alerts' }), '#/alerts')
+  assert.deepEqual(parseHash('#/inbox'), { view: 'inbox' })
+  assert.deepEqual(parseHash('#/alerts'), { view: 'alerts' })
+})
+
+test('every route round-trips through buildHash and parseHash, and look-alike hashes fall back to the pipeline', () => {
+  for (const r of [{ view: 'pipeline' }, { view: 'inbox' }, { view: 'alerts' }, { view: 'deal', folder: 'A & B' }] as const) {
+    assert.deepEqual(parseHash(buildHash(r)), r)
+  }
+  assert.deepEqual(parseHash('#/inbox/extra'), { view: 'pipeline' })
+  assert.deepEqual(parseHash('#/alertsx'), { view: 'pipeline' })
+})

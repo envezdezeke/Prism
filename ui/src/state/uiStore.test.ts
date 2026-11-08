@@ -48,3 +48,12 @@ test('re-opening the same deal does not rewrite the hash or loop', () => {
   assert.equal(writes.length, 0)
   Object.defineProperty(fake, 'hash', { value: '', writable: true, configurable: true })
 })
+
+test('showInbox and showAlerts set the route and write #/inbox and #/alerts', () => {
+  useUiStore.getState().showInbox()
+  assert.deepEqual(useUiStore.getState().route, { view: 'inbox' })
+  assert.equal(fake.hash, '#/inbox')
+  useUiStore.getState().showAlerts()
+  assert.deepEqual(useUiStore.getState().route, { view: 'alerts' })
+  assert.equal(fake.hash, '#/alerts')
+})

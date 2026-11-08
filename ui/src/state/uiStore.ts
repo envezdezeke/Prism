@@ -6,6 +6,8 @@ interface UiState {
   route: Route
   openDeal: (folder: string) => void
   showPipeline: () => void
+  showInbox: () => void
+  showAlerts: () => void
 }
 
 // Node (tests) has no location; the store then simply holds the route in memory.
@@ -27,6 +29,8 @@ export const useUiStore = create<UiState>((set, get) => {
     route: initialRoute(),
     openDeal: (folder) => go({ view: 'deal', folder }),
     showPipeline: () => go({ view: 'pipeline' }),
+    showInbox: () => go({ view: 'inbox' }),
+    showAlerts: () => go({ view: 'alerts' }),
   }
 })
 
