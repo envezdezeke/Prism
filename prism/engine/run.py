@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -99,7 +99,16 @@ def run_sim(
     data_root: Optional[Path] = None,
     fraud_path: Optional[Path] = None,
     end: Optional[datetime] = None,
+    end_grace_minutes: int = 30,
 ) -> RunResult:
+    """Step the sim clock over every arrival time.
+
+    If ``end`` is None the run stops at the last arrival plus ``end_grace_minutes``
+    (default 30 = the J11 quiet window), so quiet-gated actions on the final
+    documents still fire. The judged end time is unconfirmed (question for the
+    organizers); pass ``end`` explicitly to override, or ``end_grace_minutes=0``
+    to stop exactly at the last arrival.
+    """
     folder = Path(folder)
     rules = load_rules(data_root, fraud_path=fraud_path)
     alog = ArrivalLog.from_jsonl(arrivals_path)  # FileNotFoundError is a usage error
@@ -112,7 +121,10 @@ def run_sim(
 
     base = fraud_baseline.build_baseline(rules.history_dir, rules.fraud)
 
-    ticks = [t for t in alog.times() if end is None or t <= end]
+    arrival_times = list(alog.times())
+    if end is None and end_grace_minutes > 0 and arrival_times:
+        end = max(arrival_times) + timedelta(minutes=end_grace_minutes)
+    ticks = [t for t in arrival_times if end is None or t <= end]
     if end is not None and (not ticks or ticks[-1] != end):
         ticks.append(end)
 

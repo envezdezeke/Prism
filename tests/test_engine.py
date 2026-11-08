@@ -256,7 +256,7 @@ def test_tracer_tiny_set_to_valid_submission(tiny_set):
     folder, arrivals = tiny_set
     result = run_sim(folder, arrivals)
     assert sorted(result.states) == ["Alpha Trading", "Beta & Sons"]
-    assert result.n_files == 4 and result.n_ticks == 4
+    assert result.n_files == 4 and result.n_ticks == 5  # 4 arrivals + end-grace tick (option 1)
     assert result.unattached == ["notice.txt"]
     payload = build_submission(
         result.states, result.history_flags, result.errors, team="T", set_name="sample"
@@ -440,3 +440,18 @@ def test_cli_smoke_on_participant_data(tmp_path):
     ])
     assert code == 0
     assert main(["validate", str(out), "--folder", str(DATA / "shared_folder")]) == 0
+
+
+def test_default_end_is_last_arrival_plus_grace(tmp_path):
+    """Option 1 (2026-11-07): with no --end, the clock runs 30 sim-minutes past the last arrival."""
+    import json as _json
+    from prism.engine.run import run_sim
+
+    (tmp_path / "shared" / "Deal A").mkdir(parents=True)
+    (tmp_path / "shared" / "Deal A" / "a.txt").write_text("x", encoding="utf-8")
+    arr = tmp_path / "arrivals.jsonl"
+    arr.write_text(_json.dumps({"path": "Deal A/a.txt", "arrive_at": "2026-11-02T09:00-06:00"}) + "\n",
+                   encoding="utf-8")
+    with_grace = run_sim(tmp_path / "shared", arr, data_root=tmp_path)
+    no_grace = run_sim(tmp_path / "shared", arr, data_root=tmp_path, end_grace_minutes=0)
+    assert with_grace.n_ticks == no_grace.n_ticks + 1

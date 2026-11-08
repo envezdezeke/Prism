@@ -30,7 +30,11 @@ def _build_parser() -> argparse.ArgumentParser:
     r.add_argument("--data-root", type=Path, default=None,
                    help="dir holding rules/, contacts/, sim/, history/ (default: parent of --folder)")
     r.add_argument("--fraud-config", type=Path, default=None)
-    r.add_argument("--end", type=_time_arg, default=None, help="stop the sim clock at this time")
+    r.add_argument("--end", type=_time_arg, default=None,
+                   help="stop the sim clock at this time (default: last arrival + --end-grace-minutes)")
+    r.add_argument("--end-grace-minutes", type=int, default=30,
+                   help="when --end is not given, keep the clock running this long after the last "
+                        "arrival so quiet-window actions fire (default 30, the J11 quiet window; 0 = stop at last arrival)")
 
     v = sub.add_parser("validate", help="validate a submission JSON file")
     v.add_argument("file", type=Path)
@@ -56,7 +60,8 @@ def _cmd_run(a: argparse.Namespace) -> int:
         print(f"warning: folder not found, deals come from arrivals only: {a.folder}", file=sys.stderr)
     data_root = a.data_root if a.data_root is not None else a.folder.resolve().parent
     try:
-        result = run_sim(a.folder, a.arrivals, data_root=data_root, fraud_path=a.fraud_config, end=a.end)
+        result = run_sim(a.folder, a.arrivals, data_root=data_root, fraud_path=a.fraud_config, end=a.end,
+                         end_grace_minutes=a.end_grace_minutes)
     except (ConfigError, FileNotFoundError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
