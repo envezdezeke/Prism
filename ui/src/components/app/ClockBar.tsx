@@ -2,13 +2,18 @@ import { useMemo, useState } from 'react'
 import { ChevronsRight, Pause, Play, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useDealDetails, useDeals } from '../../data/queries.ts'
+import { useDealDetails, useDeals, useGraph } from '../../data/queries.ts'
+import { clusterForDeal, latestHold } from '../../graph/graphview.ts'
+import type { GGraph } from '../../graph/graphview.ts'
 import { fmtSimTime } from '../../lib/format.ts'
+import { buildHash } from '../../route.ts'
 import { useClockStore } from '../../state/clockStore.ts'
 import { nextEventAfter, simToMs } from '../../time/timeview.ts'
 import { Caption, ErrorState, LoadingState } from './Primitives.tsx'
 
-const barClass = 'flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-6 py-2'
+const HOLD_LINE_MS = 24 * 3600_000
+
+const barClass ='flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-6 py-2'
 
 // Top bar: the sim clock and nothing else. Every control updates the client clock first (clamped),
 // then the store confirms an absolute target to the API (D-21).
@@ -18,6 +23,7 @@ export function ClockBar() {
   const deals = useDeals()
   const folders = useMemo(() => (deals.data ?? []).map((d) => d.folder), [deals.data])
   const { details, isLoading } = useDealDetails(folders)
+  const graph = useGraph()
   // The typed value is a draft until Go; otherwise the field follows the clock.
   const [draft, setDraft] = useState<string | null>(null)
   const [rangeMessage, setRangeMessage] = useState(false)
@@ -39,6 +45,11 @@ export function ClockBar() {
 
   const nowMs = simToMs(now)
   const atEnd = nowMs >= simToMs(end)
+  // One alert line for the most recent hold in the last sim day (D-31).
+  const hold = isLoading ? null : latestHold(details, nowMs)
+  const freshHold = hold !== null && nowMs - hold.ms <= HOLD_LINE_MS ? hold : null
+  const holdCluster =
+    freshHold && graph.data ? (clusterForDeal(graph.data as GGraph, freshHold.folder)?.id ?? null) : null
   const nextEvent = isLoading ? null : nextEventAfter(details, nowMs)
   const value = draft ?? now.slice(0, 16)
 
@@ -66,6 +77,19 @@ export function ClockBar() {
         <Caption>Sim time (CT)</Caption>
         <span className="text-sm font-semibold tabular-nums">{fmtSimTime(now)}</span>
       </div>
+      {freshHold !== null && (
+        <p key={freshHold.folder} role="status" className="order-last flex basis-full animate-fade-in flex-wrap items-baseline gap-x-2 text-sm">
+          <span className="font-semibold text-hold">Held {fmtSimTime(freshHold.at)}</span>
+          <span className="text-ink">
+            {freshHold.name}, linked to {freshHold.linked} {freshHold.linked === 1 ? 'deal' : 'deals'}
+          </span>
+          {holdCluster !== null && (
+            <a href={buildHash({ view: 'graph', clusterId: holdCluster })} className="font-semibold text-hold underline-offset-2 hover:underline">
+              Investigate ring →
+            </a>
+          )}
+        </p>
+      )}
       <div className="ml-auto flex flex-wrap items-center gap-2">
         <Button variant="outline" disabled={atEnd} onClick={() => advanceHours(1)}>
           +1h
