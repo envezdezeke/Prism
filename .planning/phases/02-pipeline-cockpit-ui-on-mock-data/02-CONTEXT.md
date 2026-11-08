@@ -37,6 +37,13 @@ Someone playing bank staff can watch every deal move through the pipeline, open 
 - **D-15:** Deal identity is the folder name plus the legal name; show the DBA when present.
 - **D-16:** Fraud is shown soberly: a held deal gets a red "Held: fraud review" badge and its plain-words reason; a watch-tier deal gets a neutral "Watch" badge. No alarmist styling.
 
+### Decisions after research (Jesse, 2026-11-07 19:05)
+- **D-17:** Mock-data mismatches (staff ids not in `contacts/teams.json`, $410k committee routed to `committee.osei`, fraud holds to `fraudops.keller`, no DBA field) are **worked around in the UI only**; do not ask Zeke to change fixtures. The UI shows a person's real name when the id is in `contacts/teams.json`, otherwise a role label derived from the request type/stage (e.g. "Committee", "Fraud Operations"), with the raw id in a tooltip. D-14 and D-15 apply when the data allows (DBA shown only if a future contract field provides it).
+- **D-18:** Time-travel: board, alerts and inbox are derived client-side for the UI clock (the mock clock is stateless and lists ignore it: see RESEARCH). Facts, issues and the needed-by badge have no timestamps, so they always show the end-of-run view with a quiet "as of end of run" label.
+- **D-19:** Page-title serif is **Source Serif 4, bundled** via `@fontsource-variable/source-serif-4` (one human-verify checkpoint before installing, per the package-legitimacy check). Sans is Geist (bundled).
+- **D-20:** Error states use neutral gray (red stays reserved for holds). All action buttons use the navy accent, including fraud-hold actions. No toast pop-ups: confirmations appear inline.
+- **D-21:** Clock controls: show current sim time, advance (by hours or to a time) and replay from start. Keep the clock in client state; never refetch `/api/clock` after load (it would snap back). Inbox replies are kept in a client overlay because the mock doesn't persist them.
+
 ### Claude's Discretion
 - Exact hex values within the palette above, spacing details, component choice within the stack, and layout of secondary panels, as long as D-03 to D-12 hold.
 
