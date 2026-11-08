@@ -1,10 +1,12 @@
 """Time-split report for F1, F3 and F5 on history alone (owner: Phase 5; M5, M6, M7).
 
 ``python -m prism.fraud.eval_baseline [--history DIR] [--fraud-config PATH] [--out-dir DIR]
-[--gold PATH]`` replays the history test period (config calibration.test_start..test_end) in
-(date, id) order. Each test deal is scored against a baseline of strictly earlier deals only.
-The F3 and F5 thresholds and the F5 reference sample come from the train period alone and stay
-fixed for the whole replay. It writes ``baseline_eval.json`` and ``baseline_eval.md``.
+[--gold PATH] [--holdout-fraction F]`` splits the history by rank, not by dates from config:
+in (date, id) order the earliest ``1 - F`` of the deals are the train period, the rest the test
+period, replayed in order. Each test deal is scored against a baseline of strictly earlier
+deals only. The F3 and F5 thresholds and the F5 reference sample come from the train period
+alone and stay fixed for the whole replay. The cut date is derived from the data and reported
+(``train_cutoff``). It writes ``baseline_eval.json`` and ``baseline_eval.md``.
 
 Nothing is tuned on these numbers. There is no wall clock and no randomness, so two runs on
 the same input are byte-identical.
@@ -13,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any, Optional, Sequence
@@ -25,6 +28,7 @@ from prism.fraud.signals import score_f1, score_f3, score_f5
 
 FAMILIES = ("F1", "F3", "F5")
 DEFAULT_HISTORY = "data/participant/history"
+DEFAULT_HOLDOUT_FRACTION = 0.36  # share of the history (the latest deals) held out as the test period
 JSON_NAME = "baseline_eval.json"
 MD_NAME = "baseline_eval.md"
 
@@ -33,14 +37,23 @@ def _fired(bits: float, tau: Optional[float]) -> bool:
     return bits > 0 and tau is not None and bits >= tau
 
 
-def replay(full: Baseline, params: FraudParams, cal: Calibration) -> list[dict[str, Any]]:
-    """Score every test-period deal against only the deals that precede it in (date, id) order."""
+def split_ids(order: Sequence[str], holdout_fraction: float) -> tuple[list[str], list[str]]:
+    """(train ids, test ids) by rank: the first ``ceil((1 - holdout_fraction) * N)`` are train."""
+    n_train = math.ceil(round((1.0 - holdout_fraction) * len(order), 9))
+    return list(order[:n_train]), list(order[n_train:])
+
+
+def replay(
+    full: Baseline, params: FraudParams, cal: Calibration, test_ids: Sequence[str]
+) -> list[dict[str, Any]]:
+    """Score every test deal against only the deals that precede it in (date, id) order."""
     order = full.ordered_ids()
+    test = set(test_ids)
     rows: list[dict[str, Any]] = []
     for pos, deal_id in enumerate(order):
-        deal = full.deals[deal_id]
-        if not params.test_start <= deal.applied <= params.test_end:
+        if deal_id not in test:
             continue
+        deal = full.deals[deal_id]
         prior = full.restricted_to(order[:pos])
         profile = deal.profile
         f1 = score_f1(profile, prior, params)
@@ -114,20 +127,24 @@ def _round(obj: Any) -> Any:
 
 
 def build_report(
-    full: Baseline, params: FraudParams, gold_members: Optional[Sequence[str]], n_warnings: int
+    full: Baseline,
+    params: FraudParams,
+    gold_members: Optional[Sequence[str]],
+    n_warnings: int,
+    holdout_fraction: float = DEFAULT_HOLDOUT_FRACTION,
 ) -> dict[str, Any]:
     order = full.ordered_ids()
-    train_ids = [i for i in order if full.deals[i].applied <= params.train_end]
+    train_ids, test_ids = split_ids(order, holdout_fraction)
     train = full.restricted_to(train_ids)
-    cal = compute_thresholds(train, params)
-    rows = replay(full, params, cal)
+    cal = compute_thresholds(train, params)  # no date filter: the train period is the rank split
+    rows = replay(full, params, cal, test_ids)
     return {
         "meta": {
             "n_history_deals": full.n_history_deals,
+            "holdout_fraction": holdout_fraction,
             "n_train_deals": len(train_ids),
-            "train_end": params.train_end.isoformat(),
-            "test_start": params.test_start.isoformat(),
-            "test_end": params.test_end.isoformat(),
+            "n_test_deals": len(test_ids),
+            "train_cutoff": full.deals[train_ids[-1]].applied.isoformat() if train_ids else None,
             "n_load_warnings": n_warnings,
             "gold_given": gold_members is not None,
             "families_built": list(FAMILIES),
@@ -154,9 +171,11 @@ def render_markdown(rep: dict[str, Any]) -> str:
     L = [
         "# Baseline time-split report (F1, F3, F5)",
         "",
-        f"History deals: {m['n_history_deals']}. Train period ends {m['train_end']} "
-        f"({m['n_train_deals']} deals). Test period {m['test_start']} to {m['test_end']}, "
-        "replayed in (date, id) order; each deal is scored against earlier deals only.",
+        f"History deals: {m['n_history_deals']}. The history is split by rank in (date, id) order: "
+        f"the earliest {100 * (1 - m['holdout_fraction']):.0f}% of the deals are the train period "
+        f"({m['n_train_deals']} deals, last application date {m['train_cutoff']}), the remaining "
+        f"{m['n_test_deals']} are the test period, replayed in order; each deal is scored against "
+        "earlier deals only.",
         "",
         "## Thresholds (train period only)",
         "",
@@ -232,7 +251,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--fraud-config", default=None, help="fraud.yaml path (default config/fraud.yaml)")
     ap.add_argument("--out-dir", default="out")
     ap.add_argument("--gold", default=None, help="optional JSON with a history_flags list of scheme ids")
+    ap.add_argument(
+        "--holdout-fraction", type=float, default=DEFAULT_HOLDOUT_FRACTION,
+        help="share of the history held out as the test period, in (0, 1) (default %(default)s)",
+    )
     args = ap.parse_args(argv)
+    if not 0.0 < args.holdout_fraction < 1.0:
+        print(f"error: --holdout-fraction must be in (0, 1), got {args.holdout_fraction}", file=sys.stderr)
+        return 2
 
     hist = Path(args.history)
     if not (hist / "deals.csv").is_file():
@@ -256,7 +282,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         members = [x for x in flags if isinstance(x, str)] if isinstance(flags, list) else []
 
     full = build_baseline(hist, cfg)
-    report = build_report(full, params, members, len(full.warnings))
+    report = build_report(full, params, members, len(full.warnings), args.holdout_fraction)
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     _write(out / JSON_NAME, json.dumps(_round(report), sort_keys=True, indent=2, ensure_ascii=False) + "\n")

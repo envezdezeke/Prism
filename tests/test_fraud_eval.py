@@ -251,6 +251,9 @@ def eval_history():
     return rows
 
 
+SIX_OF_106 = 6 / 106  # holds out exactly the last six deals of eval_history()
+
+
 def run_main(tmp_path, *extra, name="out"):
     hist = tmp_path / "history" if (tmp_path / "history").is_dir() else write_history(tmp_path, eval_history())
     out = tmp_path / name
@@ -260,19 +263,20 @@ def run_main(tmp_path, *extra, name="out"):
 
 def test_replay_never_sees_the_future(cfg, params):
     full = Baseline.from_rows(eval_history(), params=params)
-    rep = eval_baseline.build_report(full, params, None, 0)
+    rep = eval_baseline.build_report(full, params, None, 0, SIX_OF_106)
     rows = {r["deal_id"]: r for r in rep["deals"]}
     assert [r["deal_id"] for r in rep["deals"]] == ["T-190", "T-195", "T-200a", "T-200b", "T-210", "T-215"]
     assert rows["T-190"]["f1_partners"] == []  # A, scored before B exists
     assert rows["T-195"]["f1_partners"] == ["T-190"]  # B sees A
     assert rows["T-200a"]["f1_partners"] == [] and rows["T-200b"]["f1_partners"] == ["T-200a"]  # tie: id order
     assert rep["meta"]["n_train_deals"] == 100 and rep["meta"]["n_history_deals"] == 106
+    assert rep["meta"]["n_test_deals"] == 6 and rep["meta"]["train_cutoff"] == iso_day(99)
     assert all(r["f1_partners"] == [] for r in rep["deals"] if r["deal_id"] in ("T-210", "T-215"))
 
 
 def test_summary_counts_match_hand_computation(params):
     full = Baseline.from_rows(eval_history(), params=params)
-    s = eval_baseline.build_report(full, params, None, 0)["summary"]
+    s = eval_baseline.build_report(full, params, None, 0, SIX_OF_106)["summary"]
     assert (s["n_test_deals"], s["n_good_test_deals"]) == (6, 5)
     assert s["fired_among_good"] == {"F1": 2, "F3": 0, "F5": 0}
     assert s["fire_rate_among_good"]["F1"] == pytest.approx(0.4)
@@ -293,7 +297,7 @@ def test_false_flag_rule_needs_all_three():
 
 
 def test_report_files_and_determinism(tmp_path):
-    code, out = run_main(tmp_path)
+    code, out = run_main(tmp_path, "--holdout-fraction", str(SIX_OF_106))
     assert code == 0
     data = json.loads((out / "baseline_eval.json").read_text(encoding="utf-8"))
     assert set(data) == {"meta", "thresholds", "summary", "deals", "scheme"} and data["scheme"] is None
@@ -302,8 +306,9 @@ def test_report_files_and_determinism(tmp_path):
     first = data["deals"][1]
     assert set(first["bits"]) == {"F1", "F3", "F5"} and first["fired"] == ["F1"]
     md = (out / "baseline_eval.md").read_text(encoding="utf-8")
-    assert "F2 and F4 are not built" in md and "lower bound" in md and "train period" in md
-    code2, out2 = run_main(tmp_path, name="out2")
+    assert "F2 and F4 are not built" in md and "lower bound" in md and "train period" in md and "by rank" in md
+    assert "holdout_fraction" in data["meta"] and "train_cutoff" in data["meta"]
+    code2, out2 = run_main(tmp_path, "--holdout-fraction", str(SIX_OF_106), name="out2")
     assert code2 == 0
     for name in ("baseline_eval.json", "baseline_eval.md"):
         assert (out / name).read_bytes() == (out2 / name).read_bytes()
@@ -313,13 +318,43 @@ def test_report_files_and_determinism(tmp_path):
 def test_scheme_links_with_gold(tmp_path):
     gold = tmp_path / "gold.json"
     gold.write_text(json.dumps({"history_flags": ["T-195", "T-190", "T-200b", "NOT-THERE", 5]}), encoding="utf-8")
-    code, out = run_main(tmp_path, "--gold", str(gold))
+    code, out = run_main(tmp_path, "--gold", str(gold), "--holdout-fraction", str(SIX_OF_106))
     assert code == 0
     sch = json.loads((out / "baseline_eval.json").read_text(encoding="utf-8"))["scheme"]
     assert sch["members_in_test_period"] == ["T-190", "T-195", "T-200b"]
     assert [(r["deal_id"], r["has_link"]) for r in sch["later_members"]] == [("T-195", True), ("T-200b", False)]
     assert sch["later_members"][0]["linked_to_earlier_members"] == ["T-190"]
     assert (sch["n_later"], sch["n_linked"]) == (2, 1)
+
+
+def test_split_is_by_rank(params):
+    order = [f"d{i}" for i in range(10)]
+    assert eval_baseline.split_ids(order, 0.36) == (order[:7], order[7:])  # ceil(6.4) = 7
+    assert eval_baseline.split_ids(order, 0.5) == (order[:5], order[5:])
+    assert eval_baseline.split_ids([], 0.36) == ([], [])
+
+
+@pytest.mark.parametrize("bad", ["0", "1", "-0.2", "1.5", "nan"])
+def test_holdout_fraction_must_be_in_the_open_unit_interval(tmp_path, capsys, bad):
+    code, _ = run_main(tmp_path, "--holdout-fraction", bad)
+    assert code == 2 and "holdout-fraction" in capsys.readouterr().err
+
+
+def test_report_is_identical_when_every_date_is_shifted_by_a_year(params):
+    rows = eval_history()
+    one = eval_baseline.build_report(Baseline.from_rows(rows, params=params), params, None, 0, SIX_OF_106)
+    moved = []
+    for r in rows:
+        r = dict(r)
+        r["application_date"] = (date.fromisoformat(r["application_date"]) + timedelta(days=365)).isoformat()
+        moved.append(r)
+    two = eval_baseline.build_report(Baseline.from_rows(moved, params=params), params, None, 0, SIX_OF_106)
+    for rep in (one, two):
+        rep["meta"].pop("train_cutoff")
+        for d in rep["deals"]:
+            d.pop("applied")
+    assert one == two
+    assert one["meta"]["n_train_deals"] == 100
 
 
 def test_main_missing_history_returns_2(tmp_path, capsys):
@@ -351,3 +386,24 @@ def test_smoke_on_real_history(tmp_path, cfg):
         outs.append(tmp_path / name)
     for name in ("baseline_eval.json", "baseline_eval.md"):
         assert (outs[0] / name).read_bytes() == (outs[1] / name).read_bytes()
+
+
+@pytest.mark.skipif(_real_history() is None or not (ROOT / "eval" / "gold.json").is_file(),
+                    reason="history data or gold file not present")
+def test_signal_level_trap_is_recorded_not_asserted(tmp_path, cfg, params, capsys):
+    """Records which history_must_not_flag deals reach F1+F3+F5 in the test period.
+
+    The ids are read from the gold file at test time only. The full assertion lives in the
+    decide-level trap (05-04); here the intersection is printed so the number is on record.
+    """
+    gold = json.loads((ROOT / "eval" / "gold.json").read_text(encoding="utf-8"))
+    full = build_baseline(_real_history(), cfg)
+    rep = eval_baseline.build_report(full, params, gold.get("history_flags"), 0)
+    must_not = set(gold.get("history_must_not_flag") or [])
+    false_flags = rep["summary"]["false_flag_ids"]
+    hit = sorted(must_not & set(false_flags))
+    in_test = sorted(must_not & {r["deal_id"] for r in rep["deals"]})
+    with capsys.disabled():
+        print(f"\n[05-02 trap, signal level] false_flag_ids={false_flags} "
+              f"must_not_flag in test period={len(in_test)} reaching F1+F3+F5={hit}")
+    assert isinstance(false_flags, list)
