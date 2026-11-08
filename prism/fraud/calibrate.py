@@ -1,10 +1,13 @@
-"""Startup calibration of the F3 and F5 thresholds (owner: Phase 5; M7, M13).
+"""Startup calibration of the F3 and F5 thresholds (owner: Phase 5; M7, M13, P5-09).
 
-The clean calibration set C is funded, ``fraud_label`` none, repayment current or paid_off,
-and applied on or before ``train_end``. Every deal in C is scored leave-one-out against the
-rest of the baseline. ``tau_f`` is the linearly interpolated percentile (from config) of the
-bits ``B_f`` over C. Config stores only the percentile; the computed tau lands on
-``Baseline.calibration`` for audit and is never a stored bit value.
+The clean calibration set C is every funded, ``fraud_label`` none deal whose repayment is
+current or paid_off, whatever its date: the thresholds are relative to the history that ships,
+never to dates in config (a differently dated history must not switch F3 and F5 off). When
+fewer than ``MIN_CLEAN`` such deals exist, C falls back to every label-none history deal. Every
+deal in C is scored leave-one-out against the rest of the baseline. ``tau_f`` is the larger of
+the linearly interpolated percentile (from config) of the bits ``B_f`` over C and the
+theoretical floor ``-log2(1 - q)``. Config stores only the percentile; the computed tau lands
+on ``Baseline.calibration`` for audit and is never a stored bit value.
 
 Pass 1 collects the F5 statistics of every clean deal with deposit data and builds the sorted
 reference samples; pass 2 converts each deal's statistics to bits through the smoothed upper
@@ -13,6 +16,8 @@ mandatory for a hold), so only its misfire rate on C is recorded.
 """
 from __future__ import annotations
 
+import math
+from datetime import date
 from typing import Optional
 
 from prism.fraud.baseline import Baseline, Calibration
@@ -20,24 +25,57 @@ from prism.fraud.rarity import FraudParams, percentile, upper_tail_bits
 from prism.fraud.signals import F5_STATS, f5_statistics, score_f1, score_f3
 
 
-def clean_ids(baseline: Baseline, params: FraudParams) -> list[str]:
-    """Clean calibration deals sorted by (applied, id)."""
-    return [
+# A clean set smaller than this is too thin to calibrate on, so the label-none deals of any
+# status stand in. A count of deals, not a bit threshold.
+MIN_CLEAN = 20
+
+
+def floor_bits(q: float) -> float:
+    """``-log2(1 - q)``: the surprise a q-tail event carries by definition.
+
+    A bit threshold below this value is not a threshold: with a mostly-zero sample (F3 on a
+    history without lookalikes) the empirical percentile collapses to 0 and every deal that
+    scores any bit at all would fire. The empirical percentile can only raise tau above it.
+    """
+    return -math.log2(1.0 - q)
+
+
+def clean_ids(
+    baseline: Baseline, params: FraudParams, *, as_of: Optional[date] = None
+) -> list[str]:
+    """Clean calibration deals sorted by (applied, id).
+
+    ``as_of`` keeps only deals applied on or before that date; it exists for measurement code
+    and is never passed by a real run. ``params`` is kept for signature stability.
+    """
+    ids = [
         i for i in baseline.ordered_ids()
-        if baseline.deals[i].clean and baseline.deals[i].applied <= params.train_end
+        if (as_of is None or baseline.deals[i].applied <= as_of)
     ]
+    clean = [i for i in ids if baseline.deals[i].clean]
+    if len(clean) >= MIN_CLEAN:
+        return clean
+    return [i for i in ids if baseline.deals[i].fraud_label == "none"]
 
 
-def _tau(values: list[float], params: FraudParams, family: str) -> Optional[float]:
+def _tau(
+    values: list[float], params: FraudParams, family: str, *, empty_is_floor: bool
+) -> Optional[float]:
     q = params.percentiles.get(family)
     if q is None:
         return None
-    return percentile(values, q)
+    floor = floor_bits(q)
+    empirical = percentile(values, q)
+    if empirical is None:
+        return floor if empty_is_floor else None
+    return max(empirical, floor)
 
 
-def compute_thresholds(baseline: Baseline, params: FraudParams) -> Calibration:
+def compute_thresholds(
+    baseline: Baseline, params: FraudParams, *, as_of: Optional[date] = None
+) -> Calibration:
     """Return the Calibration (tau, reference samples, clean-set fire rates) for ``baseline``."""
-    ids = clean_ids(baseline, params)
+    ids = clean_ids(baseline, params, as_of=as_of)
     n_clean = len(ids)
 
     f1_fired = 0
@@ -56,7 +94,10 @@ def compute_thresholds(baseline: Baseline, params: FraudParams) -> Calibration:
     reference = {s: sorted(st[s] for st in f5_stats) for s in F5_STATS} if f5_stats else {}
     f5_bits = [max(upper_tail_bits(st[s], reference[s]) for s in F5_STATS) for st in f5_stats]
 
-    tau: dict[str, Optional[float]] = {"F3": _tau(f3_bits, params, "F3"), "F5": _tau(f5_bits, params, "F5")}
+    tau: dict[str, Optional[float]] = {
+        "F3": _tau(f3_bits, params, "F3", empty_is_floor=True),
+        "F5": _tau(f5_bits, params, "F5", empty_is_floor=False),
+    }
 
     def rate(bits: list[float], t: Optional[float]) -> float:
         if not n_clean:

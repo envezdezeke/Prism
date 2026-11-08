@@ -5,7 +5,7 @@ import json
 import math
 import os
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -15,7 +15,7 @@ from test_fraud_synth import deal_row, deposit_rows, filler_deals, iso_day, writ
 from prism.engine.config import DEFAULT_FRAUD_PATH, load_fraud_config
 from prism.fraud import eval_baseline
 from prism.fraud.baseline import Baseline, Calibration, build_baseline
-from prism.fraud.calibrate import clean_ids, compute_thresholds
+from prism.fraud.calibrate import MIN_CLEAN, clean_ids, compute_thresholds, floor_bits
 from prism.fraud.rarity import FraudParams, percentile, upper_tail_bits
 from prism.fraud.signals import F5_STATS, f5_statistics
 
@@ -34,9 +34,9 @@ def params(cfg):
 
 # ------------------------------------------------------------------------ clean set
 
-def test_clean_ids_filters_and_orders(params):
-    after_train = (params.train_end - date(2026, 1, 1)).days + 20
-    rows = [
+def _mixed_rows(n_clean):
+    rows = [deal_row(f"K-{i:03d}", iso_day(100 + i)) for i in range(n_clean)]
+    rows += [
         deal_row("X-5", iso_day(30)),
         deal_row("X-2", iso_day(10), repayment_status="paid_off"),
         deal_row("X-3", iso_day(10)),
@@ -44,10 +44,67 @@ def test_clean_ids_filters_and_orders(params):
         deal_row("C-1", iso_day(12), repayment_status="charged_off"),
         deal_row("D-1", iso_day(13), final_status="declined", repayment_status=""),
         deal_row("P-1", iso_day(14), repayment_status="30_days_past_due"),
-        deal_row("Z-1", iso_day(after_train)),  # funded and clean but after train_end
     ]
+    return rows
+
+
+def test_clean_ids_filters_and_orders(params):
+    b = Baseline.from_rows(_mixed_rows(MIN_CLEAN), params=params)
+    ids = clean_ids(b, params)
+    # funded + label none + current/paid_off, every date, sorted by (applied, id)
+    assert ids[:3] == ["X-2", "X-3", "X-5"] and len(ids) == MIN_CLEAN + 3
+    assert not {"L-1", "C-1", "D-1", "P-1"} & set(ids)
+
+
+def test_clean_ids_as_of_keeps_applied_on_or_before(params):
+    b = Baseline.from_rows(_mixed_rows(MIN_CLEAN), params=params)
+    cut = date.fromisoformat(iso_day(30))
+    ids = clean_ids(b, params, as_of=cut)
+    # as_of leaves fewer than MIN_CLEAN clean deals, so every label-none deal up to the date stands in
+    assert set(ids) == {"X-2", "X-3", "X-5", "C-1", "D-1", "P-1"}
+
+
+def test_small_history_falls_back_to_all_label_none_deals(params):
+    rows = [deal_row(f"X-{i:03d}", iso_day(i)) for i in range(10)]
+    rows += [deal_row(f"D-{i:03d}", iso_day(20 + i), final_status="declined", repayment_status="")
+             for i in range(30)]
+    rows.append(deal_row("L-1", iso_day(60), fraud_label="old_trick"))
     b = Baseline.from_rows(rows, params=params)
-    assert clean_ids(b, params) == ["X-2", "X-3", "X-5"]
+    assert len(clean_ids(b, params)) == 40
+    assert compute_thresholds(b, params).n_clean == 40
+
+
+def test_calibration_ignores_every_config_date(params):
+    rows = [deal_row(f"X-{i:03d}", iso_day(i), equipment_vendor=f"Vendor {i}") for i in range(30)]
+    early = params
+    late = replace(params, train_end=date(1990, 1, 1), test_start=date(1991, 1, 1), test_end=date(1992, 1, 1))
+    one = compute_thresholds(Baseline.from_rows(rows, params=early), early)
+    two = compute_thresholds(Baseline.from_rows(rows, params=late), late)
+    assert one == two and one.n_clean == 30
+
+
+def shifted(rows, deposits, days=365):
+    out = []
+    for r in rows:
+        r = dict(r)
+        r["application_date"] = (date.fromisoformat(r["application_date"]) + timedelta(days=days)).isoformat()
+        out.append(r)
+    return out, deposits
+
+
+def test_calibration_invariant_to_a_one_year_date_shift(params):
+    deals, deps = [], []
+    labels = ["Mon-Fri", "Mon-Sat", "Mon,Thu"]
+    for i in range(30):
+        deals.append(deal_row(f"X-{i:03d}", iso_day(i), equipment_vendor="Kappa Supply LLC" if i % 3 else f"V{i}",
+                              vendor_remit_acct_last4="1111"))
+        deps += deposit_rows(f"X-{i:03d}", [(10, round(0.1 + 0.02 * i, 2), labels[i % 3])] * 6)
+    a = compute_thresholds(Baseline.from_rows(deals, deps, params), params)
+    sd, sdep = shifted(deals, deps)
+    b = compute_thresholds(Baseline.from_rows(sd, sdep, params), params)
+    assert a.n_clean == b.n_clean == 30 and a.tau == b.tau and a.tau["F5"] is not None
+    assert {k: len(v) for k, v in a.reference.items()} == {k: len(v) for k, v in b.reference.items()}
+    assert a == b
 
 
 # ------------------------------------------------------------------------ thresholds
@@ -62,10 +119,11 @@ def vendor_history(inc_lookalike=False):
     return rows
 
 
-def test_f3_tau_zero_without_lookalikes(params):
+def test_f3_tau_is_the_theoretical_floor_without_lookalikes(params):
     b = Baseline.from_rows(vendor_history(), params=params)
     cal = compute_thresholds(b, params)
-    assert cal.n_clean == 9 and cal.tau["F3"] == 0.0 and cal.fire_rate_clean["F3"] == 0.0
+    assert cal.n_clean == 9 and cal.fire_rate_clean["F3"] == 0.0
+    assert round(cal.tau["F3"], 4) == 4.3219 == round(floor_bits(0.95), 4)
     assert cal.tau["F5"] is None and cal.reference == {}  # no deposit data at all
 
 
@@ -74,8 +132,12 @@ def test_f3_tau_is_interpolated_percentile(params):
     cal = compute_thresholds(b, params)
     lookalike_bits = math.log2(10)  # n_pat 0 of 9 other vendor observations
     # ten clean deals: nine with 0 bits and one with log2(10); rank 0.95 * 9 = 8.55
-    assert cal.tau["F3"] == pytest.approx(0.55 * lookalike_bits)
-    assert cal.fire_rate_clean["F3"] == pytest.approx(0.1)
+    empirical = 0.55 * lookalike_bits
+    assert empirical < floor_bits(0.95)  # so the floor wins
+    assert cal.tau["F3"] == pytest.approx(floor_bits(0.95))
+    assert cal.fire_rate_clean["F3"] == 0.0  # log2(10) = 3.32 < 4.32
+    hi = compute_thresholds(b, replace(params, percentiles={**params.percentiles, "F3": 0.5}))
+    assert hi.tau["F3"] == pytest.approx(floor_bits(0.5))  # floor 1.0 beats the empirical 0
     assert cal.n_clean == 10 and cal.percentiles["F3"] == 0.95
 
 
@@ -97,17 +159,19 @@ def test_f5_tau_matches_percentile_of_clean_bits(params):
     for i in clean_ids(b, params):
         st = f5_statistics(b.deals[i].profile, b, params, exclude=i)
         bits.append(max(upper_tail_bits(st[s], cal.reference[s]) for s in F5_STATS))
-    assert cal.tau["F5"] == pytest.approx(percentile(bits, 0.95))
+    assert cal.tau["F5"] == pytest.approx(max(percentile(bits, 0.95), floor_bits(0.95)))
     lo = compute_thresholds(b, replace(params, percentiles={**params.percentiles, "F5": 0.5}))
     hi = compute_thresholds(b, replace(params, percentiles={**params.percentiles, "F5": 0.99}))
     assert lo.tau["F5"] <= cal.tau["F5"] <= hi.tau["F5"]
+    assert all(t >= floor_bits(q) for t, q in ((lo.tau["F5"], 0.5), (hi.tau["F5"], 0.99)))
     assert 0.0 <= cal.fire_rate_clean["F5"] <= 1.0
 
 
 def test_empty_clean_set_gives_no_tau(params):
-    b = Baseline.from_rows([deal_row("X-1", iso_day(1), repayment_status="charged_off")], params=params)
+    b = Baseline.from_rows([deal_row("X-1", iso_day(1), fraud_label="old_trick")], params=params)
     cal = compute_thresholds(b, params)
-    assert cal.n_clean == 0 and cal.tau == {"F3": None, "F5": None}
+    # F3 keeps its floor (a vendor lookalike can still be judged); F5 has no reference sample
+    assert cal.n_clean == 0 and cal.tau["F5"] is None and cal.tau["F3"] == pytest.approx(floor_bits(0.95))
     assert cal.fire_rate_clean == {"F1": 0.0, "F3": 0.0, "F5": 0.0}
     assert compute_thresholds(Baseline(), params).n_clean == 0
 
