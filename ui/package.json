@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "api:types": "npx --yes --package=openapi-typescript@7.13.0 --package=typescript@5 openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.ts",
     "test": "node --test \"src/**/*.test.ts\"",
-    "smoke": "node scripts/smoke.ts"
+    "smoke": "node scripts/smoke.ts",
+    "audit": "node scripts/audit.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

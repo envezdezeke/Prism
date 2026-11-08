@@ -2,7 +2,7 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
-// Primary is a navy fill, secondary a navy outline. There is no destructive variant:
+// Primary is a navy fill, secondary a navy outline. Every action button is navy or outline:
 // red is reserved for a fraud hold (D-05).
 const buttonVariants = cva(
   "inline-flex shrink-0 items-center justify-center rounded-sm border border-transparent text-sm font-semibold whitespace-nowrap transition-colors duration-150 select-none disabled:cursor-default disabled:border-border disabled:bg-surface disabled:text-ink-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

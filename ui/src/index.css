@@ -9,7 +9,7 @@
 
 @theme {
   /* Drop Tailwind's default palette, scale and shadows so no stray colour, size or
-     shadow utility (violet, text-xl, shadow-lg) can compile. */
+     shadow utility can compile. */
   --color-*: initial;
   --text-*: initial;
   --shadow-*: initial;

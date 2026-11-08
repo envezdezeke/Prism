@@ -1,0 +1,67 @@
+import type { ReactNode } from 'react'
+import { CircleAlert } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { DASH, NULL_TOOLTIP } from '../../lib/format.ts'
+
+// The only place the display serif and the page-title size are applied.
+export function PageTitle({ children }: { children: ReactNode }) {
+  return <h1 className="font-display text-title font-normal">{children}</h1>
+}
+
+export function Caption({ children, className }: { children: ReactNode; className?: string }) {
+  return <p className={`text-xs text-ink-2${className ? ` ${className}` : ''}`}>{children}</p>
+}
+
+// A missing value: the em dash in the tertiary token, with the standard tooltip.
+export function NullValue({ title = NULL_TOOLTIP }: { title?: string }) {
+  return (
+    <span className="text-tertiary" title={title}>
+      {DASH}
+    </span>
+  )
+}
+
+export function LoadingState({ children }: { children: ReactNode }) {
+  return (
+    <p role="status" className="text-sm text-ink-2">
+      {children}
+    </p>
+  )
+}
+
+export function EmptyState({ heading, children }: { heading?: string; children?: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-md border border-line bg-surface p-4">
+      {heading && <p className="text-base font-semibold">{heading}</p>}
+      {children && <div className="text-sm text-ink-2">{children}</div>}
+    </div>
+  )
+}
+
+// Neutral on purpose: red is reserved for a fraud hold (D-05, D-20).
+export function ErrorState({
+  heading,
+  message,
+  onRetry,
+}: {
+  heading?: string
+  message: string
+  onRetry?: () => void
+}) {
+  return (
+    <div role="alert" className="flex items-start gap-2 rounded-md border border-line bg-surface p-4 text-ink">
+      <CircleAlert className="mt-0.5 size-4 shrink-0 text-ink-2" aria-hidden="true" />
+      <div className="flex flex-col gap-2">
+        {heading && <p className="text-base font-semibold">{heading}</p>}
+        <p className="text-sm">{message}</p>
+        {onRetry && (
+          <div>
+            <Button variant="outline" size="sm" onClick={onRetry}>
+              Retry
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
