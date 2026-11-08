@@ -119,12 +119,15 @@ Cut in this order when a gate is at risk.
   3. Clicking a deal opens its detail page: extracted facts (each with a source-document chip and confidence), open issues, the stage log with its "why", human requests and alerts.
   4. The user can answer a pending request from the inbox, and the reply goes to the API in the contract shape.
   5. Every screen uses one type scale and tabular money numerals, and red appears only on fraud holds.
-**Plans**: 3/4 plans executed
+**Plans**: 6/6 plans executed (branch `ui/hero`, pending merge and human check)
 Plans:
 - [x] 02-01-PLAN.md — Tracer: package checkpoint, scaffold, Playbook tokens, client-held clock and one live pipeline board path (UI-01, UI-02)
 - [x] 02-02-PLAN.md — Full board rows, formatting module, sim-clock controls and replay, design audit gate (UI-01, UI-02, UI-03)
 - [x] 02-03-PLAN.md — App frame, deal detail (facts, issues, stage log, requests, alerts, fraud panel), labels and people map (UI-01, UI-04)
-- [ ] 02-04-PLAN.md — Inbox with replies and overlay, alerts feed, phase gate and human-check (UI-01, UI-04, UI-05)
+- [x] 02-04-PLAN.md — Trimmed (D-32): alerts feed in full, minimal inbox with replies and overlay, rail items (UI-01, UI-05)
+- [x] 02-05-PLAN.md — Fraud graph hero view: dark investigation mode, cluster focus, clock replay, evidence drawer, investigator tab, red-team chip, `/api/graph` test (UI-06 early)
+- [x] 02-06-PLAN.md — Hold beat on the board, Investigate ring entry points, CSS motion polish
+**Amendment (2026-11-08, D-23 to D-32)**: Phase 7's UI-06 fraud graph (graph replay with the clock, edge evidence, family checklist, investigator trace) was delivered early in Phase 2 on mock data; Phase 7 keeps the live switch and the full red-team view (UI-07).
 **UI hint**: yes
 
 ### Phase 3: Read the Folder
@@ -209,7 +212,7 @@ Plans:
   5. By H19.75 (Sun 11:40) there is a recorded demo path with Nemotron in replay mode, a 3-minute pitch and slides.
 **Plans**: TBD
 **UI hint**: yes
-**Notes**: Ezekiel can build the synthetic drop with Phase 6's deterministic synthesizer (or a small script if the red-team was cut). If the real weekend drop has already arrived, the dry run uses it instead.
+**Notes**: UI-06 (the fraud graph view, criterion 2) was delivered early in Phase 2 (plans 02-05 and 02-06, on `fixtures/graph.json`); Phase 7 only re-checks it on live `/api/graph` data after the switch. Ezekiel can build the synthetic drop with Phase 6's deterministic synthesizer (or a small script if the red-team was cut). If the real weekend drop has already arrived, the dry run uses it instead.
 
 ## Progress
 
@@ -218,7 +221,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundations, Contract and Golden Labels | 0/0 | Not started | - |
-| 2. Pipeline Cockpit UI on Mock Data | 3/4 | In Progress | - |
+| 2. Pipeline Cockpit UI on Mock Data | 6/6 | Built on ui/hero, awaiting merge | - |
 | 3. Read the Folder | 0/0 | Not started | - |
 | 4. Move the Deal | 0/0 | Not started | - |
 | 5. Catch the Fakes | 0/0 | Not started | - |
