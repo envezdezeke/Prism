@@ -65,6 +65,7 @@ def statement_pages(
     printed_debits: Optional[int] = None,
     printed_closing: Optional[int] = None,
     summary: bool = True,
+    printed_amounts: Optional[dict[int, int]] = None,
 ) -> list[list[Line]]:
     """Pages of lines for ``write_pdf``. ``markers`` is one (x, n) or None per physical page."""
     credits, debits = totals(txns)
@@ -88,9 +89,10 @@ def statement_pages(
     header: Line = [(72, "Date"), (150, "Description"), (380, "Credit"), (450, "Debit"), (520, "Balance")]
     rows: list[Line] = []
     bal = opening
-    for day, desc, cents in txns:
+    for i, (day, desc, cents) in enumerate(txns):
         bal += cents
-        rows.append(_row_cells(period, day, desc, cents, bal))
+        shown = (printed_amounts or {}).get(i, cents)  # an edited row amount; the balance column is untouched
+        rows.append(_row_cells(period, day, desc, shown, bal))
     per = max(1, -(-len(rows) // max(1, n_pages)))
     pages: list[list[Line]] = []
     for i in range(max(1, n_pages)):

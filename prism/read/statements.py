@@ -4,8 +4,10 @@ Registered with the docmodel registry for ``bank_statement``. Summary values are
 synonyms (config/read_issues.yaml); transaction rows are lines that start with a date and end with
 money tokens (amount, then running balance). The row sign is the sign of the change in running
 balance (the first row compares with the opening balance) and is cross-checked against the one
-other amount printed on the row: ``signs_verified`` is True only when every row agrees and every row
-parsed. A statement that is not verified is never used to raise STMT_TAMPER. Money is integer cents,
+other amount printed on the row. ``signs_verified`` is True only when every row parsed and the sign of
+each is known. A row whose printed amount disagrees with its balance change is NOT ambiguity: it is a
+footing failure (``row_amount``, STMT_TAMPER). A statement that is not verified is never used to raise
+STMT_TAMPER. Money is integer cents,
 dates ISO. The parser never raises. Document text is untrusted: every pattern is a bounded fixed regex or a
 config pattern, and text is never used as a pattern or a format string.
 """
@@ -156,8 +158,7 @@ def _find_rows(lines: Sequence[str], date_res: list[re.Pattern[str]], max_rows: 
         else:
             delta = balance - prev
             signed = amount if delta >= 0 else -amount
-            if abs(delta) != amount:
-                ok = False
+            # abs(delta) != amount is not ambiguity: the row parsed fully, so footing_errors reports it
         prev = balance
         rows.append(Txn(date=date, description=desc or None, amount_cents=signed, balance_cents=balance))
     return rows, ok
@@ -202,7 +203,6 @@ def _table_rows(path: Any, cfg: dict[str, Any], opening: Optional[int]) -> tuple
             else:
                 delta = balance - prev
                 signed = amount if delta >= 0 else -amount
-                ok = ok and abs(delta) == amount
             prev = balance
             rows.append(Txn(date=date, description=(cell("description") or "").strip()[:120] or None,
                             amount_cents=signed, balance_cents=balance))
@@ -373,6 +373,12 @@ def footing_errors(ps: Any) -> list[str]:
                     break
             prev = t.balance_cents
         return errors
+    prev = ps.opening_cents
+    for t in txns:  # a row's printed amount must equal its running-balance change
+        if prev is not None and t.balance_cents is not None and t.amount_cents is not None                 and abs(t.balance_cents - prev) != abs(t.amount_cents):
+            errors.append("row_amount")
+            break
+        prev = t.balance_cents
     if ps.total_credits_cents is not None and ps.total_credits_cents != credits:
         errors.append("credits_sum")
     if ps.total_debits_cents is not None and ps.total_debits_cents != debits:

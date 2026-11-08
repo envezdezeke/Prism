@@ -84,7 +84,7 @@ def test_pdf_with_unparseable_row_is_not_sign_verified(tmp_path):
     assert statements.footing_errors(ps) == []  # untrusted: never reported as tampering
 
 
-def test_row_whose_amount_disagrees_with_the_balance_is_not_sign_verified(tmp_path):
+def test_row_whose_amount_disagrees_with_the_balance_is_a_footing_failure(tmp_path):
     pages = statement_pages("2026-05")
     row = pages[0][-4]
     assert isinstance(row, list)
@@ -93,7 +93,8 @@ def test_row_whose_amount_disagrees_with_the_balance_is_not_sign_verified(tmp_pa
     cells[3] = (cells[3][0], cells[3][1].replace("$", "$9"))
     pages[0][-4] = cells
     _doc, ps = load(write_pdf(tmp_path / "s.pdf", pages))
-    assert ps.signs_verified is False
+    assert ps.signs_verified is True  # every row parsed; the disagreement is a finding, not an ambiguity
+    assert "row_amount" in statements.footing_errors(ps)
 
 
 def test_pdf_without_summary_or_rows_is_not_a_statement(tmp_path):

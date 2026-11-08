@@ -104,6 +104,22 @@ def test_an_edited_amount_that_breaks_the_printed_totals_is_tamper(tmp_path, fak
     assert "2026-07:credits_sum" in old_tricks.stmt_tamper_reasons(st)
 
 
+def test_an_edited_transaction_row_with_the_balance_untouched_is_tamper(tmp_path, fake_app):
+    st = build(tmp_path, table=fake_app, revenue=LIMIT, kinds={"2026-06": {"printed_amounts": {1: -125_000}}})
+    assert "2026-06:row_amount" in old_tricks.stmt_tamper_reasons(st)
+    assert issues_of(st, "OLD_TRICK") == ["OLD_TRICK:STMT_TAMPER"]
+    clean = build(sub(tmp_path, "c"), table=fake_app, revenue=LIMIT)
+    assert old_tricks.stmt_tamper_reasons(clean) == []
+
+
+def test_an_edited_row_with_consistent_printed_totals_is_still_tamper(tmp_path, fake_app):
+    edited = -125_000 - (-120_000)  # the row grew by 5,000.00 more of debit
+    debits = 120_000 + 205_075 + 35_040
+    st = build(tmp_path, table=fake_app, revenue=LIMIT,
+               kinds={"2026-06": {"printed_amounts": {1: -125_000}, "printed_debits": debits - edited}})
+    assert any(r.startswith("2026-06:") for r in old_tricks.stmt_tamper_reasons(st))
+
+
 def test_several_failed_checks_give_exactly_one_issue(tmp_path, fake_app):
     st = build(tmp_path, table=fake_app, revenue=LIMIT,
                kinds={"2026-05": {"printed_closing": 5}, "2026-06": {"printed_debits": 1}},
