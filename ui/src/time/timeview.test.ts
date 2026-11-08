@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   simToMs, fmtSimTime, fmtDuration, stageAt, slaPctAt, roundPct, heldAt, inboxAt, alertsAt, boardAt,
-  msToSim, clampMs, nextEventAfter, sortBoardRows, stageLogAt, requestsAt,
+  msToSim, clampMs, nextEventAfter, sortBoardRows, stageLogAt, requestsAt, inboxWithOverlayAt,
 } from './timeview.ts'
 
 // Repo-relative fixtures folder (ui/src/time/ -> repo root), so the test also runs on Windows.
@@ -277,4 +277,15 @@ test('Bayou Bistro and Grill: no hold and no fraud_hold request at 11:00, both b
   assert.equal(before[0].decision, null)
   assert.equal(before[0].why, '')
   assert.equal(stageLogAt(d.stage_log, simToMs('2026-11-03T11:30-06:00'))[0].decision, 'held')
+})
+
+test('inboxWithOverlayAt: a session answer applies from its answered_at, never before', () => {
+  const overlay = { 'inbox-001': { answer: 'approve', answered_at: '2026-11-04T18:00-06:00' } }
+  const at = (s: string) => inboxWithOverlayAt(inbox, overlay, simToMs(s)).find((i) => i.id === 'inbox-001')
+  assert.equal(at('2026-11-04T17:59-06:00')?.status, 'pending')
+  const after = at('2026-11-04T18:00-06:00')
+  assert.equal(after?.status, 'answered')
+  assert.equal(after?.answer, 'approve')
+  // The overlay never touches an item it does not name.
+  assert.equal(inboxWithOverlayAt(inbox, overlay, simToMs('2026-11-04T18:00-06:00')).find((i) => i.id === 'inbox-002')?.status, 'pending')
 })
