@@ -4,7 +4,8 @@
     "set": "sample",
     "labelled_by": "Jesse",
     "blind": true,
-    "how_to": "See eval/README.md"
+    "how_to": "See eval/README.md",
+    "history_notes": "history_flags: H-2608-002 (Trinity Bend Plumbing, funded, 30 days past due) and H-2609-008 (Mesquite Ridge Signs, funded, current) share all six ring signs: preparer K. Delacroix, agent Commerce Street, vendor Metroplex Equipment Supply LLC ...4471, DocuForge, deposits 100% round $100s Mon/Thu, amount just under $250k. must_not_flag: H-2511-010 and H-2601-022 share only DocuForge; H-2604-007 only the agent; H-2511-002/H-2512-005/H-2601-006 are returning customers (Garza, Priya, Okafor)."
   },
   "deals": {
     "Bluebonnet Landscape": {
@@ -79,21 +80,24 @@
       "notes": "Returning customer since 2016, prior lines 2023/2024/2025 repaid (H-2511-002). All docs present; 6 statements complete, footed and chained; ID matches; revenue 1.92M vs deposits annualized 1.97M (0.97x). Real."
     },
     "Granite Bay Building Supply": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Granite Bay Building Supply LLC",
+        "ein": "45-0917462",
+        "amount_requested": 300000,
+        "purpose_category": "inventory",
+        "product": "Revolving Line of Credit",
+        "term_months": 24,
+        "guarantor_name": "Wade Collins",
+        "annual_revenue_stated": 3100000,
         "needed_by": null
       },
       "extracted_accept": {},
       "sources": {},
-      "issues": [],
+      "issues": [
+        "OLD_TRICK:STMT_TAMPER",
+        "OLD_TRICK:REV_INFLATION"
+      ],
       "issues_optional": [],
       "routing": {
         "credit_decision": null,
@@ -101,26 +105,26 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Intake",
       "fraud": {
-        "flagged": false,
-        "held": false,
-        "latest_ok_stage": null,
+        "flagged": true,
+        "held": true,
+        "latest_ok_stage": "Committed",
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Old tricks, standalone (no cross-deal links). STMT_TAMPER: Aug summary closing $139,740.18 but transactions run to $91,540.18 (+$48,200, statement complete 'Page 1 of 1'); Sep opens $91,540.18 != Aug stated closing. REV_INFLATION: stated $3.1M (app + return) vs deposits $506,986 over 6 months = ~$1.01M/yr, 3.06x > 1.5x; P&L YTD Jan-Oct 2026 only $845k. J17: flagged + fraud_hold to Fraud Ops; all files in by Tue 16:10, so flag at Intake. Would route to chair harold.benson ($300k)."
     },
     "Harbor Tea Co": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Harbor Tea Company LLC",
+        "ein": "88-0521736",
+        "amount_requested": 320000,
+        "purpose_category": "expansion",
+        "product": "Term Loan",
+        "term_months": 84,
+        "guarantor_name": "Grace Lin",
+        "annual_revenue_stated": 3100000,
         "needed_by": null
       },
       "extracted_accept": {},
@@ -128,19 +132,19 @@
       "issues": [],
       "issues_optional": [],
       "routing": {
-        "credit_decision": null,
-        "committee_approval": null,
-        "commitment_signoff": null,
-        "funding_release": null
+        "credit_decision": "aisha.grant",
+        "committee_approval": "harold.benson",
+        "commitment_signoff": "elena.ruiz",
+        "funding_release": "tasha.reed"
       },
-      "final_stage": null,
+      "final_stage": "Closed",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Trap: business address 5950 Berkshire Ln Ste 1000 = registered agent Northstar's office; 28 history loans tie to that address/agent (17 funded/current, 3 paid off, 6 declined, 2 old-trick frauds incl. one PMB at a different address). SHELL_ADDRESS needs a mailbox store/PMB, so not met; one shared sign alone never holds. $320k -> chair. Revenue 3.1M = deposits annualized 3.10M."
     },
     "LSFD_docs": {
       "status": "done",
@@ -277,10 +281,13 @@
         "held": true,
         "latest_ok_stage": "Committed",
         "linked_deals": [
-          "Ridgeway Freight Logistics"
+          "Ridgeway Freight Logistics",
+          "Summit Peak Flooring",
+          "H-2608-002",
+          "H-2609-008"
         ]
       },
-      "notes": "HOLD at Intake (lands Tue 11:11-11:30; Ridgeway already held Mon). Shares with Ridgeway: preparer K. Delacroix 214-555-0187, agent Commerce Street Agent Services, lookalike vendor Metroplex Equipment Supply LLC remit ...4471 (quote MQ-0202 vs Ridgeway MQ-0201), DocuForge 2.1 on every PDF incl. statements and ID, First Lakes Bank, deposits 100% round $100s Mon/Thu only, identical 2025 gross receipts $470,400, near-sequential DL numbers. $248,000 just under the $250k line. Revenue: 2025 return covers ~6 months; $980k run rate matches deposits (not a mismatch, J13). Linked list finalised after all 13."
+      "notes": "HOLD at Intake (lands Tue 11:11-11:30; Ridgeway already held Mon). Shares with Ridgeway: preparer K. Delacroix 214-555-0187, agent Commerce Street Agent Services, lookalike vendor Metroplex Equipment Supply LLC remit ...4471 (quote MQ-0202 vs Ridgeway MQ-0201), DocuForge 2.1 on every PDF incl. statements and ID, First Lakes Bank, deposits 100% round $100s Mon/Thu only, identical 2025 gross receipts $470,400, near-sequential DL numbers. $248,000 just under the $250k line. Revenue: 2025 return covers ~6 months; $980k run rate matches deposits (not a mismatch, J13)."
     },
     "Priya's Bakery": {
       "status": "done",
@@ -346,21 +353,26 @@
         "flagged": true,
         "held": true,
         "latest_ok_stage": "Committed",
-        "linked_deals": []
+        "linked_deals": [
+          "Pecan Grove Catering",
+          "Summit Peak Flooring",
+          "H-2608-002",
+          "H-2609-008"
+        ]
       },
-      "notes": "HOLD. Independent signs agree: (1) every PDF incl. bank statements and ID made by DocuForge 2.1, not the bank's statement system; (2) preparer K. Delacroix 214-555-0187 seen only on 2 history loans (Aug-Sep 2026); (3) lookalike vendor 'Metroplex Equipment Supply LLC' remit ...4471 vs established 'Metroplex Equipment Supply, Inc.' ...9902 (24 history loans); (4) deposits 100% round $100s, Mon/Thu only (history median ~8%); (5) $247,500 just under the $250k committee line; (6) formed 2025-07. First ring deal to land (Mon 13:51); all evidence present by 14:10 Mon, so flag at Intake from history links alone. Revenue: 2025 return $470k covers ~5.5 months; $1.12M is the run rate (deposits annualized $1.11M): not a mismatch (J13). Held at Intake (fraud_hold -> victor.hale, backup monica.salas), so later gates never reached. latest_ok_stage = Committed (must be held before Closed); ideal is Intake, Mon ~14:10. linked_deals and history_flags filled after all 13."
+      "notes": "HOLD. Independent signs agree: (1) every PDF incl. bank statements and ID made by DocuForge 2.1, not the bank's statement system; (2) preparer K. Delacroix 214-555-0187 seen only on 2 history loans (Aug-Sep 2026); (3) lookalike vendor 'Metroplex Equipment Supply LLC' remit ...4471 vs established 'Metroplex Equipment Supply, Inc.' ...9902 (24 history loans); (4) deposits 100% round $100s, Mon/Thu only (history median ~8%); (5) $247,500 just under the $250k committee line; (6) formed 2025-07. First ring deal to land (Mon 13:51); all evidence present by 14:10 Mon, so flag at Intake from history links alone. Revenue: 2025 return $470k covers ~5.5 months; $1.12M is the run rate (deposits annualized $1.11M): not a mismatch (J13). Held at Intake (fraud_hold -> victor.hale, backup monica.salas), so later gates never reached. latest_ok_stage = Committed (must be held before Closed); ideal is Intake, Mon ~14:10."
     },
     "Summit Peak Flooring": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Summit Peak Flooring LLC",
+        "ein": "99-2290418",
+        "amount_requested": 246000,
+        "purpose_category": "equipment",
+        "product": "Equipment Loan",
+        "term_months": 60,
+        "guarantor_name": "Devon Price",
+        "annual_revenue_stated": 1040000,
         "needed_by": null
       },
       "extracted_accept": {},
@@ -373,14 +385,19 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Intake",
       "fraud": {
-        "flagged": false,
-        "held": false,
-        "latest_ok_stage": null,
-        "linked_deals": []
+        "flagged": true,
+        "held": true,
+        "latest_ok_stage": "Committed",
+        "linked_deals": [
+          "Ridgeway Freight Logistics",
+          "Pecan Grove Catering",
+          "H-2608-002",
+          "H-2609-008"
+        ]
       },
-      "notes": ""
+      "notes": "HOLD at Intake (lands Wed 10:26-10:45). Same evidence as Pecan Grove: preparer K. Delacroix 214-555-0187, agent Commerce Street, lookalike vendor Metroplex Equipment Supply LLC ...4471 (quote MQ-0203 after MQ-0201/0202), DocuForge 2.1 on every PDF, First Lakes Bank, deposits 100% round $100s Mon/Thu only, DL 418722xx sequence. $246,000 just under the $250k line. Revenue: 2025 return covers ~5 months; $1.04M run rate matches deposits (not a mismatch). Jesse first called 'watch', changed to hold for consistency with Pecan (identical evidence)."
     },
     "tyler loopwise loan stuff": {
       "status": "done",
@@ -422,21 +439,27 @@
       "notes": "Messy but real. Revenue stated as 'approx 400-500k' -> midpoint (J7, low confidence). Form 7004 accepted (business est. 2025-03-10, under 2 years). June statement promised, never arrives. CSV statements, JPG ID matches, self-prepared, net losses, unsecured: all normal for a young startup. Stuck at Credit: June statement never arrives, so no credit_decision on an incomplete file; info_request to borrower."
     },
     "Westfield Print & Sign": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Westfield Print & Sign LLC",
+        "ein": "74-3196524",
+        "amount_requested": 95000,
+        "purpose_category": "equipment",
+        "product": "Equipment Loan",
+        "term_months": 48,
+        "guarantor_name": "Renee Holt",
+        "annual_revenue_stated": 1380000,
         "needed_by": null
       },
-      "extracted_accept": {},
+      "extracted_accept": {
+        "ein": [
+          "74-3169524"
+        ]
+      },
       "sources": {},
-      "issues": [],
+      "issues": [
+        "MISMATCH:ein"
+      ],
       "issues_optional": [],
       "routing": {
         "credit_decision": null,
@@ -444,16 +467,26 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Intake",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Application EIN 74-3169524 vs IRS letter + tax return 74-3196524 (two digits transposed). IRS letter is the authority; stays in Intake with info_request (no correction arrives). Trap: new vendor Lone Star Graphic Systems remit ...5530 not in history but a normal profile (no lookalike, sensible price); address 1200 Commerce St Ste 120 shares a building with the ring's agent (Ste 410) but nothing else links it. Not fraud."
     }
   },
-  "history_flags": [],
-  "history_must_not_flag": []
+  "history_flags": [
+    "H-2608-002",
+    "H-2609-008"
+  ],
+  "history_must_not_flag": [
+    "H-2511-010",
+    "H-2601-022",
+    "H-2604-007",
+    "H-2511-002",
+    "H-2512-005",
+    "H-2601-006"
+  ]
 }
