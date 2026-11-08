@@ -1,7 +1,7 @@
 # Phase 7: Fraud Graph, Dry Run and Pitch - Context
 
 **Gathered:** 2026-11-07, by the planner. Draft for Jesse's review. No discuss-phase was run.
-**Status:** Draft plans written. Every decision marked **ASSUMED** waits for Jesse to confirm or change it. Decisions without that mark are carried from documents already agreed, or were locked by Jesse.
+**Status:** Eleven plans written (07-01 to 07-11). Every decision marked **ASSUMED** waits for Jesse to confirm or change it. Decisions without that mark are carried from documents already agreed, or were locked by Jesse. Updated 2026-11-08 ~01:00 CT: D-03 and D-04 amended by Jesse (navy and sky palette), D-35 re-coloured to match, the deal-page mirror moved to its own plan 07-11, and the execution map and cut line rewritten for the full plan set.
 
 <domain>
 ## Phase Boundary
@@ -33,8 +33,8 @@ Precedence for every UI plan here: this file, then 02-CONTEXT.md, then 02-UI-SPE
 
 - **D-01:** Accuracy and sturdiness over looks. Show engine data faithfully, never change a value's meaning, and give every view loading, empty and error states.
 - **D-02:** Jesse directs the build with Claude Code. Keep it simple: no clever abstractions, no extra state libraries.
-- **D-03:** Institutional finance look. A nod to Goldman Sachs, not a copy: no Goldman blue (#7399C6), logo, fonts or name.
-- **D-04:** Warm off-white page, white surfaces, warm-gray text and lines, one navy accent for actions, active nav and focus.
+- **D-03 (amended by Jesse, 2026-11-08):** Institutional finance look in a bolder sponsor-palette: deep navy `--color-navy` (#0E2846) and sky `--color-sky` (#7399C6, allowed only as a token in `ui/src/index.css`), a solid navy rail and clock bar with a sky rule, navy table header bands, bold navy section headings with a sky left bar. The sponsor's name, logo and fonts stay banned (audit rule "forbidden brand name").
+- **D-04 (amended with D-03):** Warm off-white page, white surfaces, warm-gray text and lines, navy as the main colour (rail, clock bar, table bands, headings, actions, focus) with sky as its highlight; no dark theme.
 - **D-05:** Red only for fraud holds. Amber only for SLA past 100% and deadlines at risk. Muted green only for cleared or approved.
 - **D-06:** Serif for page titles only; sans everywhere else; tabular numerals; money right-aligned.
 - **D-07:** Hairline borders, radius at most 6px, 4px grid, dense tables.
@@ -54,7 +54,7 @@ Precedence for every UI plan here: this file, then 02-CONTEXT.md, then 02-UI-SPE
 - **D-21:** The clock lives in the browser and is read from the API once; inbox replies sit in a client overlay.
 - **D-22:** Staff shown as role labels with the raw id in a tooltip; real names were meant to arrive from the engine at the live switch (see D-44).
 
-02-UI-SPEC.md values also carry over: type sizes 12, 13, 14 and a 28px serif title only; the RESEARCH colour values (ink #1C1917, line #E7E5E4, green #067647); no ink-3; navy only on actions, focus, the active rail item, selected rows and text links; no new icons beyond the Phase 2 set. The one exception is motion on the graph canvas, which D-30 and D-34 now allow.
+02-UI-SPEC.md values also carry over: type sizes 12, 13, 14 and a 28px serif title only; the RESEARCH colour values (ink #1C1917, green #067647); no ink-3; no new icons beyond the Phase 2 set. Where 02-UI-SPEC limits navy to actions and the active rail item, the built app follows `ui/src/index.css` and the amended D-03 (navy bands and headings, sky highlights). The one exception is motion on the graph canvas, which D-30 and D-34 now allow.
 
 ### Carried from agreed project documents (locked)
 
@@ -74,12 +74,12 @@ Precedence for every UI plan here: this file, then 02-CONTEXT.md, then 02-UI-SPE
 - **D-33 (ASSUMED, Jesse to confirm): Which nodes are visible at a time.** A current deal appears at its arrival (its first stage-log entry, the Phase 2 rule) or at its first visible edge, whichever is earlier. A history deal or an entity appears with its first visible edge. A current deal with no links still shows as a lone node, so honest deals visibly sit apart. Recommendation: approve.
 - **D-34 (ASSUMED, Jesse to confirm): How the seeded layout moves (implements D-30).** There is one layout "keyframe" per moment the graph changes (an edge appears or a deal arrives). Each keyframe starts from the previous one's positions and runs a fixed number of steps with a seeded random source. The positions at any clock time are the last keyframe at or before that time. Scrubbing backwards therefore gives the same picture as playing forwards, and nothing moves between events. Forces: rare links pull hard and short, common links pull weakly and long, all nodes push each other apart, and weak gravity keeps the network on screen. So the ring knots together while honest deals drift apart. Between keyframes, nodes ease to their new positions over 600 ms. This is the only motion in the app, and it is off under prefers-reduced-motion. If time is short (cut tier 1), the ease is dropped and keyframes snap. User dragging is off so the layout cannot be disturbed. Recommendation: approve.
 - **D-35 (ASSUMED, Jesse to confirm): What the graph looks like.**
-  - A current deal is a circle on the white surface with an ink outline. A deal held at the clock time gets the hold-red ring (the only red). A watch deal gets a gray (tertiary) ring.
-  - A history deal is a smaller circle with an ink-2 outline, labelled with its H-id.
-  - An entity is a small square labelled with its kind ("Preparer", "Remit account").
-  - Edges are ink. Width scales with `weight` relative to the largest weight in the graph. Opacity is 0.15 + 0.85 × `rarity`.
-  - The selected node or edge gets a navy outline (selection counts as focus).
-  - Labels are 12px Geist. No glow, shadows or gradients.
+  - The canvas is the light page colour (`--color-page`). A current deal is a filled navy circle. A deal held at the clock time gets the hold-red ring (the only red). A watch deal gets a gray (tertiary) ring.
+  - A history deal is a smaller hollow circle with a navy outline, labelled with its H-id.
+  - An entity is a small sky-filled square with a navy outline, labelled with its kind ("Preparer", "Remit account").
+  - Edges are navy. Width scales with `weight` relative to the largest weight in the graph. Opacity is 0.15 + 0.85 × `rarity`.
+  - The selected node or edge gets a solid sky ring or underlay stroke (no blur).
+  - Labels are 12px Geist in ink. No glow, shadows or gradients. All colours are read from the `index.css` tokens, never written as literals.
   - A history deal listed in `history_flags` is named in the side panel, not coloured, because it is not a hold.
   - Recommendation: approve.
 - **D-36 (ASSUMED, Jesse to confirm): The cluster panel and family checklist.**
@@ -100,7 +100,7 @@ Precedence for every UI plan here: this file, then 02-CONTEXT.md, then 02-UI-SPE
   - Rail item "Fraud graph", placed after Alerts.
   - Recommendation: approve.
 - **D-39 (ASSUMED, Jesse to confirm): "Next event" also stops at every edge time,** so stepping through the week lights the ring one link at a time. Recommendation: approve.
-- **D-40 (ASSUMED, Jesse to confirm): Deal page.** The deal page's fraud panel shows the family checklist for the deal's cluster and an "Open in fraud graph" button. This fills the gap 02-UI-SPEC row 12 deferred to Phase 7. It counts as an extra deal-detail panel, so it is **cut tier 1**. Recommendation: approve.
+- **D-40 (ASSUMED, Jesse to confirm): Deal page.** The deal page's fraud panel shows the family checklist for the deal's cluster and an "Open in fraud graph" button. This fills the gap 02-UI-SPEC row 12 deferred to Phase 7. It counts as an extra deal-detail panel, so it is **cut tier 1** and lives in its own plan, 07-11, which runs last. Recommendation: approve.
 - **D-41 (ASSUMED, Jesse to confirm): Investigation trace.**
   - Titled "Investigation (Nemotron, advisory)".
   - The steps are listed in order: step number, thought, tool, arguments as "key: value" text, then the result. The case summary follows.
@@ -145,7 +145,7 @@ Precedence for every UI plan here: this file, then 02-CONTEXT.md, then 02-UI-SPE
   - The video shows no PDF pages. It shows the running UI, which does display sample deal names, so it is uploaded unlisted until Vijay answers open question 1.
   - The repo stays private unless the organizers require a public link. Publishing a code-only copy cannot be undone, so it is gated by a decision checkpoint in 07-09.
   - Recommendation: approve, and ask Vijay (open question below).
-- **D-50 (ASSUMED, Jesse to confirm): Who runs which plan.** Jesse runs 07-01 to 07-05 and 07-08 to 07-10 with Claude Code on his Mac. Ezekiel runs 07-06 and the engine steps of 07-07. 07-02 is a paired session. Run plans individually by owner rather than letting one machine pick up the other person's wave. Recommendation: approve.
+- **D-50 (ASSUMED, Jesse to confirm): Who runs which plan.** Jesse runs 07-01 to 07-05, 07-08, 07-09 and 07-11 with Claude Code on his Mac. Ezekiel runs 07-06 and the engine steps of 07-07 (Jesse labels the drop in 07-07 Task 3), and writes the README that 07-08 tests. 07-02 Task 3 is a paired session; 07-10 is both. Run plans individually by owner rather than letting one machine pick up the other person's wave. Recommendation: approve.
 
 ### Claude's Discretion
 Exact force strengths, tick counts and label placement inside D-34 and D-35. Spacing and secondary layout inside D-04 to D-12. Wording of empty states, in real banking vocabulary.
@@ -157,37 +157,40 @@ Exact force strengths, tick counts and label placement inside D-34 and D-35. Spa
 
 After H18 (Sun 09:55) only bug fixes, the dry run, the recording and the pitch happen. No new features, and no threshold change without re-running the trap suite.
 
-| Order | What is cut | Plans or tasks | What stays |
-|-------|-------------|----------------|------------|
-| 1 (first) | UI polish: the 600 ms ease between layout keyframes (keyframes snap instead), the deal-page checklist mirror, any styling beyond tokens | 07-01 ease step inside GraphCanvas; 07-03 Task 3 | Graph with keyframe replay, evidence panel, cluster checklist on the graph page |
-| 2 | Red-team view (UI-07), cut with NEM-04 | 07-05 whole plan | Everything else |
-| 3 | Investigation trace panel, cut with NEM-03 | 07-04 whole plan | Deterministic evidence panel and family checklist |
-| Never | Graph tracer, live switch, graph evidence and checklist, dry run, blind record (when the drop lands), clean checkout, pitch, recording, submission | 07-01, 07-02, 07-03 Tasks 1 and 2, 07-06, 07-07, 07-08, 07-09, 07-10 | |
+Tier numbers are the ROADMAP cut list's. Cuttable work sits in the later waves, so the cut line falls on whole plans where it can.
 
-For Jesse's time between H15.5 and H18, finish 07-08 (clean checkout, a submission requirement) before 07-05. Labelling the drop (07-07 Task 2, up to 45 minutes) takes priority over any UI plan the moment the drop lands.
+| ROADMAP tier | What is cut | Plans or tasks | What stays |
+|--------------|-------------|----------------|------------|
+| 1 (first) | UI polish: the 600 ms ease between layout keyframes (keyframes snap instead), and the extra deal-page panel | 07-01 Task 3, the ease step only; **07-11 whole plan** (wave 5) | Graph with keyframe replay, evidence panel, cluster checklist on the graph page |
+| 2 | Nemotron prose polish and the VL fallback (NEM-05, NEM-06) | No Phase 7 UI plan; their fallbacks already ship (template messages, option buttons, OCR) | Everything in Phase 7 |
+| 3 | Red-team view (UI-07), cut with NEM-04 | **07-05 whole plan** (wave 4) | Everything else |
+| 4 | Investigation trace panel, cut with NEM-03 | **07-04 whole plan** (wave 3) | Deterministic evidence panel and family checklist |
+| Never | Graph tracer, live switch, graph evidence and checklist, dry run, sealed blind record (when the drop lands), clean checkout, pitch, recording, submission | 07-01, 07-02, 07-03, 07-06, 07-07, 07-08, 07-09, 07-10 | |
+
+For Jesse's time between H15.5 and H18, finish 07-08 (clean checkout, a submission requirement) before 07-05, and run 07-11 only if time remains. Labelling the drop (07-07 Task 3, up to 45 minutes) takes priority over any UI plan the moment the drop lands.
 
 </cut_line>
 
 <execution_map>
 ## Execution Map (owner, window, wave)
 
-| Plan | Owner | Window (CT) | Wave | depends_on |
-|------|-------|-------------|------|------------|
-| 07-01 Graph tracer on the mock | Jesse | H9 to H10 (00:55 to 01:55) | 1 | none |
-| 07-02 Live switch | Jesse + Ezekiel | H10 to H10.5 (01:55 to 02:25) | 2 | 07-01 |
-| 07-03 Replay, evidence, checklist | Jesse | H10.5 to about H13 | 2 | 07-01 |
-| 07-04 Investigation trace | Jesse | about H13 to H15.5, live check at H15.5 | 3 | 07-03 |
-| 07-05 Red-team view | Jesse | H15.5 to H18 | 4 | 07-02, 07-04 |
-| 07-06 Dry run (sample, synthetic drop, fuzz) | Ezekiel | H15.5 to H19 | 1 | none (engine preconditions) |
-| 07-07 Blind drop record | Ezekiel runs, Jesse labels | Whenever the drop lands | 1 | none (event) |
-| 07-08 Clean checkout | Jesse | H15.5 to H18 | 3 | 07-02 |
-| 07-09 Pitch, demo script, slides, repo decision | Jesse | H10.5 to H18 (alongside UI) | 3 | 07-03 |
-| 07-10 Rehearsal, recording, submission | Both | H18 to H19.75 | 4 | 07-06, 07-08, 07-09 |
+| Plan | Owner | Window (CT) | Wave | depends_on | Cut tier |
+|------|-------|-------------|------|------------|----------|
+| 07-01 Graph tracer on the mock | Jesse | H9 to H10 (00:55 to 01:55) | 1 | none | never (ease: tier 1) |
+| 07-06 Synthetic drop and dry run | Ezekiel | H15.5 to H19 (build early, run after the freeze) | 1 | none (engine preconditions) | never |
+| 07-07 Sealed blind drop record | Ezekiel seals, Jesse labels | Whenever the drop lands (script now) | 1 | none (an event) | never |
+| 07-02 Live switch (I3, I4) | Jesse + Ezekiel | H10 to H10.5 (01:55 to 02:25) | 2 | 07-01 | never |
+| 07-03 Replay, evidence, family checklist | Jesse | H10.5 to about H13 | 2 | 07-01 | never |
+| 07-04 Investigation trace (I5) | Jesse | about H13 to H15.5, live check at H15.5 | 3 | 07-02, 07-03 | 4 |
+| 07-08 Clean checkout (I6) | Jesse | H15.5 to H18 | 3 | 07-02 | never |
+| 07-09 Pitch, demo script, slides, repo decision | Jesse | H10.5 to H18 (alongside UI) | 3 | 07-03 | never |
+| 07-05 Red-team view (I5) | Jesse | H15.5 to H18 | 4 | 07-02, 07-04 | 3 |
+| 07-10 Verify, record, submit | Both | H18 to H19.75 | 4 | 07-06, 07-08, 07-09 | never |
+| 07-11 Deal-page checklist mirror | Jesse | last, before H18 if time allows | 5 | 07-03, 07-05 (cut-order ordering) | 1 |
 
-Waves show dependencies only. Jesse's UI plans run one at a time in plan order. 07-10 starts after H18, whatever state 07-04 and 07-05 are in (its first task checks this).
+Waves show dependencies and file ownership only. Jesse's UI plans run one at a time in plan order (07-01, 07-02, 07-03, 07-09 alongside, 07-04, 07-08, 07-05, 07-11). 07-10 starts after H18, whatever state 07-04, 07-05 and 07-11 are in (its first task checks which exist). 07-02 and 07-03 are in the same wave and both need an API on port 8000; each starts its own (07-03 on the mock), so their order does not matter.
 
-Phase 2 status on main at planning time (Sat ~20:45): 02-01 and 02-02 done, 02-03 partly committed, 02-04 not started. 07-01 needs 02-03 finished (rail, routes, deal page). 07-02 needs 02-04 finished (inbox and alerts). Each plan states this as a precondition.
-
+Phase 2 status on main at the time of this update (Sun ~01:00): 02-01 to 02-04 are complete (02-04's human visual check is pending), and the look was restyled in the navy and sky palette. `MOCK=0` still answers 503, so 07-02 Task 3 waits on Ezekiel's live wiring and falls back to the mock (D-43).
 </execution_map>
 
 <contract_requests>
@@ -276,6 +279,9 @@ Downstream agents MUST read these before planning or implementing.
 1. May the public demo video and Devpost page show sample deal names and engine outputs from the UI (no PDF pages, no challenge text)? (Decides D-49.)
 2. Existing HANDOFF §5 Q7: does submission require a public repo? (07-09 Task 3 decision.)
 3. Existing HANDOFF §5 Q2: how does the drop arrive (its own zip and arrivals, or files added to the sample)? 07-07 handles both.
+4. Is the Nemotron replay cache committed to git? It holds model text derived from the data pack (a confidentiality question), but a clean checkout and the offline demo need it (07-08 Task 2). Ezekiel and Jesse to decide; the README must say where it lives.
+5. HANDOFF §6 names a borrower in a pitch line ("Tyler's paperwork is a mess"). The public rules forbid borrower names, so 07-09 uses "an honest borrower with a messy file" in slides, Devpost text and the spoken pitch unless Jesse says otherwise.
+6. When does Ezekiel's live wiring land? `MOCK=0` answers 503 today. 07-02 Task 3 needs the exact start command and answers to CR-07 to CR-09; until then the demo data stays on the mock (D-43).
 
 </open_questions>
 
@@ -296,11 +302,11 @@ Downstream agents MUST read these before planning or implementing.
 | Source | ID | Item | Plan | Status |
 |--------|----|------|------|--------|
 | GOAL | - | Ring lights up on the clock; why each link matters; what agents found; fresh drop with no code changes; recorded demo and 3-minute pitch | 07-01 to 07-10 | COVERED |
-| REQ | UI-06 | Graph with rarity edges, clock replay, evidence panel, family checklist, investigator trace | 07-01, 07-02, 07-03, 07-04 | COVERED |
+| REQ | UI-06 | Graph with rarity edges, clock replay, evidence panel, family checklist, investigator trace | 07-01, 07-02, 07-03, 07-04, 07-11 | COVERED |
 | REQ | UI-07 | Red-team results view | 07-05 | COVERED (cut tier 3 allowed by ROADMAP) |
 | REQ | DEMO-01 | Drop dry run with no code changes | 07-06, 07-07 | COVERED |
 | REQ | DEMO-02 | Clean checkout on Jesse's machine | 07-08 | COVERED |
-| REQ | DEMO-03 | Recorded demo in replay mode, 3-minute pitch, slides | 07-09, 07-10 (live data via 07-02) | COVERED |
+| REQ | DEMO-03 | Recorded demo in replay mode, 3-minute pitch, slides | 07-07 (headline record), 07-09, 07-10 (live data via 07-02) | COVERED |
 | ROADMAP | SC1 | Phase 2 cockpit on live data by H10.5 | 07-02 | COVERED |
 | RESEARCH (Phase 2) | Pattern 4 | Live mode needs refetching behind one switch | 07-02 | COVERED |
 | UI-SPEC (Phase 2) | Unresolved rows | Needed-by badge timing and the SLA-stops-at-exit rule, to confirm at the live switch | 07-02 | COVERED |
