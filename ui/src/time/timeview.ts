@@ -50,14 +50,16 @@ export interface AlertLike {
   message: string
 }
 
-const SIM_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})-06:00$/
+// The contract's parse_sim_time accepts seconds and a fraction, so the UI does too (WR-07).
+const SIM_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?-06:00$/
 const HOUR_MS = 3600_000
 
 export function simToMs(s: string): number {
   const m = SIM_RE.exec(s)
   if (!m) throw new Error(`not a -06:00 sim time: ${s}`)
   // -06:00 means UTC = wall clock + 6h
-  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) + 6 * HOUR_MS
+  const ms = m[7] === undefined ? 0 : Math.round(+`0${m[7]}` * 1000)
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], m[6] === undefined ? 0 : +m[6], ms) + 6 * HOUR_MS
 }
 
 // Inverse of simToMs: the YYYY-MM-DDTHH:mm-06:00 shape the contract's parse_sim_time accepts.
@@ -313,7 +315,8 @@ export function nextEventAfter(details: EventSource[], t: number, extra: string[
     for (const a of d.alerts ?? []) consider(a.at)
   }
   for (const s of extra) consider(s)
-  return best === null ? null : msToSim(best)
+  // Round a time with seconds up to the next whole minute, so Next event always moves the clock forward.
+  return best === null ? null : msToSim(Math.ceil(best / 60_000) * 60_000)
 }
 
 // Held first, then soonest needed-by (none last), then longest in stage, then folder name.

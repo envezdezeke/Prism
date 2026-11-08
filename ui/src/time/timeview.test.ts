@@ -411,3 +411,29 @@ test('WR-03 inboxAt keeps serverAnswered on an item the fixture answers later in
   const o = { [open.id]: { answer: 'approve', answered_at: '2026-11-04T18:00-06:00' } }
   assert.equal(inboxAt(inbox, SNAP, o).find((i) => i.id === open.id)!.serverAnswered, false)
 })
+
+// WR-07: the contract's parse_sim_time accepts seconds; the UI must parse them rather than throw.
+test('WR-07 simToMs and fmtSimTime accept optional seconds and fractions', () => {
+  const base = simToMs('2026-11-06T15:00-06:00')
+  assert.equal(simToMs('2026-11-06T15:00:00-06:00'), base)
+  assert.equal(simToMs('2026-11-06T15:00:30-06:00'), base + 30_000)
+  assert.equal(simToMs('2026-11-06T15:00:30.500-06:00'), base + 30_500)
+  assert.equal(fmtSimTime('2026-11-06T15:00:30-06:00'), 'Fri 11/06 3:00 PM CT')
+  assert.throws(() => simToMs('2026-11-06T15:00+00:00'))
+  assert.throws(() => simToMs('not a time'))
+})
+
+test('WR-07 a seconds-bearing needed_by and stage time flow through the board without throwing', () => {
+  const d: any = {
+    folder: 'X', needed_by: '2026-11-06T15:00:00-06:00', stage: 'Intake', stage_entered_at: '2026-11-02T08:00:00-06:00',
+    sla_hours: 8, sla_pct: 0, held: false, watch: false,
+    fraud: { flagged: false, held: false, flagged_at: null },
+    stage_log: [{ stage: 'Intake', entered_at: '2026-11-02T08:00:00-06:00', exited_at: null, why: '' }],
+  }
+  const rows = boardAt([d], simToMs('2026-11-02T12:00-06:00'))
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].dwellMs, 4 * 3600_000)
+  assert.equal(sortBoardRows(rows).length, 1)
+  assert.equal(nextEventAfter([d], simToMs('2026-11-02T09:00-06:00')), null)
+  assert.equal(msToSim(simToMs('2026-11-02T08:00:30-06:00')), '2026-11-02T08:00-06:00')
+})

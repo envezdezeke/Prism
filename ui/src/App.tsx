@@ -3,6 +3,7 @@ import { Board } from '@/components/app/Board'
 import { ClockBar } from '@/components/app/ClockBar'
 import { AlertsFeed } from '@/components/app/AlertsFeed'
 import { DealDetail } from '@/components/app/DealDetail'
+import { ErrorBoundary } from '@/components/app/ErrorBoundary'
 import { Inbox } from '@/components/app/Inbox'
 import { useInbox } from './data/queries.ts'
 import { buildHash } from './route.ts'
@@ -94,10 +95,12 @@ export default function App() {
       <div className="flex">
         <Rail />
         <main className="flex min-w-0 flex-1 flex-col gap-4 p-6">
-          {status === 'ready' && route.view === 'deal' && <DealDetail key={route.folder} folder={route.folder} />}
-          {status === 'ready' && route.view === 'pipeline' && <Board />}
-          {status === 'ready' && route.view === 'inbox' && <Inbox />}
-          {status === 'ready' && route.view === 'alerts' && <AlertsFeed />}
+          <ErrorBoundary resetKey={buildHash(route)}>
+            {status === 'ready' && route.view === 'deal' && <DealDetail key={route.folder} folder={route.folder} />}
+            {status === 'ready' && route.view === 'pipeline' && <Board />}
+            {status === 'ready' && route.view === 'inbox' && <Inbox />}
+            {status === 'ready' && route.view === 'alerts' && <AlertsFeed />}
+          </ErrorBoundary>
         </main>
       </div>
     </>
