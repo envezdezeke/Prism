@@ -135,7 +135,7 @@ At 100% of the limit: alert the stage owner **and the deal's RM**. At 150%: esca
 - [ ] Only the allowed values in every list (stages, purposes, products, request types, alert levels, issue labels). [F]
 - [ ] Extra fields are allowed and ignored, so we can add evidence for the demo. [F]
 
-## 8. Judgment calls (decided by Jesse, 2026-11-07)
+## 8. Judgment calls (decided by Jesse, 2026-11-07; J21–J22 added with the message templates)
 
 Zeke builds to these. **Vijay?** = we've decided, but ask the organizers to confirm; change only if they say otherwise.
 
@@ -161,3 +161,5 @@ Zeke builds to these. **Vijay?** = we've decided, but ask the organizers to conf
 | J18 | When does a deadline-risk alert fire? | As soon as the remaining stages can't fit before needed_by, using each stage's **typical duration from the bank's history** (`stage_events.csv`) and counting business hours for human sign-offs | |
 | J19 | A Collections notice on a funded deal | Re-check its links; add past deals to history_flags only if they share several of the scheme's signs, never just one | |
 | J20 | Who answers human requests during judging (our screen, files, or their system)? | Unknown. Support both our inbox and scripted answers | **Vijay? (top priority)** |
+| J21 | An unanswered sign-off request: when does the backup get it? | At 100% of the stage limit: reminder to the person plus the same request to their backup; first answer wins (`docs/MESSAGE_TEMPLATES.md` §2) | |
+| J22 | An unanswered fraud hold request (no limit in the rulebook) | 2 hours → monica.salas; another 4 hours → lauren.kim. The deal stays frozen and `held: true` throughout (J5) | |
