@@ -179,7 +179,7 @@ export function GraphCanvas({
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
     ctx.font = `${n.type === 'entity' ? 400 : 600} ${fs}px 'Geist Variable', ui-sans-serif, sans-serif`
-    ctx.fillStyle = withAlpha(lit ? p.ink : n.type === 'entity' ? p.ink2 : p.ink, inFocus ? 1 : 0.4)
+    ctx.fillStyle = withAlpha(lit ? p.hold : n.type === 'entity' ? p.ink2 : p.navy, inFocus ? 1 : 0.4)
     const top = y + (n.type === 'entity' ? ENTITY_SIDE / 2 : DEAL_R) + 4 / textScale(scale)
     ctx.fillText(n.label, x, top)
     if (n.type === 'entity' && inFocus) {
@@ -225,7 +225,7 @@ export function GraphCanvas({
     } else if (ring) {
       ctx.strokeStyle = withAlpha(p.navy, 0.85 * fade)
     } else {
-      ctx.strokeStyle = withAlpha(inFocus ? p.ink2 : p.edge, base * fade)
+      ctx.strokeStyle = withAlpha(inFocus ? p.navy : p.edge, base * fade)
     }
     ctx.stroke()
     if (selected) {
@@ -244,7 +244,7 @@ export function GraphCanvas({
       const mx = (sx + tx) / 2
       const my = (sy + ty) / 2
       const w = ctx.measureText(label).width + 6 / textScale(scale)
-      ctx.fillStyle = withAlpha(p.page, 0.85)
+      ctx.fillStyle = withAlpha(p.surface, 0.85)
       ctx.fillRect(mx - w / 2, my - fs * 0.7, w, fs * 1.4)
       ctx.fillStyle = lit ? p.hold : p.ink2
       ctx.textAlign = 'center'
@@ -261,7 +261,7 @@ export function GraphCanvas({
           width={size.w}
           height={size.h}
           graphData={data}
-          backgroundColor={p.page}
+          backgroundColor={p.surface}
           nodeId="id"
           // No hover tooltips: force-graph writes them as HTML, and engine strings render as text only.
           nodeLabel={() => ''}

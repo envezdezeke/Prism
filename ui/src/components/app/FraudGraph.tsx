@@ -16,17 +16,12 @@ import { GraphCanvas } from './GraphCanvas.tsx'
 import type { Selection } from './GraphCanvas.tsx'
 import { Caption, ErrorState, LoadingState, PageTitle, PipelineLink } from './Primitives.tsx'
 
-// Investigation mode (D-25): the dark tokens apply to the whole frame while this screen is mounted.
-// Set in a layout effect so the canvas palette is read after the switch, and removed on the way out.
+// The graph shares the light navy/sky palette with every other tab; the canvas reads it from the tokens.
 function useInvestigationMode(): GraphPalette | null {
   const [palette, setPalette] = useState<GraphPalette | null>(null)
   useLayoutEffect(() => {
     const root = document.documentElement
-    root.dataset.view = 'investigate'
     setPalette(readPalette(root))
-    return () => {
-      delete root.dataset.view
-    }
   }, [])
   return palette
 }
@@ -153,7 +148,7 @@ export function FraudGraphView({
       </header>
 
       <div className="flex h-[calc(100vh-14rem)] min-h-[32rem] gap-4">
-        <div className="relative min-w-0 flex-1 overflow-hidden rounded-md border border-line bg-page">
+        <div className="relative min-w-0 flex-1 overflow-hidden rounded-md border border-line border-t-4 border-t-navy bg-surface">
           {palette && (
             <GraphCanvas
               view={view}

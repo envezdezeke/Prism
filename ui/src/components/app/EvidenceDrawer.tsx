@@ -16,7 +16,7 @@ type Tab = 'evidence' | 'investigator'
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2 border-t border-line pt-4">
-      <h3 className="text-xs font-semibold text-ink-2">{title}</h3>
+      <h3 className="border-l-4 border-sky pl-2 text-xs font-bold tracking-wide text-navy uppercase">{title}</h3>
       {children}
     </section>
   )
@@ -92,7 +92,7 @@ function EdgeEvidence({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <Caption>Shared {entityKindLabel(edge.entity_kind).toLowerCase()}</Caption>
-        <p className="text-base font-semibold">{nodeLabel(edge.target)}</p>
+        <p className="text-base font-bold text-navy">{nodeLabel(edge.target)}</p>
       </div>
       <p className="text-base">{edge.evidence}</p>
       <dl className="flex flex-col gap-2">
@@ -158,7 +158,7 @@ function NodeEvidence({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <Caption>{isEntity ? entityKindLabel(node.kind) : node.type === 'history_deal' ? 'Prior deal (history)' : 'Deal'}</Caption>
-        <p className="text-base font-semibold">{node.label}</p>
+        <p className="text-base font-bold text-navy">{node.label}</p>
         {status !== null && <p className="text-sm text-ink-2">{status}</p>}
         {boardFolders.includes(id) && (
           <p className="text-sm">
@@ -279,7 +279,7 @@ export function EvidenceDrawer({
   const selKey = selection === null ? 'none' : selection.kind === 'edge' ? `e:${selection.edge.source}:${selection.edge.target}` : `n:${selection.id}`
 
   return (
-    <aside aria-label="Evidence" className="flex w-80 shrink-0 flex-col gap-4 overflow-y-auto rounded-md border border-line bg-surface p-4">
+    <aside aria-label="Evidence" className="flex w-80 shrink-0 flex-col gap-4 overflow-y-auto rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
       <div role="tablist" aria-label="Drawer" className="flex gap-4 border-b border-line">
         <button type="button" role="tab" aria-selected={tab === 'evidence'} className={tabClass('evidence')} onClick={() => setTab('evidence')}>
           Evidence

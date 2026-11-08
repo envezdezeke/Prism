@@ -54,7 +54,7 @@ export function LoadingState({ children }: { children: ReactNode }) {
 export function EmptyState({ heading, children }: { heading?: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col gap-1 rounded-md border border-line bg-surface p-4">
-      {heading && <p className="text-base font-semibold">{heading}</p>}
+      {heading && <p className="text-base font-bold text-navy">{heading}</p>}
       {children && <div className="text-sm text-ink-2">{children}</div>}
     </div>
   )
@@ -74,7 +74,7 @@ export function ErrorState({
     <div role="alert" className="flex items-start gap-2 rounded-md border border-line bg-surface p-4 text-ink">
       <CircleAlert className="mt-0.5 size-4 shrink-0 text-ink-2" aria-hidden="true" />
       <div className="flex flex-col gap-2">
-        {heading && <p className="text-base font-semibold">{heading}</p>}
+        {heading && <p className="text-base font-bold text-navy">{heading}</p>}
         <p className="text-sm">{message}</p>
         {onRetry && (
           <div>
