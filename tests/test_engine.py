@@ -267,7 +267,14 @@ def test_tracer_tiny_set_to_valid_submission(tiny_set):
     for deal in payload["deals"].values():
         assert set(deal) == {"extracted", "issues", "stage_log", "human_requests", "alerts", "fraud"}
         assert all(v is None for v in deal["extracted"].values())
-        assert deal["issues"] == [] and deal["stage_log"] == []
+        # D-12 (user-approved): zero-byte files cannot be classified, so every requirement is unmet. With no
+        # readable application date the statement window anchors on the last arrival's month (2026-01), so
+        # the six months before it are missing. Issues were [] while detect_issues was a stub.
+        assert deal["issues"] == sorted(
+            ["MISSING_DOC:application", "MISSING_DOC:guarantor_id", "MISSING_DOC:certificate_of_formation",
+             "MISSING_DOC:ein_letter", "MISSING_DOC:financial_statements", "MISSING_DOC:tax_return"]
+            + [f"MISSING_DOC:bank_statement_2025-{m:02d}" for m in range(7, 13)]
+        ) and deal["stage_log"] == []
         assert deal["fraud"]["flagged"] is False and deal["fraud"]["held"] is False
     assert payload["history_flags"] == []
     Submission.model_validate(payload)

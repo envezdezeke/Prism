@@ -1,0 +1,38 @@
+# Read issue rules (Phase 3, plan 03-03). Generic words only: no company, person, EIN, address or
+# amount from any sample belongs here (the guard test scans this file).
+#
+# The `requirements` list is the LABEL MAPPING of the prose `required_to_exit` entries in
+# rules/stages.json (Intake, Credit and Product). The prose is not parsed at runtime: the bank wrote
+# it for people, so the mapping to ISSUE_RE targets lives here, one entry per requirement.
+#
+#   Intake   "loan application (signed)"                -> application
+#            "government photo ID for each guarantor"   -> guarantor_id (one per guarantor)
+#            "certificate of formation"                 -> certificate_of_formation
+#            "IRS EIN letter"                           -> ein_letter
+#   Credit   "bank statements for the 6 most recent full months (all pages)"
+#                                                       -> bank_statement_<YYYY-MM> per month
+#            "financial statements (P&L + balance sheet)" -> financial_statements
+#            "most recent business tax return OR Form 7004 if < 2 years old" -> tax_return
+#   Product  "equipment loans: vendor quote present"    -> equipment_quote
+#
+# kind says which rule evaluates the entry:
+#   single            satisfied by any document of doc_class
+#   signed_single     like single, and a parsed application whose `signed` is exactly False does not count
+#   guarantors        one doc of doc_class per guarantor on the application (at least one)
+#   statements        one bank_statement per calendar month in the window (label gets the month)
+#   financials        a P&L and a balance sheet across the financial_statements docs
+#   tax_or_extension  a tax return, or a Form 7004 only when the business is under young_business_years
+#   product_quote     doc_class required only when the application's product equals `when_product`
+requirements:
+  - {label: application, kind: signed_single, doc_class: application, stage: Intake}
+  - {label: guarantor_id, kind: guarantors, doc_class: guarantor_id, stage: Intake}
+  - {label: certificate_of_formation, kind: single, doc_class: certificate_of_formation, stage: Intake}
+  - {label: ein_letter, kind: single, doc_class: ein_letter, stage: Intake}
+  - {label: bank_statement, kind: statements, doc_class: bank_statement, stage: Credit}
+  - {label: financial_statements, kind: financials, doc_class: financial_statements, stage: Credit}
+  - {label: tax_return, kind: tax_or_extension, doc_class: tax_return, extension_class: form_7004, stage: Credit}
+  - {label: equipment_quote, kind: product_quote, doc_class: equipment_quote, when_product: "Equipment Loan", stage: Product}
+
+statement_window_months: 6     # the six full calendar months before the month of the reference date
+young_business_years: 2        # a Form 7004 stands in for a tax return only below this age
+anchor_fallback: last_arrival  # reference date when the application shows no date: the last arrival's date
