@@ -1,0 +1,86 @@
+# Red-team extension of the trick menu (same schema as eval/trick_menu.yaml).
+#
+# Jesse's core menu stays untouched. This file adds the generic weaknesses found by the
+# 2026-11-08 fraud red team (.planning/audits/2026-11-08/FRAUD-REDTEAM.md) as extra families:
+# a ring with no equipment vendor, a mule deal inside a held ring, entity values written in
+# different typography, and a history whose dates are shifted. Everything is fake-only and
+# written at the level of history-schema rows; see eval/trick_menu.yaml for the generation
+# rules (they apply unchanged). Run with `--menus core,redteam`.
+
+version: 1
+owner: Jesse
+status: draft-for-review
+seed: 20261108
+extends: trick_menu.yaml
+
+families:
+
+  - id: R1
+    name: non_equipment_kit_ring
+    description: >
+      The shared-kit ring of T1, but the loans are plain working capital: no equipment
+      vendor, so there is no lookalike vendor to find. Only the shared preparer and phone,
+      the new PDF tool and the manufactured deposits give it away.
+    strengths:
+      med:
+        seed: 31101
+        count: 20
+        params: {ring_size: 3, shared: [preparer, phone], app_spread_days: 21, round_share_q: 0.97,
+                 weekdays: 2, regularity: 1, producer: new_shared}
+        expected: {full: hold, now: watch}
+        why: "F1 + F5 + F4 (+F2). Today F3 is missing, and a non-equipment ring has no way to supply it"
+      high:
+        seed: 31102
+        count: 20
+        params: {ring_size: 4, shared: [preparer, phone, registered_agent], app_spread_days: 10,
+                 round_share_q: 0.995, weekdays: 2, regularity: 1, producer: new_shared}
+        expected: {full: hold, now: watch}
+        why: "F1 + F5 + F4 + F2, no vendor"
+
+  - id: R2
+    name: mule_deal_in_ring
+    description: >
+      A held ring with one "mule" member: it shares the kit (preparer, phone) but its own
+      deposits and terms look ordinary. Every ring member should be held, not just the
+      members that look bad on their own.
+    strengths:
+      med:
+        seed: 31201
+        count: 20
+        params: {ring_size: 4, shared: [preparer, phone, remit_account], app_spread_days: 10,
+                 round_share_q: 0.995, weekdays: 2, regularity: 1, producer: new_shared,
+                 vendor_lookalike: suffix_swap, mule_count: 1}
+        expected: {full: hold, now: hold}
+        why: "3 members look like T1-high; the 4th shares only the kit and must be held with its cluster"
+
+  - id: R3
+    name: entity_formatting_variants
+    description: >
+      The same shared entities typed differently on different deals: upper case, extra
+      spaces, trailing full stops, "(512) 555-0142" against "512-555-0142", "Suite" against
+      "Ste". Matching must be on the canonical value, not the string.
+    strengths:
+      med:
+        seed: 31301
+        count: 20
+        params: {ring_size: 4, shared: [preparer, phone, remit_account], app_spread_days: 10,
+                 round_share_q: 0.995, weekdays: 2, regularity: 1, producer: new_shared,
+                 vendor_lookalike: suffix_swap, format_variant: true}
+        expected: {full: hold, now: hold}
+        why: "same signals as T1-high; only the typography differs"
+
+  - id: R4
+    name: date_shifted_history
+    description: >
+      The T1-high ring against a history whose dates are all shifted a year later (a hidden
+      set whose history window differs from the sample). The calibration window must not
+      silently switch the signals off.
+    strengths:
+      high:
+        seed: 31401
+        count: 20
+        params: {ring_size: 4, shared: [preparer, phone, remit_account], app_spread_days: 10,
+                 round_share_q: 0.995, weekdays: 2, regularity: 1, producer: new_shared,
+                 vendor_lookalike: suffix_swap, history_shift_days: 365}
+        expected: {full: hold, now: hold}
+        why: "identical to T1-high apart from the shifted history dates"

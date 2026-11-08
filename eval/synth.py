@@ -40,7 +40,9 @@ from prism.fraud.canon import canon_value  # noqa: E402
 from prism.fraud.rarity import percentile  # noqa: E402
 
 MENU_PATH = ROOT / "eval" / "trick_menu.yaml"
-DEFAULT_HISTORY = "/Users/jes/Goldman-I/data/participant/history"
+REDTEAM_MENU_PATH = ROOT / "eval" / "trick_menu_redteam.yaml"
+MENU_SETS = {"core": MENU_PATH, "redteam": REDTEAM_MENU_PATH}
+DEFAULT_HISTORY = str(ROOT / "data" / "participant" / "history")
 
 DEAL_COLUMNS = [
     "deal_id", "application_date", "legal_name", "ein", "industry", "naics", "formation_date",
@@ -108,6 +110,14 @@ class Cell:
 def load_menu(path: Path = MENU_PATH) -> dict[str, Any]:
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def cells_for(sets: Sequence[str] = ("core",)) -> list[Cell]:
+    """Cells of the named menu sets ("core" = Jesse's committed menu, "redteam" = extension)."""
+    out: list[Cell] = []
+    for name in sets:
+        out.extend(cells_of(load_menu(MENU_SETS[name])))
+    return out
 
 
 def cells_of(menu: Mapping[str, Any]) -> list[Cell]:
@@ -376,19 +386,23 @@ def build_case(cell: Cell, index: int, hist: History) -> Case:
         row.update(deal_id=did, application_date=applied.isoformat(), final_status="pending",
                    fraud_label="", repayment_status="")
         deps = [dict(d, deal_id=did) for d in base_dep]
+        mule = trick and i >= size - int(p.get("mule_count", 0))
         if trick:
             row.update(shared_cols)
+            if p.get("format_variant") and i % 2 == 1:
+                for col in list(shared_cols):
+                    row[col] = format_variant(col, shared_cols[col])
             if producer_new:
                 row["pdf_producer"] = producer_new
             if p.get("name_variant") == "nickname_or_initial" and i > 0:
                 first, _, last = row["guarantor_name"].partition(" ")
                 row["guarantor_name"] = f"{first} {chr(65 + i)}. {last}"
-            if uses_vendor:
+            if uses_vendor and not mule:
                 _apply_vendor(row, p, vendor_base, usual_account, fk, shared_cols)
             if "formation_age_months" in p:
                 months = _range(p["formation_age_months"], rng)
                 row["formation_date"] = (applied - timedelta(days=30 * months)).isoformat()
-            if share_value is not None or ring_label is not None or regular:
+            if not mule and (share_value is not None or ring_label is not None or regular):
                 if regular and ring_count is None:
                     ring_count = int(round(sum(_num(d["deposit_count"]) for d in deps) / len(deps)))
                 for d in deps:
@@ -398,7 +412,10 @@ def build_case(cell: Cell, index: int, hist: History) -> Case:
                         d["deposit_weekdays"] = ring_label
                     if regular:
                         d["deposit_count"] = str(max(1, ring_count))
-            _shape_deposits_and_revenue(row, deps, p, rng, share_value)
+            if not mule:
+                _shape_deposits_and_revenue(row, deps, p, rng, share_value)
+            else:
+                case.notes.append(f"{did} is a mule: shared kit only, ordinary deposits and terms")
             case.trick_ids.append(did)
         else:
             case.background_ids.append(did)
@@ -408,6 +425,18 @@ def build_case(cell: Cell, index: int, hist: History) -> Case:
     _plant(case, cell, p, fk, rng, hist, shared_cols, shared_kinds, returning, tag, size,
            vendor_base, usual_account, uses_vendor)
     return case
+
+
+def format_variant(col: str, value: str) -> str:
+    """Same entity, different typography (case, punctuation, spacing); canon must still unify it."""
+    if col == "preparer_phone":
+        a, b, c = value.split("-")
+        return f"1 ({a}) {b}-{c}"
+    if col in ("business_address", "registered_agent_address"):
+        return value.upper().replace(" STE ", " SUITE ").replace(",", " ,")
+    if col == "vendor_remit_acct_last4":
+        return f" {value} "
+    return value.upper().replace(" ", "  ") + "."
 
 
 def _apply_vendor(row: dict[str, str], p: Mapping[str, Any], base: str, usual: str,

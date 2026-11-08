@@ -65,3 +65,23 @@ The deal keys are the exact folder names; they're already in the file. Don't ren
 ```
 
 Check the file is valid JSON before pushing: `python3 -m json.tool eval/gold.json > /dev/null` (Mac) or paste it into any JSON validator.
+
+## Synthetic fraud deals (`synth.py`, `run_synth.py`)
+
+Eval tooling for the fraud model (MODEL_DESIGN M5, M15, M16, M21). Generates fake deals from `trick_menu.yaml` (8 trick families x 3 strengths, plus honest "twins") and measures how the fraud pipeline treats them. `trick_menu_redteam.yaml` adds four extra families from the red team (ring with no equipment vendor, a mule deal inside a ring, entity values typed differently, date-shifted history). Seeded and deterministic: same menu + same history = identical cases and an identical report. Only fake values are written (made-up names, `555-01xx` phones, `00-7…` EINs, `S-`/`X-` ids); the real history is read only for the clean base rows, the percentile anchors and a "never collide" list. Nothing here tunes a weight or threshold.
+
+```
+PYTHONUTF8=1 .venv/bin/python eval/run_synth.py                      # core menu, both measurements, ~15 s
+PYTHONUTF8=1 .venv/bin/python eval/run_synth.py --menus core,redteam # add the red-team families
+PYTHONUTF8=1 .venv/bin/python eval/run_synth.py --max-cases 2        # quick smoke run
+PYTHONUTF8=1 .venv/bin/python eval/synth.py --out-dir out/synth      # just dump the fake history-schema CSVs
+```
+
+Options: `--mode engine|proxy|both`, `--history-dir DIR` (default `PRISM_HISTORY_DIR` or the data pack), `--out-dir` (default `out/`). Output: `out/synth_report.json` and `out/synth_report.md`.
+
+**Bypassing Read.** Each fake deal is injected as `DealState.entities` (raw entity values) plus `features["deposit_months"]` (six monthly rows), which is exactly what `prism.read` will leave behind. Cases replay one arrival at a time on a simulated clock (each new arrival ages the earlier deals one stage, so "earliest hold stage" means something). Two measurements are reported side by side:
+
+- **engine**: calls `prism.fraud.decide.evaluate(states, baseline, cfg, now)` and reads `FraudOutcome.per_deal[folder]` (`held`/`flagged`, `stage_at_flag`) and `FraudOutcome.clusters` (`tier == "watch"`). Holds are sticky across arrivals. While `decide()` is a stub this is ~0% everywhere. This is the number to re-run as `decide.py` is built.
+- **proxy**: the documented hold rule (F1 plus `hold_min_additional` of the built families F3/F5) applied directly to the signal functions. A reference for what `decide()` should reach.
+
+Per trick the report gives ring deals held %, watch %, held by strength, twin false-hold % (target <= 5%), twin watch % (friction), and the earliest hold stage. Blind-spot cells are listed but excluded from the 70% bar. Old-rule cells (T8) and `history_flags` are not measurable until the known-checks path and `decide()` exist. Tests: `tests/test_eval_synth.py`.
