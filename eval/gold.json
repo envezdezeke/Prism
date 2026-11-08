@@ -8,21 +8,28 @@
   },
   "deals": {
     "Bluebonnet Landscape": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Bluebonnet Landscape Services LLC",
+        "ein": "61-1873390",
+        "amount_requested": 250000,
+        "purpose_category": "equipment",
+        "product": "Equipment Loan",
+        "term_months": 60,
+        "guarantor_name": "Carlos Medina",
+        "annual_revenue_stated": 2300000,
         "needed_by": null
       },
-      "extracted_accept": {},
+      "extracted_accept": {
+        "amount_requested": [
+          205000
+        ]
+      },
       "sources": {},
-      "issues": [],
+      "issues": [
+        "MISMATCH:amount_requested",
+        "MISSING_DOC:equipment_quote"
+      ],
       "issues_optional": [],
       "routing": {
         "credit_decision": null,
@@ -30,14 +37,14 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Intake",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Application $250,000 vs request letter $205,000 (likely transposition). It decides routing ($250k -> chair harold.benson, $205k -> delegated priscilla.nguyen), so the deal stays in Intake with an info_request to the borrower (J15); no correction arrives in the sample week. Equipment loan with no vendor quote among its 13 files (reported now, blocks at Product, J11). Everything else ties out; revenue 2.3M vs deposits annualized 2.55M. Not fraud."
     },
     "Garza Family Pharmacy": {
       "status": "done",
@@ -136,21 +143,24 @@
       "notes": ""
     },
     "LSFD_docs": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Lone Star Family Dental PLLC",
+        "ein": "35-2840017",
+        "amount_requested": 180000,
+        "purpose_category": "equipment",
+        "product": "Equipment Loan",
+        "term_months": 60,
+        "guarantor_name": "Angela Wu",
+        "annual_revenue_stated": 2650000,
         "needed_by": null
       },
       "extracted_accept": {},
       "sources": {},
-      "issues": [],
+      "issues": [
+        "MISSING_DOC:tax_return",
+        "MISSING_DOC:equipment_quote"
+      ],
       "issues_optional": [],
       "routing": {
         "credit_decision": null,
@@ -158,14 +168,14 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Credit",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "All files named SCAN_*.pdf: classify by content. No tax return (est. 2017, so a 7004 would not qualify) and no equipment quote. Intake docs complete, so it exits Intake and stops at Credit (no credit_decision on an incomplete file; info_request to borrower). Revenue 2.65M vs deposits annualized 2.90M. Not fraud."
     },
     "Oakline Auto": {
       "status": "done",
@@ -239,16 +249,16 @@
       "notes": "Big and international but real. $1.2M >= $250k -> committee chair (48h). Returning customer (H-2601-006, $900k RLOC funded/current). Contracts in UK/DE/SG/AE/US match wires; 7 of 22 deposits round but client-named and spread across weekdays. Revenue 9.8M vs deposits annualized 11.2M (0.87x)."
     },
     "Pecan Grove Catering": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Pecan Grove Catering Co LLC",
+        "ein": "99-1083527",
+        "amount_requested": 248000,
+        "purpose_category": "equipment",
+        "product": "Equipment Loan",
+        "term_months": 60,
+        "guarantor_name": "Alyssa Ford",
+        "annual_revenue_stated": 980000,
         "needed_by": null
       },
       "extracted_accept": {},
@@ -261,46 +271,52 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Intake",
       "fraud": {
-        "flagged": false,
-        "held": false,
-        "latest_ok_stage": null,
-        "linked_deals": []
+        "flagged": true,
+        "held": true,
+        "latest_ok_stage": "Committed",
+        "linked_deals": [
+          "Ridgeway Freight Logistics"
+        ]
       },
-      "notes": ""
+      "notes": "HOLD at Intake (lands Tue 11:11-11:30; Ridgeway already held Mon). Shares with Ridgeway: preparer K. Delacroix 214-555-0187, agent Commerce Street Agent Services, lookalike vendor Metroplex Equipment Supply LLC remit ...4471 (quote MQ-0202 vs Ridgeway MQ-0201), DocuForge 2.1 on every PDF incl. statements and ID, First Lakes Bank, deposits 100% round $100s Mon/Thu only, identical 2025 gross receipts $470,400, near-sequential DL numbers. $248,000 just under the $250k line. Revenue: 2025 return covers ~6 months; $980k run rate matches deposits (not a mismatch, J13). Linked list finalised after all 13."
     },
     "Priya's Bakery": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
-        "needed_by": null
+        "legal_name": "Sunrise Rasoi Bakery LLC",
+        "ein": "82-1974405",
+        "amount_requested": 35000,
+        "purpose_category": "payroll",
+        "product": "Working Capital Loan",
+        "term_months": 12,
+        "guarantor_name": "Priya Raman",
+        "annual_revenue_stated": 640000,
+        "needed_by": "2026-11-06T15:00-06:00"
       },
-      "extracted_accept": {},
+      "extracted_accept": {
+        "purpose_category": [
+          "working_capital"
+        ]
+      },
       "sources": {},
       "issues": [],
       "issues_optional": [],
       "routing": {
-        "credit_decision": null,
-        "committee_approval": null,
-        "commitment_signoff": null,
-        "funding_release": null
+        "credit_decision": "marcus.lee",
+        "committee_approval": "priscilla.nguyen",
+        "commitment_signoff": "elena.ruiz",
+        "funding_release": "tasha.reed"
       },
-      "final_stage": null,
+      "final_stage": "Closed",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Deadline deal: funds must be released before Fri 2026-11-06 15:00 (payroll). Assigned credit officer dana.whitfield is OOO Tue 08:00-Fri 18:00; file lands Tue 08:46 -> backup marcus.lee. Returning customer (H-2512-005, $30k WC funded/current, 'funded in 2 days to meet a payroll date'). All docs complete; revenue 640k vs deposits annualized 679k."
     },
     "Ridgeway Freight Logistics": {
       "status": "done",
