@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/source-serif-4";
+
+/* Design tokens: 02-UI-SPEC.md is the source of truth (D-04 to D-08, D-19).
+   Navy is the only accent. Red is reserved for a fraud hold. No dark theme. */
+
+@theme {
+  /* Drop Tailwind's default palette, scale and shadows so no stray colour, size or
+     shadow utility (violet, text-xl, shadow-lg) can compile. */
+  --color-*: initial;
+  --text-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+
+  --color-page: #FAF9F7;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F5F5F4;
+  --color-ink: #1C1917;
+  --color-ink-2: #57534E;
+  /* Null dashes, SLA fill and ticks, input borders. Never caption text. */
+  --color-tertiary: #78716C;
+  --color-line: #E7E5E4;
+  --color-navy: #1B2A41;
+  --color-hold: #B42318;
+  --color-hold-soft: #FEF3F2;
+  --color-risk: #B54708;
+  --color-risk-soft: #FFFAEB;
+  --color-ok: #067647;
+  --color-ok-soft: #ECFDF3;
+
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  /* Serif: page titles only (D-19). */
+  --font-display: 'Source Serif 4 Variable', ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Four sizes: 12, 13, 14 and a 28px page title. */
+  --text-xs: 12px;
+  --text-xs--line-height: 1.4;
+  --text-sm: 13px;
+  --text-sm--line-height: 1.4;
+  --text-base: 14px;
+  --text-base--line-height: 1.4;
+  --text-title: 28px;
+  --text-title--line-height: 1.2;
+
+  /* Nothing exceeds 6px (D-07). */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+  --radius-3xl: 6px;
+  --radius-4xl: 6px;
+
+  /* No shadows (D-08). The tooltip alone takes the faintest elevation. */
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-2xl: none;
+  --shadow-tooltip: 0 4px 12px rgb(28 25 23 / 0.06);
+}
+
+/* shadcn variables, mapped onto the tokens above. */
+:root {
+  --radius: 6px;
+  --background: var(--color-page);
+  --foreground: var(--color-ink);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-navy);
+  --primary-foreground: var(--color-surface);
+  --secondary: var(--color-subtle);
+  --secondary-foreground: var(--color-ink);
+  --muted: var(--color-subtle);
+  --muted-foreground: var(--color-ink-2);
+  --accent: var(--color-subtle);
+  --accent-foreground: var(--color-ink);
+  --destructive: var(--color-hold);
+  --border: var(--color-line);
+  --input: var(--color-tertiary);
+  --ring: var(--color-navy);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    background: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-navy);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
