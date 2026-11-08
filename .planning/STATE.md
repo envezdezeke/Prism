@@ -4,9 +4,9 @@ current_phase: 1
 current_phase_name: Foundations, Contract and Golden Labels
 status: planning
 stopped_at: Planning complete; next is `/gsd-plan-phase 1`
-last_updated: "2026-11-08T00:31:22.693Z"
+last_updated: "2026-11-08T01:22:37.464Z"
 last_activity: "2026-11-07 ~19:00 CT - Completed quick task 261107-pfc: API contract + mock fixtures (I1 delivered). Jesse delivered eval/gold.json, all 13 deals (I2 delivered)"
-state_head: 9712cde4ab781ab4451a54fe51a2500c2d73354e
+state_head: 7838de310ce4aa68cef7ba340da67af18b842583
 progress:
   total_phases: 7
   completed_phases: 0
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 1 of 7 (Foundations, Contract and Golden Labels)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-11-07 ~19:00 CT - Completed quick task 261107-pfc: API contract + mock fixtures (I1 delivered). Jesse delivered eval/gold.json, all 13 deals (I2 delivered)
+Last activity: 2026-11-07 19:22 CT - Completed quick task 261107-qez: engine skeleton (arrival gate, CLI run/validate/score, determinism, stub interfaces for read/move/fraud). Phase 1 engine work done; NEM-02 VL smoke folded into Phase 3 (N10).
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -107,6 +107,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261107-pfc | API contract + mock fixtures (FND-07, I1) | 2026-11-07 | 9712cde | [261107-pfc-api-contract-mock-fixtures-fnd-07-i1](./quick/261107-pfc-api-contract-mock-fixtures-fnd-07-i1/) |
+| 261107-qez | Engine skeleton + validator + determinism + self-score (FND-01..06, FND-08) | 2026-11-07 | 7838de3 | [261107-qez-engine-skeleton-validator-determinism-se](./quick/261107-qez-engine-skeleton-validator-determinism-se/) |
 
 ## Deferred Items
 
