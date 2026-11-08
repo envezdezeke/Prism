@@ -71,6 +71,7 @@ Someone playing bank staff can watch every deal move through the pipeline, open 
 - `.planning/research/STACK.md`: frontend stack and versions (React 19, Vite 8, Tailwind 4, shadcn on Base UI, TanStack Query, zustand), TypeScript 7 `baseUrl` gotcha
 - `docs/MESSAGE_TEMPLATES.md`, `docs/CREDIT_MEMO_TEMPLATE.md`: wording rules
 - `docs/DETAILS_CHECKLIST.md` §3–§5: stage, SLA and deadline rules the board visualizes
+- `docs/UI_PLAYBOOK.md` (Zeke, Sat 19:05): exact design tokens (§2), formatting rules (§3), screen recipes (§4), verification checklist (§6). **Precedence:** this CONTEXT (D-01..D-21) > 02-RESEARCH.md > UI_PLAYBOOK. Overrides: fonts per D-19 (bundled Source Serif 4 + Geist), names per D-17, clock per D-21, no toasts per D-20; playbook §5 extras are stretch only.
 
 </canonical_refs>
 
