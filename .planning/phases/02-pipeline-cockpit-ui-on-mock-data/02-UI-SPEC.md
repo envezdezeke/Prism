@@ -19,7 +19,7 @@ Read this first. Each row is a decision the planner and executor must follow, no
 
 | # | Topic | Sources disagree | Built as | Basis |
 |---|-------|------------------|----------|-------|
-| 1 | Type scale | RESEARCH uses 12/13/14/16/20/28; PLAYBOOK uses 12/13/14/16/22; the checker allows 3 to 4 sizes | Four sizes: 12, 13, 14, 28. Sizes 16 and 20 are dropped. Section headings are 14 at weight 600. Page title is 28px | Checker size rule; RESEARCH outranks PLAYBOOK on the title size |
+| 1 | Type scale | RESEARCH uses 12/13/14/16/20/28; PLAYBOOK uses 12/13/14/16/22; the checker allows at most 4 sizes | Four sizes: 12, 13, 14, 28. Sizes 16 and 20 are dropped. Section headings are 14 at weight 600. Page title is 28px | Checker size rule; RESEARCH outranks PLAYBOOK on the title size |
 | 2 | Tertiary text | PLAYBOOK ink-3 `#8A847C` measures 3.70:1 on white, under the 4.5:1 the PLAYBOOK itself asks of text | No ink-3. Captions use ink-2 `#57534E`. `#78716C` is used only for null dashes, SLA ticks and control borders | Computed contrast; PLAYBOOK §6 |
 | 3 | Neutral hex values | PLAYBOOK ink `#1C1B19` and line `#E4E0D9`; RESEARCH ink `#1C1917` and line `#E7E5E4` | RESEARCH values | Precedence |
 | 4 | Green | PLAYBOOK `#3F6E4E`; RESEARCH `#067647` | `#067647` on `#ECFDF3` (5.40:1) | Precedence |
@@ -27,7 +27,7 @@ Read this first. Each row is a decision the planner and executor must follow, no
 | 6 | Badges per card | PLAYBOOK allows one badge per card; ROADMAP Phase 2 criterion 1 requires a needed-by badge wherever a deal has one | One status slot (Held over Watch) plus a separate needed-by element. Two items at most per card | ROADMAP criterion 1; D-01 |
 | 7 | SLA bar color | PLAYBOOK fills navy up to 100%; D-04 limits navy to primary actions, focus and active nav | Neutral `#78716C` fill to 100%, amber above 100% | D-04; D-05 |
 | 8 | Stage limit in column header | PLAYBOOK shows the stage SLA in the header; limits differ per deal (Committee is 24h delegated or 48h chair) and the contract carries `sla_hours` per deal | Header shows the limit only when every deal in the column shares it. Each card always shows its own limit | No invented stage limits |
-| 9 | Staff names | D-14 and D-17 want a real name when an id resolves. The 02-03 plan proposes a hand-typed names map. CLAUDE.md and RESEARCH forbid copying `data/participant/contacts/` into `ui/`. None of the five fixture staff ids appears in `teams.json` (checked) | No names in git and no names map in Phase 2. Every staff id shows its role label, with the raw id in a tooltip | CLAUDE.md confidentiality; D-17 fallback; RESEARCH Open Question 2. Unmet: D-14 (flagged to Jesse) |
+| 9 | Staff names | D-14 and D-17 want a real name when an id resolves. The 02-03 plan proposes a hand-typed names map. RESEARCH forbids copying `data/participant/contacts/` into `ui/` (CLAUDE.md: confidential data stays out of git). None of the five fixture staff ids appears in `teams.json` (checked) | No names in git and no names map in Phase 2. Every staff id shows its role label, with the raw id in a tooltip | Jesse, D-22 (Sat 19:40): role labels now; real names come from the engine at the Phase 7 live switch. D-17 fallback; RESEARCH Open Question 2 |
 | 10 | Credit officer row | PLAYBOOK §4 shows a credit officer in the summary | Omitted. The contract has no such field | Contract |
 | 11 | Source snippet side sheet | PLAYBOOK §4 and §5 open a sheet with the extracted snippet | Source chip is plain text. No sheet | The contract has no snippet field |
 | 12 | F1 to F6 bits-versus-threshold list | PLAYBOOK §4 | Not built. The fraud panel shows contract fields only | No such field; the cluster checklist is Phase 7 (UI-06) |
@@ -37,7 +37,7 @@ Read this first. Each row is a decision the planner and executor must follow, no
 | 16 | Sans font | PLAYBOOK uses Inter; D-19 uses Geist | Geist Variable | D-19 |
 | 17 | Serif | PLAYBOOK: 22px, Source Serif 4 with Georgia fallback; RESEARCH: 28px, with the system stack as an option | Source Serif 4 at 28px, bundled after the D-19 checkpoint. If the checkpoint is declined, `ui-serif, Georgia, serif` is used with no package | D-19; RESEARCH precedence |
 | 18 | Monospace | PLAYBOOK uses JetBrains Mono | No monospace font. Ids appear only in tooltips, in sans | Fewer font packages; D-19 names two families only |
-| 19 | Next-time control | PLAYBOOK says "next arrival"; RESEARCH says "next event" | "Next event": the earliest timestamp after now, defined under Time View Rules | RESEARCH; covers every visible change |
+| 19 | Next-time control | PLAYBOOK says "next arrival"; RESEARCH says "next event" | "Next event": the earliest timestamp after now, defined under Time View Rules | RESEARCH; covers every discrete change (arrivals, stage moves, holds, requests, alerts). Time in stage and SLA % move continuously and are recomputed on every clock change |
 | 20 | Playback | PLAYBOOK has none; RESEARCH Open Question 10 and the 02-01 plan use 1 sim hour per real second with pause | Adopted | D-21 says "replay from the start", which implies playback |
 | 21 | Needed-by and Watch timing | D-18 says "as of end of run". The fixture's needed-by badge is computed at the fixture clock, 2026-11-04 6:00 PM CT, not at the end of the run | Label follows D-18. Flagged as unresolved (see UI Considerations) | D-18 is locked; the discrepancy is reported to Zeke and Jesse |
 | 22 | Radius and shadow | PLAYBOOK allows 4px and 6px radii and a popover shadow; D-07 and D-08 cap radius at 6px and allow only the faintest elevation | Buttons, inputs, badges and chips use 4px. Cards and panels use 6px. Tooltips take the one faint shadow | D-07; D-08 |
@@ -95,7 +95,7 @@ Declared values (all multiples of 4):
 
 Fixed layout dimensions (all multiples of 4): top bar 56px; left rail 200px; side panel 320px; board column minimum 160px; table row 36px; board card padding 8px vertical and 12px horizontal.
 
-Exceptions: strokes are not spacing. The 1px hairline, the 2px SLA bar, the 2px focus outline and the 2px escalation and active-item bars are stroke widths, exempt from the 4px grid.
+Exceptions: strokes are not spacing. The 1px hairline, the 2px SLA bar, the 2px focus outline and its 2px offset, and the 2px escalation and active-item bars are stroke widths, exempt from the 4px grid.
 
 Radius: 4px for buttons, inputs, badges, chips and the segmented control. 6px for cards, panels, the inbox pane and board cards. Nothing exceeds 6px (D-07).
 
@@ -151,7 +151,7 @@ Semantic rules:
 ### App frame
 
 - **Top bar** (56px, white, bottom hairline). Holds only the sim clock. Left: "Sim time (CT)" in caption, then the current time in Dense weight 600 with tabular numerals, for example `Wed 11/04 6:00 PM CT`. Right, in order: `+1h`, `+6h`, `+1 day`, `Next event`, `Pause` or `Play`, `Replay from start`, a "Go to" `datetime-local` input (step 60 seconds), and `Go`.
-- **Left rail** (200px, white, right hairline). Three items, 36px each: `Pipeline`, `Inbox` with a count of pending requests at the clock time (neutral, ink-2, tabular), and `Alerts`. The active item shows navy text at weight 600 and a 2px navy bar on its left edge. No wordmark: the product name is unresolved (CLAUDE.md says DealPilot; ROADMAP says Prism).
+- **Left rail** (200px, white, right hairline). Three items, 36px each: `Pipeline`, `Inbox` with a count of pending requests at the clock time (neutral, ink-2, tabular), and `Alerts`. The active item shows navy text at weight 600 and a 2px navy bar on its left edge. Wordmark: "Prism" in Dense weight 600, ink, at the top of the rail (the product is Prism; DealPilot is only the challenge name).
 - **Content**: 24px padding. Page title in Display style (28px serif). Nothing else above the content.
 - **Routes** use the URL hash, with no router library: `#/pipeline` (default; unknown hashes also go here), `#/inbox`, `#/alerts`, `#/deals/{encodeURIComponent(folder)}`. Browser Back works. The document title is the current page name.
 - **Width**: the minimum supported width is 1280px. Desktop only, no mobile layout. At 1280px the board fits without scrolling: 200 + 48 + (6 × 160) + (5 × 8) = 1248px.
@@ -194,7 +194,7 @@ Semantic rules:
   5. **Alerts.** Oldest first. Each row: time, level label, recipient role, full message.
 - **Side column** (320px, sticky at the top):
   - Summary panel (6px radius, 1px line, 16px padding). Label/value rows: Stage; Stage entered; Time in stage; SLA; Needed by (value and badge text); Amount requested; Relationship manager (role label, tooltip with the raw id).
-  - Fraud panel (same style). Held at the clock time: `Held: fraud review` (red badge) and "Frozen at {stage at flag} as of {flagged time}". Then the plain-words reason in Body, then "Linked" with each `linked_deals` entry. An entry that matches a folder on the board is a navy link. Any other entry, such as a history id, is plain text. Watch: neutral `Watch` badge and "Shown for review. Not held." Flagged but not held: neutral "Flagged, not held." Neither: "No hold or watch flag." The fraud panel has no F1 to F6 checklist (Phase 7).
+  - Fraud panel (same style). Held at the clock time: `Held: fraud review` (red badge) and "Frozen at {stage at flag} as of {flagged time}". Then the plain-words reason in Body, then "Linked" with each `linked_deals` entry. An entry that matches a folder on the board is a navy link. Any other entry, such as a history id, is plain text. Watch: neutral `Watch` badge and "Shown for review. Not held." Flagged but not held: neutral "Flagged, not held." Neither: "No hold or watch flag." If the overlay holds a `release_hold` answer for this deal, add under the badge in caption: "Release recorded in this session. The mock data does not change the hold." The fraud panel has no F1 to F6 checklist (Phase 7).
 
 ### Inbox (UI-05)
 
@@ -278,8 +278,8 @@ Only fields defined in `prism/contract.py` may be read. Each screen reads:
 
 | Screen | Contract fields read |
 |--------|----------------------|
-| Board | `DealSummary`: folder, legal_name, stage, sla_hours, amount_requested, needed_by, needed_by_badge, held, watch. `DealDetail`: stage_log, fraud.held, fraud.flagged_at |
-| Deal detail | `DealDetail`: facts (all nine `ExtractedFacts` fields, each with value, source_doc, confidence), issues, resolved_issues, stage_log, human_requests, alerts, fraud (held, flagged, flagged_at, stage_at_flag, reason, linked_deals), rm, needed_by_badge, watch, sla_hours, sla_pct |
+| Board | `DealSummary`: folder, legal_name, sla_hours, amount_requested, needed_by, needed_by_badge, watch (column and held status come from stageAt(now) and heldAt(now), never from `DealSummary.stage` or `held`). `DealDetail`: stage_log, fraud.held, fraud.flagged_at |
+| Deal detail | `DealDetail`: facts (all nine `ExtractedFacts` fields, each with value, source_doc, confidence), issues, resolved_issues, stage_log, human_requests, alerts, fraud (held, flagged, flagged_at, stage_at_flag, reason, linked_deals), rm, needed_by_badge, watch, sla_hours (SLA % is computed from stageAt(now), never read from `sla_pct`) |
 | Inbox | `InboxItem`: id, deal, type, to, at, message, options, status, answer, answered_at. `InboxReply`: option, note |
 | Alerts | `AlertFeedItem`: id, deal, at, stage, level, to, message |
 | Clock | `Clock`: now, start, end |
@@ -331,16 +331,16 @@ Motion: none. Color changes on hover and focus are allowed at 150ms. `prefers-re
 | Element | Copy |
 |---------|------|
 | Primary CTA | The first allowed option of the open request, as a navy filled button. Examples: "Approve" (credit decision, committee approval), "Confirm hold" (fraud hold). Never "Submit", "OK" or "Yes" |
-| Secondary actions | "+1h", "+6h", "+1 day", "Next event", "Pause", "Play", "Replay from start", "Go", "Retry", "Back to pipeline", "Cancel" |
+| Secondary actions | "+1h", "+6h", "+1 day", "Next event", "Pause", "Play", "Replay from start", "Go", "Retry", "Back to pipeline", "Back to the request" |
 | Empty state heading (no arrivals) | "No deals have arrived yet." |
 | Empty state body (no arrivals) | "No deals have arrived as of {time}. Advance the clock to bring files in." |
 | Empty state, column | "No deals in {Stage} as of {time}." |
 | Empty state, inbox | Heading "No pending requests." Body "Everything is waiting on borrowers or the clock." |
 | Empty state, alerts | Heading "No alerts yet." Body "Alerts fire at 100% of a stage's limit and escalate at 150% and 200%. None had fired as of {time}." |
 | Error state | Heading "Could not load {view}." Body is the describeError text. Then a Retry button. Neutral style, no red |
-| Destructive confirmation, decline | Heading "Decline {legal name}?" Body "This answer is recorded as a decline and cannot be changed from this screen." Confirm "Confirm decline". Cancel "Cancel" |
-| Destructive confirmation, release hold | Heading "Release the fraud hold on {legal name}?" Body "This answer cannot be changed from this screen." Confirm "Confirm release hold". Cancel "Cancel" |
-| Caption on facts, issues and needed-by | "As of end of run" |
+| Destructive confirmation, decline | Heading "Decline {legal name}?" Body "This records a decline at the current sim time." Confirm "Confirm decline". Dismiss "Back to the request" |
+| Destructive confirmation, release hold | Heading "Release the fraud hold on {legal name}?" Body "This records a release at the current sim time. The deal stays frozen in the mock data." Confirm "Confirm release hold". Dismiss "Keep the hold" |
+| Caption on facts, issues, needed-by, amount, RM and Watch | "As of end of run" (on the board: once, in the board header, covering amount, needed-by and Watch) |
 | Tooltip, null fact | "Not found in documents" |
 | Tooltip, null needed-by | "No date in the documents" |
 | Tooltip, staff id | "Staff id {raw id}" |
@@ -421,12 +421,12 @@ Run after the UI exists. Each gate has a pass condition.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
-- [ ] Dimension 7 Inventory Provenance: PASS
+- [ ] Dimension 1 Copywriting
+- [ ] Dimension 2 Visuals
+- [ ] Dimension 3 Color
+- [ ] Dimension 4 Typography
+- [ ] Dimension 5 Spacing
+- [ ] Dimension 6 Registry Safety
+- [ ] Dimension 7 Inventory Provenance
 
 **Approval:** pending

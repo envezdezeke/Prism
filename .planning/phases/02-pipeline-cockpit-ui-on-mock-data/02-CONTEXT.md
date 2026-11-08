@@ -43,6 +43,7 @@ Someone playing bank staff can watch every deal move through the pipeline, open 
 - **D-19:** Page-title serif is **Source Serif 4, bundled** via `@fontsource-variable/source-serif-4` (one human-verify checkpoint before installing, per the package-legitimacy check). Sans is Geist (bundled).
 - **D-20:** Error states use neutral gray (red stays reserved for holds). All action buttons use the navy accent, including fraud-hold actions. No toast pop-ups: confirmations appear inline.
 - **D-21:** Clock controls: show current sim time, advance (by hours or to a time) and replay from start. Keep the clock in client state; never refetch `/api/clock` after load (it would snap back). Inbox replies are kept in a client overlay because the mock doesn't persist them.
+- **D-22 (Jesse, Sat 19:40):** Staff are shown as role labels ("Credit officer", "Committee", "Fraud Operations") with the raw id in a tooltip. No names map in the UI and no staff names in git; real names come from the engine at the Phase 7 live switch. Supersedes the name part of D-14/D-17 for Phase 2.
 
 ### Claude's Discretion
 - Exact hex values within the palette above, spacing details, component choice within the stack, and layout of secondary panels, as long as D-03 to D-12 hold.
