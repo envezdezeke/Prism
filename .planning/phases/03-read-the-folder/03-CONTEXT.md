@@ -52,6 +52,10 @@ Not in scope: fraud decide/hold rule, clusters, history_flags, F2/F4 (Phase 5); 
 - **D-14 (C4):** New `read_extract.extract_features(state, rules) -> dict`, called through the module and guarded in `_ingest`, **merged** into `state.features` (update, not replace).
 - **D-15 (C5-C8, accepted as recommended):** `fraud_watch` is Phase 5's, and Read never sets it. `vendor_verified`: True = vendor in history with the same remit last-4; False = lookalike or known vendor with a different remit; absent = not in history. A needed-by date with no time is null. On an EIN disagreement the fact is the IRS-letter value, and MISMATCH:ein is raised either way.
 
+- **D-16 (planner #1, approved):** `run_sim` adds deterministic ticks exactly `quiet_minutes` after each arrival that starts a quiet gap. Read's quiet gate is inclusive and sticky. The pinned tracer test's `n_ticks` may change from 5 to 6, and only that number changes.
+- **D-17 (planner #6, approved):** a photo-ID disagreement raises `OLD_TRICK:ID_MISMATCH` only. `MISMATCH:guarantor_*` sits behind `id_disagreement_also_mismatch: false`. An OCR-sourced ID needs at least 2 disagreeing fields to raise. Jesse to confirm against gold.
+- **D-18 (planner #8, approved):** "the score must not drop" applies per owner. Read-owned columns (facts, issues) are strict. Move-owned columns may shift once Move gets real facts and are reported before and after.
+
 ### Claude's Discretion
 - Confidence-score scheme (e.g. label match 0.95, table 0.9, OCR 0.6, inferred 0.5), as long as it's deterministic and maps to the UI's High/Medium/Low.
 - Caching parsed text per file (by path + mtime) so re-ingest each tick stays fast.
