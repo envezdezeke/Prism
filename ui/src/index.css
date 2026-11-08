@@ -78,6 +78,14 @@
   --color-graph-document: #A18A62;
   --color-graph-identity: #6E7A8C;
   --color-graph-money: #6F8F7B;
+  /* Nemotron agent replay: one colour per tool (no purple range, far from the banned sky blue). */
+  --color-agent-cluster: #0F766E;
+  --color-agent-entities: #1D4ED8;
+  --color-agent-reach: #0E7490;
+  --color-agent-docs: #C2410C;
+  --color-agent-history: #B45309;
+  --color-agent-other: #475569;
+  --color-agent-done: #15803D;
 
   /* CSS-only motion (D-24): one-shot, short, and switched off by prefers-reduced-motion below. */
   --animate-hold-pulse: hold-pulse 1.6s ease-out 1;

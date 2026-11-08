@@ -14,6 +14,10 @@ export interface GraphControls {
   zoomIn: () => void
   zoomOut: () => void
   fit: () => void
+  // Screen position (px, relative to the canvas) of a node, or null when it is not laid out.
+  screenPos: (id: string) => { x: number; y: number } | null
+  // Zoom to a set of nodes (used by the agent replay).
+  focusOn: (ids: Set<string>, ms?: number) => void
 }
 
 export type Selection = { kind: 'edge'; edge: GEdge } | { kind: 'node'; id: string } | null
@@ -144,6 +148,16 @@ export function GraphCanvas({
       },
       fit: () => {
         if (fgRef.current) fit(fgRef.current)
+      },
+      screenPos: (id: string) => {
+        const fg = fgRef.current
+        const n = data.nodes.find((m) => String(m.id) === id)
+        if (!fg || !n || n.x === undefined || n.y === undefined) return null
+        return fg.graph2ScreenCoords(n.x, n.y)
+      },
+      focusOn: (ids: Set<string>, ms = 900) => {
+        const fg = fgRef.current
+        if (fg && ids.size > 0) fg.zoomToFit(ms, 170, (n: N) => ids.has(String(n.id)))
       },
     }
   })

@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Crosshair, Maximize2, Minus, Network, Plus } from 'lucide-react'
+import { Bot, Crosshair, Maximize2, Minus, Network, Plus } from 'lucide-react'
 import { describeError } from '../../api/client.ts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useDealDetails, useDeals, useGraph, useRedteam } from '../../data/queries.ts'
+import { useDealDetails, useDeals, useGraph, useInvestigator, useRedteam } from '../../data/queries.ts'
+import { AgentReplay } from './AgentReplay.tsx'
 import { clusterHoldAt, defaultClusterId, graphAt, redteamTotals } from '../../graph/graphview.ts'
 import type { GGraph } from '../../graph/graphview.ts'
 import { readPalette } from '../../graph/palette.ts'
@@ -79,6 +80,7 @@ export function FraudGraphView({
   const [fitToken, setFitToken] = useState(0)
   const controls = useRef<GraphControls | null>(null)
   const [zoom, setZoom] = useState(1)
+  const [replaying, setReplaying] = useState(false)
 
   const activeId = clusterId ?? defaultClusterId(graph)
   const cluster = graph.clusters.find((c) => c.id === activeId) ?? null
@@ -88,6 +90,24 @@ export function FraudGraphView({
   const ringDeals = useMemo(() => new Set(cluster?.deals ?? []), [cluster])
   const labels = useMemo(() => new Map(graph.nodes.map((n) => [n.id, n.label])), [graph])
   const nodeLabel = (id: string): string => labels.get(id) ?? id
+  const trace = useInvestigator(activeId ?? null)
+  const hasTrace = trace.isSuccess && trace.data.steps.length > 0
+
+  // Auto-play the agent replay once per browser session, the first time a traced ring opens.
+  useEffect(() => {
+    if (!hasTrace) return
+    let seen = false
+    try {
+      seen = sessionStorage.getItem('prism.agentReplaySeen') === '1'
+      sessionStorage.setItem('prism.agentReplaySeen', '1')
+    } catch {
+      seen = false
+    }
+    if (!seen) {
+      const t = window.setTimeout(() => setReplaying(true), 1200)
+      return () => window.clearTimeout(t)
+    }
+  }, [hasTrace])
 
   useEffect(() => {
     document.title = 'Fraud graph · Prism'
@@ -109,6 +129,12 @@ export function FraudGraphView({
         crumbs={['Fraud', 'Graph', ...(cluster ? [cluster.id] : [])]}
         toolbar={
           <>
+            {hasTrace && (
+              <Button size="sm" variant={replaying ? 'outline' : 'default'} onClick={() => setReplaying((r) => !r)}>
+                <Bot aria-hidden="true" />
+                {replaying ? 'Stop agent replay' : 'Watch Nemotron investigate'}
+              </Button>
+            )}
             <Button
               variant={fitMode === 'focus' ? 'default' : 'outline'}
               size="sm"
@@ -205,7 +231,17 @@ export function FraudGraphView({
               onZoom={setZoom}
             />
           )}
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-3">
+          {replaying && trace.data && (
+            <AgentReplay
+              trace={trace.data}
+              nodes={view.nodes}
+              edges={view.edges}
+              clusterDeals={cluster?.deals ?? []}
+              controls={controls}
+              onClose={() => setReplaying(false)}
+            />
+          )}
+          <div className={`pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-3 ${replaying ? 'invisible' : ''}`}>
             <Caption>
               {view.edges.length} shared values visible as of {fmtSimTime(now)}. Replay the clock to watch the ring form.
             </Caption>
