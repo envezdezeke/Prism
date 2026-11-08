@@ -19,20 +19,23 @@ export class ApiError extends Error {
   }
 }
 
+const NETWORK_MESSAGE = 'The API is not reachable. Start the mock server on port 8000.'
+
 export function describeError(e: unknown): string {
   if (e instanceof ApiError) {
     if (e.status === 503) return 'The engine is not connected.'
-    if (e.status === 0) return 'The API is not reachable. Start the mock server on port 8000.'
+    if (e.status === 0) return NETWORK_MESSAGE
     return e.message
   }
+  if (e instanceof TypeError) return NETWORK_MESSAGE
   return 'Request failed.'
 }
 
 // Never expose a raw body or stack trace: only the API's `detail` string or a fixed message.
-async function apiGet<T>(path: string): Promise<T> {
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response
   try {
-    res = await fetch(base + path)
+    res = await fetch(base + path, init)
   } catch {
     throw new ApiError(0, 'network')
   }
@@ -53,8 +56,29 @@ async function apiGet<T>(path: string): Promise<T> {
   )
 }
 
+function apiGet<T>(path: string): Promise<T> {
+  return request<T>(path)
+}
+
+function apiPost<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
 export function getClock(): Promise<Clock> {
   return apiGet<Clock>('/api/clock')
+}
+
+// Absolute target only, never hours: the mock recomputes hours from its fixed fixture clock and drifts.
+export function postAdvance(to: string): Promise<Clock> {
+  return apiPost<Clock>('/api/clock/advance', { to })
+}
+
+export function postReplay(): Promise<Clock> {
+  return apiPost<Clock>('/api/clock/replay', {})
 }
 
 export function getDeals(): Promise<DealSummary[]> {
