@@ -7,10 +7,22 @@ order. Times are wall-clock sim hours.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from prism.contract import Alert
 from prism.engine.config import Rules
 from prism.engine.state import DealState
+from prism.move.routing import committee_delegated
+
+
+def stage_limit_hours(state: DealState, rules: Rules, stage: str) -> Optional[float]:
+    """The stage's SLA hours; the committee-style stage uses its delegated limit on that route."""
+    cfg = rules.stages.stages.get(stage, {})
+    base = rules.stages.sla_hours(stage)
+    delegated = cfg.get("sla_hours_delegated")
+    if delegated is not None and committee_delegated(state, cfg) is True:
+        return float(delegated)
+    return base
 
 
 def sla_pct(state: DealState, rules: Rules, now: datetime) -> float:
