@@ -2,6 +2,28 @@ import type { ReactNode } from 'react'
 import { CircleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DASH, NULL_TOOLTIP } from '../../lib/format.ts'
+import { buildHash } from '../../route.ts'
+
+// Navy text link (02-UI-SPEC accent item 6). Focus ring comes from the base layer.
+export const LINK_CLASS = 'text-navy underline-offset-2 hover:underline'
+
+// A same-app hash route. The href is only ever "#/deals/" plus an encodeURIComponent-ed folder, never a
+// URL taken from engine data. The hashchange listener in uiStore moves the route, and Back works.
+export function DealLink({ folder, className, children }: { folder: string; className?: string; children: ReactNode }) {
+  return (
+    <a href={buildHash({ view: 'deal', folder })} className={className ?? LINK_CLASS}>
+      {children}
+    </a>
+  )
+}
+
+export function PipelineLink({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <a href={buildHash({ view: 'pipeline' })} className={className ?? LINK_CLASS}>
+      {children}
+    </a>
+  )
+}
 
 // The only place the display serif and the page-title size are applied.
 export function PageTitle({ children }: { children: ReactNode }) {

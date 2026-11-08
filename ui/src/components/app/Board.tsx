@@ -8,7 +8,7 @@ import { useClockStore } from '../../state/clockStore.ts'
 import { boardAt, simToMs, sortBoardRows } from '../../time/timeview.ts'
 import type { BoardRow } from '../../time/timeview.ts'
 import { NeededByBadge, SlaBar, StatusBadge } from './Badges.tsx'
-import { Caption, EmptyState, ErrorState, LoadingState, NullValue, PageTitle } from './Primitives.tsx'
+import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle } from './Primitives.tsx'
 import { Button } from '@/components/ui/button'
 
 function DealCard({ row }: { row: BoardRow<DealDetail> }) {
@@ -19,36 +19,41 @@ function DealCard({ row }: { row: BoardRow<DealDetail> }) {
   const showFolder = deal.legal_name != null && deal.legal_name !== deal.folder
   const slaText = fmtSla(row.slaFraction, deal.sla_hours)
   return (
-    <li className="flex flex-col gap-1 rounded-md border border-line bg-surface px-3 py-2">
-      <div className="flex items-start justify-between gap-2">
-        <span className="line-clamp-2 min-w-0 text-sm font-semibold" title={name}>
-          {name}
-        </span>
-        <span className="shrink-0 text-right text-sm tabular-nums">
-          {deal.amount_requested == null ? <NullValue /> : fmtMoney(deal.amount_requested)}
-        </span>
-      </div>
-      {showFolder && (
-        <span className="truncate text-xs text-ink-2" title={deal.folder}>
-          {deal.folder}
-        </span>
-      )}
-      <div className="flex flex-wrap items-start gap-1">
-        <StatusBadge
-          held={row.held}
-          watch={deal.watch}
-          reason={row.held ? deal.fraud.reason : null}
-          cleared={row.stage === 'Closed'}
-        />
-        <NeededByBadge badge={deal.needed_by_badge} neededBy={deal.needed_by ?? null} />
-      </div>
-      <span
-        className={`text-xs tabular-nums ${over ? 'text-risk' : 'text-ink-2'}`}
-        title={row.held ? 'SLA clock stopped at the hold' : undefined}
+    <li>
+      <DealLink
+        folder={deal.folder}
+        className="flex flex-col gap-1 rounded-md border border-line bg-surface px-3 py-2 text-ink transition-colors duration-150 hover:bg-subtle"
       >
-        {slaText}
-      </span>
-      <SlaBar pct={row.slaFraction} label={`SLA ${fmtPct(row.slaFraction)} of the stage limit`} />
+        <div className="flex items-start justify-between gap-2">
+          <span className="line-clamp-2 min-w-0 text-sm font-semibold" title={name}>
+            {name}
+          </span>
+          <span className="shrink-0 text-right text-sm tabular-nums">
+            {deal.amount_requested == null ? <NullValue /> : fmtMoney(deal.amount_requested)}
+          </span>
+        </div>
+        {showFolder && (
+          <span className="truncate text-xs text-ink-2" title={deal.folder}>
+            {deal.folder}
+          </span>
+        )}
+        <div className="flex flex-wrap items-start gap-1">
+          <StatusBadge
+            held={row.held}
+            watch={deal.watch}
+            reason={row.held ? deal.fraud.reason : null}
+            cleared={row.stage === 'Closed'}
+          />
+          <NeededByBadge badge={deal.needed_by_badge} neededBy={deal.needed_by ?? null} />
+        </div>
+        <span
+          className={`text-xs tabular-nums ${over ? 'text-risk' : 'text-ink-2'}`}
+          title={row.held ? 'SLA clock stopped at the hold' : undefined}
+        >
+          {slaText}
+        </span>
+        <SlaBar pct={row.slaFraction} label={`SLA ${fmtPct(row.slaFraction)} of the stage limit`} />
+      </DealLink>
     </li>
   )
 }
