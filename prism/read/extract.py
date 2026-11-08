@@ -60,6 +60,47 @@ def _application_facts(doc, app, conf) -> dict[str, Fact]:
     return facts
 
 
+def _newest_with(state: DealState, doc_class: str, attr: str):
+    """Newest-arrived ``(doc, parsed)`` of a class whose ``attr`` is set, else None."""
+    found = None
+    for doc, p in docmodel.parsed_all(state, doc_class):
+        if getattr(p, attr, None):
+            found = (doc, p)
+    return found
+
+
+def _fallback_facts(state: DealState, app, facts: dict[str, Fact], conf) -> None:
+    """D-15: the IRS-letter EIN is the fact; other documents fill only fields the application left missing."""
+
+    def put(name: str, value: Any, doc, confidence: float) -> None:
+        facts[name] = Fact(value=value, source_doc=doc.path, confidence=confidence)
+
+    letter = _newest_with(state, "ein_letter", "ein")
+    if letter is not None:
+        put("ein", letter[1].ein, letter[0], conf["label"])  # the application value stays the answer's alternative
+    elif "ein" not in facts:
+        for cls in ("tax_return", "form_7004"):
+            hit = _newest_with(state, cls, "ein")
+            if hit is not None:
+                put("ein", hit[1].ein, hit[0], conf["inferred"])
+                break
+
+    def open_field(name: str) -> bool:
+        return name not in facts and name in app.missing and name not in app.declared_none
+
+    if open_field("legal_name"):
+        for cls, attr in (("certificate_of_formation", "entity_name"), ("ein_letter", "name")):
+            hit = _newest_with(state, cls, attr)
+            if hit is not None:
+                put("legal_name", getattr(hit[1], attr), hit[0], conf["inferred"])
+                break
+    if open_field("guarantor_name"):
+        for doc, p in reversed(docmodel.parsed_all(state, "guarantor_id")):
+            if p.name and p.readable and not p.via_ocr:  # an OCR name is never promoted to a fact
+                put("guarantor_name", p.name, doc, conf["inferred"])
+                break
+
+
 def extract_facts(state: DealState, rules: Rules) -> dict[str, Fact]:
     """Return the facts known from the visible docs, keyed by Extracted field. Never raises."""
     try:
@@ -67,14 +108,25 @@ def extract_facts(state: DealState, rules: Rules) -> dict[str, Fact]:
         if not apps:
             return {}
         doc, app = apps[-1]  # latest arrival wins; parsed_all sorts by (arrive_at, path)
-        return _application_facts(doc, app, get_config().confidence)
+        conf = get_config().confidence
+        facts = _application_facts(doc, app, conf)
+        try:
+            _fallback_facts(state, app, facts, conf)
+        except Exception:  # noqa: BLE001
+            pass
+        return facts
     except Exception:  # noqa: BLE001
         return {}
 
 
 def extract_entities(state: DealState, rules: Rules) -> list[EntityRef]:
-    """Return graph attributes (preparer, phone, agent, ...) from the visible docs. Stub: empty."""
-    return []
+    """Return graph attributes (preparer, phone, agent, ...) from the visible docs (D-10). Never raises."""
+    try:
+        from prism.read.entities import build_entities
+
+        return build_entities(state, rules)
+    except Exception:  # noqa: BLE001
+        return []
 
 
 def extract_features(state: DealState, rules: Rules) -> dict[str, Any]:

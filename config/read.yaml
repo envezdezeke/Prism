@@ -188,6 +188,17 @@ patterns:
   ytd: ['\bytd\W+([A-Za-z]{3,9})\W+([A-Za-z]{3,9})']
   balance_date: 'as\s+of\s+(.+)$'
 
+entities:                # D-10 graph entities
+  max_length: 200
+  placeholders: ["(owner)", "owner", "n/a", "na", "none", "null", "unknown", "tbd", "not provided", "not applicable", "-", "--", "–", "—"]
+  keep_credential: true  # preparer is "<Name>, <Credential>" when the document gives a credential
+
+features:
+  vendor_lookalike: {min_similarity: 0.8, max_edit_distance: 2}
+  clean_repayment: ["current", "paid_off"]
+  past_due_repayment: ["30_days_past_due", "charged_off"]
+  min_deposit_months: 6   # deposits_annualized_cents needs this many complete months
+
 credentials: ["CPA", "EA", "CMA", "CFA", "CFP", "CPA/PFS", "MBA", "JD", "Esq", "RTRP", "PTIN"]
 separators: ["·", "•", "|", "‧", "∙"]
 

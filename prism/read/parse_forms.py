@@ -395,6 +395,24 @@ def _month_index(token: str) -> Optional[int]:
     return months.index(t) + 1 if t in months else None
 
 
+def split_prepared_by(prepared: Optional[str]) -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+    """``(name, credential, firm, phone)`` of a "Prepared by" value such as
+    "Name, CPA, Firm · 214-555-0100", "Name, Firm · phone" or "Self-prepared, (owner)"."""
+    if not prepared:
+        return None, None, None, None
+    phone = None
+    body = prepared
+    pm = _PHONE_RE.search(prepared)
+    if pm:
+        phone = pm.group(0).strip()
+        body = prepared[:pm.start()]
+    body = body.rstrip(" ,;:-" + "".join(str(x) for x in (get_config().raw.get("separators") or [])))
+    segs = _split_separators(body)
+    head = segs[0] if segs else body
+    name, cred, firm = _split_person_firm(head, paren_firm=False)
+    return name, cred, firm, phone
+
+
 def parse_financials(dt: DocText, doc: Any = None) -> Optional[ParsedFinancials]:
     cfg = _fs_cfg()
     text = _text(dt)
@@ -404,17 +422,7 @@ def parse_financials(dt: DocText, doc: Any = None) -> Optional[ParsedFinancials]
     has_bs = any(str(p).casefold() in folded for p in cfg.get("bs_phrases") or [])
     f = _fields(dt, "financial_statements", wrap=("prepared_by",))
     prepared = strip_none(f.get("prepared_by"))
-    pname = pfirm = pphone = None
-    if prepared:
-        pm = _PHONE_RE.search(prepared)
-        body = prepared
-        if pm:
-            pphone = pm.group(0).strip()
-            body = prepared[:pm.start()]
-        body = body.rstrip(" ,;:-" + "".join(str(s) for s in (get_config().raw.get("separators") or [])))
-        segs = _split_separators(body)
-        head = segs[0] if segs else body
-        pname, _cred, pfirm = _split_person_firm(head, paren_firm=False)
+    pname, _pcred, pfirm, pphone = split_prepared_by(prepared)
     pl_text, bs_text = _split_statements(layout)
     pl_plain, bs_plain = _split_statements(dt.plain or layout)
 
