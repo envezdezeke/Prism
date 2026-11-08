@@ -215,3 +215,25 @@ The contract gives the UI no `terminal_at` and no frozen total, so a client-side
 _Reviewed: 2026-11-08T06:30:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+
+## Fix status
+
+Applied 2026-11-08 by gsd-code-fixer, in the main checkout (the UI gates need `node_modules` and the running mock API, which a fresh worktree does not have). Tests: 85 before, 97 after. Build, audit, lint (only the two known react-refresh warnings) and smoke pass after each fix.
+
+| Finding | Status | Commit |
+|---------|--------|--------|
+| CR-01 | fixed | c7b4feb |
+| WR-04 | fixed | cb8f674 |
+| WR-03 | fixed | 605307b |
+| WR-09 | fixed | 605307b |
+| WR-06 | fixed | 2a4d74d |
+| IN-08 | fixed | 2a4d74d |
+| WR-07 | fixed | ed3cd06 |
+
+- **CR-01.** The contract has no per-stage limit and `StageLogEntry` has no `sla_hours`, so the preferred fix (a contract change) was not made. A stage's limit is now taken from the deals that end in that stage, only when they all agree (Intake 8h, Credit 48h, Committee 48h in the fixtures). A deal's own final stage always uses its own `sla_hours`. If a past stage has no such deal, or the deals disagree (delegated committee limit), the SLA shows a dash and the column header drops the limit. Time in stage is now a plain duration. Lone Star Dental at Intake on Tue 11/03 12:00 CT reads 3h 30m / 8h, 44%. Needs human verification: the inferred limit is only as good as the "deals ending in a stage share its limit" assumption, so a contract field (`sla_hours` per stage log entry) is still the clean fix for Ezekiel.
+- **WR-04.** No Python change. The mock clock is stateless, so replay-then-advance alone would still 422 against its fixed fixture time. The store therefore tracks the server clock it last saw, replays first on a backward move, sends the same absolute target (D-21 kept), and treats a 422 from advance as "server clock is ahead", not an error. Other failures still show the banner.
+- **WR-03 / WR-09.** One commit, since both touch `Inbox.tsx` and the answers store. Items the server has already answered no longer show buttons before their answer time ("answered later in the run"); a 409 is remembered so the buttons stay hidden. The in-flight guard is now per item id in the answers store.
+- **WR-06 / IN-08.** Sky focus ring and a dimmed, unfilled disabled look on the navy bar.
+- **WR-07.** Seconds (and fractions) now parse; a neutral error boundary wraps the main view. The boundary itself has no automated test (no DOM test harness in the project).
+
+Not touched, as instructed: WR-01, WR-02 (need Ezekiel) and every other finding.
