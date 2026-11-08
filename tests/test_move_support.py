@@ -140,7 +140,8 @@ def make_state(folder: str = "Acme Co", arrive: str = f"{MON}T09:00", *, amount:
             st.facts["legal_name"] = fact(legal_name)
         st.facts["amount_requested"] = fact(amount)
         st.facts["product"] = fact(product)
-        st.facts["term_months"] = fact(term)
+        if term is not None:
+            st.facts["term_months"] = fact(term)
         st.facts["purpose_category"] = fact(purpose)
         if needed_by:
             st.facts["needed_by"] = fact(needed_by)

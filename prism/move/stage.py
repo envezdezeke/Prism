@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional
 from prism.contract import StageLogEntry
 from prism.engine.config import Rules
 from prism.engine.state import DealState
-from prism.move import inbox, messages, routing
+from prism.move import credit_memo, inbox, messages, routing
 from prism.move.runtime import MoveRuntime, View, get_runtime
 from prism.move.settings import MoveConfig, get_config
 from prism.move.sla import stage_limit_hours
@@ -107,8 +107,18 @@ def _enter(run: Run, stage: str, t: datetime, reason: str) -> None:
     _on_enter(run, stage, t)
 
 
+def _gate_type(run: Run, stage: str) -> Optional[str]:
+    g = run.rules.stages.gate(stage)
+    return g.get("type") if g else None
+
+
 def _on_enter(run: Run, stage: str, t: datetime) -> None:
-    """Stage-specific work on entry (the credit memo is added by the committee stage)."""
+    """Stage-specific work on entry: the committee-style stage writes the credit memo once."""
+    if _gate_type(run, stage) == "committee_approval" and run.rt.credit_memo is None:
+        run.rt.credit_memo = credit_memo.build_credit_memo(run.state, run.rules, t, answer_by=_answer_by(run, t))
+
+
+def _answer_by(run: Run, t: datetime) -> Optional[datetime]:
     return None
 
 
@@ -126,8 +136,21 @@ def _send_info(run: Run, t: datetime, items: list[str]) -> None:
 
 def _gate_message(run: Run, gate_type: str, route: routing.Route, t: datetime) -> str:
     st, rules = run.state, run.rules
+    rt = run.rt
     if gate_type == "credit_decision":
         return messages.credit_decision_message(st, rules, route)
+    if gate_type == "committee_approval":
+        memo = rt.credit_memo
+        if memo is None:
+            raise RuntimeError("move: committee request without a credit memo")
+        cfg = rules.stages.stages.get(st.stage, {})
+        return messages.committee_approval_message(st, rules, route, memo.short_text, rt.delegated, cfg)
+    if gate_type == "commitment_signoff":
+        who, when = rt.decisions.get("committee_approval", (None, None))
+        return messages.commitment_signoff_message(st, rules, route, who, when)
+    if gate_type == "funding_release":
+        committed = (rt.decisions.get("commitment_signoff") or (None, None))[1]
+        return messages.funding_release_message(st, rules, route, t, committed)
     return messages.generic_gate_message(st, rules, gate_type, route)
 
 
@@ -240,8 +263,9 @@ def _exit_stage(run: Run, t: datetime, gate_type: Optional[str]) -> None:
     st, rt, rules = run.state, run.rt, run.rules
     stage = st.stage
     nxt = _next_stage(run, stage)
-    if nxt is not None and _next_stage(run, nxt) is None:
-        # Entering the last stage means money goes out: refuse while held, flagged or any issue is open.
+    if nxt is None or _next_stage(run, nxt) is None:
+        # Entering (or finishing) the last stage means money goes out: refuse while held, flagged
+        # or any issue is open.
         if st.fraud.held or st.fraud.flagged or run.view.issues:
             return
     if not _before_exit(run, stage, t):
@@ -258,6 +282,8 @@ def _exit_stage(run: Run, t: datetime, gate_type: Optional[str]) -> None:
 
 
 def _before_exit(run: Run, stage: str, t: datetime) -> bool:
+    if _gate_type(run, stage) == "committee_approval" and run.rt.credit_memo is None:
+        raise RuntimeError("move: committee stage cannot exit without its credit memo")
     return True
 
 
@@ -309,7 +335,26 @@ def _src_eval(run: Run) -> list[Event]:
     return out
 
 
-_SOURCES: list[Callable[[Run], list[Event]]] = [_src_eval]
+def _src_answer(run: Run) -> list[Event]:
+    st, rt = run.state, run.rt
+    frozen = rt.frozen_at is not None
+    out: list[Event] = []
+    for m in rt.reqs:
+        if m.processed or m.superseded or m.to == inbox.BORROWER:
+            continue
+        if frozen and m.gate != "fraud_hold":
+            continue  # non-fraud answers are not applied while the deal is frozen
+        if m.recorded:
+            t = m.answered_at
+        elif st.human_requests[m.idx].answer is None and m.due is not None:
+            t = m.due
+        else:
+            continue
+        out.append((_clamp(run, t), P_ANSWER, m.idx, "answer", m.idx))
+    return out
+
+
+_SOURCES: list[Callable[[Run], list[Event]]] = [_src_answer, _src_eval]
 
 
 def _h_start(run: Run, t: datetime, payload: Any) -> None:
@@ -327,10 +372,78 @@ def _h_immediate(run: Run, t: datetime, payload: Any) -> None:
         _send_info(run, t, items)
 
 
+def _note_on_open_entry(run: Run, text: str) -> None:
+    entry = _open_entry(run)
+    if entry is not None:
+        entry.why = f"{entry.why} {text}"
+
+
+def _stop_deal(run: Run, m, at: datetime) -> None:
+    st, rt, rules = run.state, run.rt, run.rules
+    name = routing.person_name(rules.teams, m.to)
+    label = messages.GATE_LABELS.get(m.gate, m.gate.replace("_", " "))
+    kind = "declined" if "decline" in (m.option or "") else "stopped"
+    entry = _open_entry(run)
+    if entry is not None:
+        entry.decision = m.option
+        entry.why = (f"{name} answered {m.option.replace('_', ' ')} to the {label} request on {fmt_when(at)}, "
+                     f"so the deal stops in {st.stage} ({kind}). No further requests are sent.")
+    rt.terminal, rt.terminal_at, rt.eval_pending = kind, at, False
+
+
+def _request_info(run: Run, m, at: datetime) -> None:
+    st, rt, rules = run.state, run.rt, run.rules
+    officer = routing.person_name(rules.teams, m.to)
+    msg = messages.info_followup_message(st, officer)
+    inbox.send_request(st, rt, "info_request", inbox.BORROWER, at, msg, st.stage, f"info:{len(rt.reqs)}", "info")
+    rt.resend_after, rt.eval_pending = at, False
+
+
+def _apply_answer(run: Run, m, at: datetime) -> None:
+    st, rt = run.state, run.rt
+    if m.gate == "fraud_hold":
+        rt.decisions["fraud_hold"] = (m.to, at)
+        who = routing.person_name(run.rules.teams, m.to)
+        said = (m.option or "").replace("_", " ")
+        _note_on_open_entry(run, f"{who} answered {said} on {fmt_when(at)}; the deal stays frozen while the fraud flag is set.")
+        return
+    if m.stage != st.stage or rt.terminal or rt.frozen_at is not None:
+        return
+    g = run.cfg.gates.get(m.gate)
+    opt = m.option
+    if g is None or opt is None:
+        return
+    if opt in g.advance:
+        rt.decisions[m.gate] = (m.to, at)
+        rt.gate_satisfied[m.stage], rt.gate_option[m.stage] = True, opt
+        rt.ready_at, rt.eval_pending = at, True
+    elif opt in g.stop:
+        _stop_deal(run, m, at)
+    elif opt in g.info:
+        _request_info(run, m, at)
+    else:
+        rt.eval_pending = False  # recorded; the deal waits
+
+
+def _h_answer(run: Run, t: datetime, idx: int) -> None:
+    m = inbox.meta_for(run.rt, idx)
+    if m is None or m.processed or m.superseded:
+        return
+    if not m.recorded:
+        option = inbox.answer_option(m.gate)
+        if option is None or option not in inbox.gate_options(m.gate):
+            m.processed = True
+            return
+        inbox.record_reply(run.state, run.rules, idx, option, t)
+    m.processed = True
+    _apply_answer(run, m, m.answered_at or t)
+
+
 _HANDLERS: dict[str, Callable[[Run, datetime, Any], None]] = {
     "start": _h_start,
     "eval": _h_eval,
     "immediate": _h_immediate,
+    "answer": _h_answer,
 }
 
 

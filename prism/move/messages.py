@@ -259,3 +259,78 @@ def generic_gate_message(state: DealState, rules: Rules, gate_type: str, route: 
     if cover:
         lines.append(cover)
     return "\n".join(lines)
+
+
+# ------------------------------------------------------------ later gates
+
+
+def delegated_sentence(rules: Rules, stage_cfg: dict[str, Any]) -> str:
+    r = stage_cfg.get("routing")
+    if not isinstance(r, dict):
+        return ""
+    try:
+        limit = to_cents(r["delegated_max_amount"]) + 1
+    except (KeyError, ValueError, TypeError):
+        return ""
+    return f"Under the {fmt_money(limit)} delegated limit."
+
+
+def committee_approval_message(
+    state: DealState, rules: Rules, route: Optional[Route], short_memo: str, delegated: Optional[bool], stage_cfg: dict[str, Any]
+) -> str:
+    lines = [short_memo]
+    if delegated:
+        s = delegated_sentence(rules, stage_cfg)
+        if s:
+            lines.append(s)
+    cover = covering_sentence(route, rules)
+    if cover:
+        lines.append(cover)
+    return "\n".join(lines)
+
+
+def commitment_signoff_message(
+    state: DealState, rules: Rules, route: Optional[Route], approver: Optional[str], approved_at: Optional[datetime]
+) -> str:
+    who = person_name(rules.teams, approver) if approver else NOT_PROVIDED
+    when = fmt_date(approved_at) if approved_at else NOT_PROVIDED
+    lines = [
+        f"Commitment ready: {borrower_label(state)}, {amount_text(state)} {product_text(state)} over {term_text(state)} months, "
+        f"approved by {who} on {when}.",
+        "Please sign the commitment letter and confirm the borrower has countersigned." + needed_clause(state),
+    ]
+    cover = covering_sentence(route, rules)
+    if cover:
+        lines.append(cover)
+    return "\n".join(lines)
+
+
+def pay_to_text(state: DealState) -> str:
+    d = profile(state).get("disbursement")
+    if not isinstance(d, dict):
+        return NOT_PROVIDED
+    bank = d.get("bank") or NOT_PROVIDED
+    last4 = d.get("last4") or NOT_PROVIDED
+    if d.get("kind") == "vendor":
+        n = d.get("past_loans")
+        past = f" ({n} past loans paid to this account)" if isinstance(n, int) and not isinstance(n, bool) else ""
+        return f"verified vendor {d.get('vendor') or NOT_PROVIDED}, {bank} ...{last4}{past}"
+    if d.get("kind") == "borrower":
+        return f"borrower's own account at {bank} ...{last4}"
+    return NOT_PROVIDED
+
+
+def funding_release_message(
+    state: DealState, rules: Rules, route: Optional[Route], t: datetime, committed_at: Optional[datetime]
+) -> str:
+    committed = fmt_date(committed_at) if committed_at else NOT_PROVIDED
+    lines = [
+        f"Funding release: {amount_text(state)} to {borrower_label(state)}, RM {rm_label(state, rules)}.",
+        f"Pay to: {pay_to_text(state)}.",
+        f"Final fraud screen: clear as of {fmt_when(t)}. Commitment signed {committed}.",
+        "Please release or hold." + needed_clause(state),
+    ]
+    cover = covering_sentence(route, rules)
+    if cover:
+        lines.append(cover)
+    return "\n".join(lines)
