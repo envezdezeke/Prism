@@ -11,7 +11,12 @@ import { ErrorState, LoadingState } from './Primitives.tsx'
 
 const barClass = 'flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-6 py-2'
 // The running clock sits on a navy band with a sky rule beneath it (bolder look, D-03 amended).
-const navyBarClass = 'flex min-h-16 flex-wrap items-center gap-x-4 gap-y-1 border-b-4 border-sky bg-navy px-6 py-2 text-surface'
+// Focus rings are sky here: the global navy ring is invisible on navy (WR-06). Disabled buttons drop the
+// white fill and dim, so +1h at the end of the run no longer looks clickable (IN-08).
+const navyBarClass =
+  'flex min-h-16 flex-wrap items-center gap-x-4 gap-y-1 border-b-4 border-sky bg-navy px-6 py-2 text-surface ' +
+  '[&_button:focus-visible]:outline-sky [&_input:focus-visible]:outline-sky ' +
+  '[&_button:disabled]:border-surface/30 [&_button:disabled]:bg-transparent [&_button:disabled]:text-surface/60'
 const barLabel = 'text-xs font-medium uppercase tracking-wide text-surface/75'
 
 // Top bar: the sim clock and nothing else. Every control updates the client clock first (clamped),
@@ -103,7 +108,7 @@ export function ClockBar() {
             Play
           </Button>
         )}
-        <Button onClick={replay} className="bg-sky font-bold text-navy hover:bg-sky/85 focus-visible:outline-sky">
+        <Button onClick={replay} className="bg-sky font-bold text-navy hover:bg-sky hover:brightness-110 focus-visible:outline-sky">
           <RotateCcw aria-hidden="true" />
           Replay from start
         </Button>
