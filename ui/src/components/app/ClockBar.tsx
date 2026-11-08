@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDealDetails, useDeals } from '../../data/queries.ts'
 import { fmtSimTime } from '../../lib/format.ts'
+import { useAnswersStore } from '../../state/answersStore.ts'
 import { useClockStore } from '../../state/clockStore.ts'
 import { nextEventAfter, simToMs } from '../../time/timeview.ts'
 import { Caption, ErrorState, LoadingState } from './Primitives.tsx'
@@ -18,6 +19,8 @@ export function ClockBar() {
   const deals = useDeals()
   const folders = useMemo(() => (deals.data ?? []).map((d) => d.folder), [deals.data])
   const { details, isLoading } = useDealDetails(folders)
+  // Answers given in this session are events too: Next event stops at their time (UI-SPEC rule 11).
+  const answers = useAnswersStore((s) => s.answers)
   // The typed value is a draft until Go; otherwise the field follows the clock.
   const [draft, setDraft] = useState<string | null>(null)
   const [rangeMessage, setRangeMessage] = useState(false)
@@ -39,7 +42,8 @@ export function ClockBar() {
 
   const nowMs = simToMs(now)
   const atEnd = nowMs >= simToMs(end)
-  const nextEvent = isLoading ? null : nextEventAfter(details, nowMs)
+  const sessionTimes = Object.values(answers).map((a) => a.answered_at)
+  const nextEvent = isLoading ? null : nextEventAfter(details, nowMs, sessionTimes)
   const value = draft ?? now.slice(0, 16)
 
   const submitGoTo = (): void => {
