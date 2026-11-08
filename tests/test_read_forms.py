@@ -221,11 +221,25 @@ def test_form_7004_three_layouts(tmp_path):
     ("We are requesting $60,000 to renew our annual line.", 6_000_000),
     ("We are requesting\n$75,500.50 to replace\nan oven.", 7_550_050),
     ("WE ARE  REQUESTING $400k for payroll.", 40_000_000),
+    ("We are requesting 36 months of working capital, $250,000 in total.", 25_000_000),
+    ("We are requesting a $250,000 term loan.", 25_000_000),
+    ("We are requesting 250,000 for a new press.", 25_000_000),
+    ("We are requesting 90k for a new press.", 9_000_000),
 ])
 def test_request_letter_amounts(sentence, cents):
     text = "Re: Loan request\n\nTo: Example Bank\n" + sentence + "\nAda Quillfeather, Owner"
     p = parse_request_letter(_text_dt(text), None)
     assert isinstance(p, ParsedLetter) and p.amount_cents == cents
+
+
+@pytest.mark.parametrize("sentence", [
+    "We are requesting 36 months of working capital.",
+    "We are seeking 2 trucks for the new route.",
+    "We want a loan of 5 years with a 7% rate.",
+    "We have a request for 2026 expansion funds.",
+])
+def test_request_letter_numbers_without_money_context_are_not_amounts(sentence):
+    assert parse_request_letter(_text_dt("Re: Loan request\n" + sentence), None) is None
 
 
 def test_request_letter_first_amount_wins_and_no_amount_is_none():

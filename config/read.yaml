@@ -179,9 +179,9 @@ patterns:
   tax_year:
     - 'tax\s+year\W{0,4}(\d{4})'
     - 'for\s+the\s+year\s+(?:ended\W+)?\w*\W*(\d{4})'
-  request_amount:
-    - 'we\s+are\s+requesting\s+(\$?\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:k|mm|m|thousand|million))?)(?![\w])'
-    - '(?:requesting|seeking|asking\s+for|request\s+for|loan\s+of)\s+(\$?\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:k|mm|m|thousand|million))?)(?![\w])'
+  request_amount:  # a $, a scale suffix or a thousands-grouped number is required; 36 months is not money
+    - 'we\s+are\s+requesting\s+(?:[\w,-]+\s+){0,5}?(\$\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:k|mm|m|thousand|million)\b)?|(?<![\d,.])\d{1,3}(?:,\d{3})+(?:\.\d+)?|(?<![\d,.])\d+(?:\.\d+)?\s?(?:k|mm|m|thousand|million)\b)(?![\w%])(?!\s?(?:months?|years?|yrs?|%))'
+    - '(?:requesting|seeking|asking\s+for|request\s+for|loan\s+of)\s+(?:[\w,-]+\s+){0,5}?(\$\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:k|mm|m|thousand|million)\b)?|(?<![\d,.])\d{1,3}(?:,\d{3})+(?:\.\d+)?|(?<![\d,.])\d+(?:\.\d+)?\s?(?:k|mm|m|thousand|million)\b)(?![\w%])(?!\s?(?:months?|years?|yrs?|%))'
   quote_number: '^\s*(?:quotation|quote|estimate|proforma)\s*(?:no\.?|number|#)?\s*[:#]?\s*([A-Za-z0-9][\w./-]*)'
   quote_account: 'acc(?:oun)?t\.?\s*(?:ending|no\.?|number|#)?\s*(?:in\s+)?[:.#]?\s*(?:x+|\*+|\.+)?\s*(\d{4})\b'
   fy: ['\bfy\s*(\d{4})', 'fiscal\s+year\s+(\d{4})', 'year\s+ended\W+\w+\W+\d{1,2}\W+(\d{4})']
