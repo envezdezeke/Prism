@@ -3,7 +3,7 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Read the Folder
 status: executing
-stopped_at: Completed 05-01-PLAN.md
+stopped_at: Completed 06-02-PLAN.md (06-03 cut)
 last_updated: "2026-11-08T14:00:25.193Z"
 last_activity: 2026-11-07
 last_activity_desc: Phase 03 execution started
@@ -45,7 +45,7 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 | 3. Read the Folder | Ezekiel | H2–H5 | Not started |
 | 4. Move the Deal | Ezekiel | H5–H7.5 | Not started |
 | 5. Catch the Fakes | Ezekiel | H7.5–H10 | Not started |
-| 6. Nemotron Agents | Ezekiel | H10.5–H15.5 | Not started |
+| 6. Nemotron Agents | Ezekiel | H10.5–H15.5 | 06-01, 06-02 done; 06-03 cut |
 | 7. Fraud Graph, Dry Run and Pitch | Jesse lead, Ezekiel from H15.5 | H9–H19.75 | Not started |
 
 ## Right Now and Next
