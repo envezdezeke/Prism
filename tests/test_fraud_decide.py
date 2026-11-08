@@ -175,3 +175,68 @@ def test_sticky_old_trick_deal_does_not_gain_links_from_a_lone_f1():
     st.fraud = run([], states).per_deal["Acme Co"]
     f1 = ring_signals()[0]
     assert run([f1], states, t=T2).per_deal["Acme Co"].linked_deals == []
+
+
+# --- strong-link hold path (F1 + one more when two independent party links join the deals) ---
+
+import pytest
+
+from prism.engine.config import ConfigError
+from prism.fraud import decide as decide_mod
+from prism.fraud import links as fraud_links
+
+
+class _Ctx:
+    """Stand-in LinkContext: returns fixed link classes for a pair."""
+
+    def __init__(self, classes):
+        self._classes = set(classes)
+
+    def shared(self, a, b):
+        return set(self._classes)
+
+
+SL = dataclasses.replace(CFG, hold_strong_link_min_additional=1)
+
+
+def _met(families, classes, cfg=SL):
+    return decide_mod._strong_link_met("Acme Co", set(families), ["Bolt Inc"], _Ctx(classes), cfg)
+
+
+def test_strong_link_two_party_classes_plus_one_family_holds():
+    assert _met({"F1", "F3"}, {"preparer", "remit_account"})
+    assert _met({"F1", "F4"}, {"registered_agent", fraud_links.CLASS_PRODUCER})
+
+
+def test_strong_link_needs_f1_and_one_more_family():
+    assert not _met({"F3", "F5"}, {"preparer", "remit_account"})
+    assert not _met({"F1"}, {"preparer", "remit_account"})
+
+
+def test_strong_link_one_party_class_is_not_enough():
+    assert not _met({"F1", "F3"}, {"preparer"})
+
+
+def test_strong_link_phone_and_preparer_are_one_fact():
+    assert not _met({"F1", "F3"}, {"preparer", "phone"})
+
+
+def test_strong_link_deposit_pattern_and_weak_kinds_never_count_as_a_link():
+    assert not _met({"F1", "F5"}, {"preparer", fraud_links.CLASS_F5})
+    assert not _met({"F1", "F3"}, {"preparer", "address", "bank"})
+
+
+def test_strong_link_off_when_setting_absent_or_no_context():
+    off = dataclasses.replace(CFG, hold_strong_link_min_additional=None)
+    assert not _met({"F1", "F3"}, {"preparer", "remit_account"}, cfg=off)
+    assert not decide_mod._strong_link_met("Acme Co", {"F1", "F3"}, ["Bolt Inc"], None, SL)
+
+
+def test_strong_link_setting_is_validated(tmp_path):
+    import yaml
+    raw = yaml.safe_load(open("config/fraud.yaml", encoding="utf-8"))
+    raw["hold_rule"]["strong_link_min_additional"] = 3
+    p = tmp_path / "fraud.yaml"
+    p.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    with pytest.raises(ConfigError):
+        load_fraud_config(p)

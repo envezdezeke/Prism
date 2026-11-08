@@ -93,6 +93,9 @@ class FraudConfig:
     test_start: date
     test_end: date
     raw: dict[str, Any] = field(default_factory=dict)
+    # Strong-link hold path (None = off): F1 plus this many additional families is enough
+    # when the deal shares at least history_min_links independent link classes with a partner.
+    hold_strong_link_min_additional: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -215,6 +218,10 @@ def load_fraud_config(path: Path | str | None = None) -> FraudConfig:
         "hold_rule.min_additional must be between 1 and len(additional_from)",
     )
 
+    slm = hr.get("strong_link_min_additional")
+    _need(slm is None or (_int(slm) and 1 <= slm <= ma),
+          "hold_rule.strong_link_min_additional must be an int between 1 and min_additional")
+
     hf = raw.get("history_flags")
     _need(isinstance(hf, dict), "history_flags is required")
     ml2 = hf.get("min_links")
@@ -240,6 +247,7 @@ def load_fraud_config(path: Path | str | None = None) -> FraudConfig:
         test_start=test_start,
         test_end=test_end,
         raw=raw,
+        hold_strong_link_min_additional=slm,
     )
 
 

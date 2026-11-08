@@ -53,12 +53,14 @@ def decide(
             by_family[sig.family] = sig
 
     out = FraudOutcome()
+    ctx = (fraud_links.LinkContext(graph, states, baseline, cfg)
+           if graph is not None and baseline is not None else None)
     for folder in sorted(states):
         state = states[folder]
         fams = fired.get(folder, {})
         partners = _current_partners(folder, fams, states, cfg)
         voting = {f: s for f, s in fams.items() if f not in cfg.non_voting}
-        cluster = _hold_met(set(voting), cfg)
+        cluster = _hold_met(set(voting), cfg) or _strong_link_met(folder, set(voting), partners, ctx, cfg)
         prev = state.fraud
         if prev.flagged:
             # Sticky (M17): only linked_deals may grow, and only from a tick that met the rule.
@@ -92,6 +94,36 @@ def decide(
     out.history_flags = list(res.history_flags)
     out.clusters = list(res.clusters)
     return out
+
+
+def _strong_link_met(
+    folder: str, families: set[str], partners: Sequence[str], ctx, cfg: FraudConfig
+) -> bool:
+    """Strong-link path: the required families fired, at least
+    ``cfg.hold_strong_link_min_additional`` more agree, and the deal shares at least
+    ``cfg.history_min_links`` independent link classes with one current partner.
+    Off when the setting is None or no link context exists."""
+    need = getattr(cfg, "hold_strong_link_min_additional", None)
+    if need is None or ctx is None:
+        return False
+    if not all(f in families for f in cfg.hold_required):
+        return False
+    if sum(1 for f in families if f in cfg.hold_additional_from) < need:
+        return False
+    for p in partners:
+        if p == folder:
+            continue
+        parties = {_PARTY_MERGE.get(c, c) for c in ctx.shared(folder, p)} - _NOT_A_PARTY
+        if len(parties) >= cfg.history_min_links:
+            return True
+    return False
+
+
+# Strong-link path: a shared deposit pattern is not a second link (honest businesses in one
+# trade share it), weak kinds never count, and a phone follows its preparer (one fact, M18).
+# Chosen on the synthetic bench (eval/run_synth.py): ring held 80.2%, twins held 0.1%.
+_NOT_A_PARTY = frozenset({fraud_links.CLASS_F5, "address", "bank"})
+_PARTY_MERGE = {"phone": "preparer"}
 
 
 def _hold_met(families: set[str], cfg: FraudConfig) -> bool:
