@@ -4,9 +4,9 @@ current_phase: 1
 current_phase_name: Foundations, Contract and Golden Labels
 status: planning
 stopped_at: Planning complete; next is `/gsd-plan-phase 1`
-last_updated: "2026-11-08T01:22:37.464Z"
-last_activity: "2026-11-07 ~19:00 CT - Completed quick task 261107-pfc: API contract + mock fixtures (I1 delivered). Jesse delivered eval/gold.json, all 13 deals (I2 delivered)"
-state_head: 7838de310ce4aa68cef7ba340da67af18b842583
+last_updated: "2026-11-08T01:49:41.005Z"
+last_activity: "2026-11-07 19:22 CT - Completed quick task 261107-qez: engine skeleton (arrival gate, CLI run/validate/score, determinism, stub interfaces for read/move/fraud). Phase 1 engine work done; NEM-02 VL smoke folded into Phase 3 (N10)."
+state_head: d5216d763865f22b3134cc52a5b7fb3069f48ab0
 progress:
   total_phases: 7
   completed_phases: 0
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 1 of 7 (Foundations, Contract and Golden Labels)
 Plan: 0 of TBD in current phase
 Status: Phase 1 work delivered through quick tasks (pfc, qez); Phase 2 planned (02-01..02-04 + 02-UI-SPEC), execution next
-Last activity: 2026-11-07 19:22 CT - Completed quick task 261107-qez: engine skeleton (arrival gate, CLI run/validate/score, determinism, stub interfaces for read/move/fraud). Phase 1 engine work done; NEM-02 VL smoke folded into Phase 3 (N10).
+Last activity: 2026-11-07 ~20:10 CT - Merged quick task 261107-qx4 (fraud baseline, F1/F3/F5 + calibration; Jul-Oct replay: 1/72 good-deal false flags as lower bound, F1 fires on ~30% of clean deals). Move core (261107-qx3) still running in a worktree.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -108,6 +108,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 261107-pfc | API contract + mock fixtures (FND-07, I1) | 2026-11-07 | 9712cde | [261107-pfc-api-contract-mock-fixtures-fnd-07-i1](./quick/261107-pfc-api-contract-mock-fixtures-fnd-07-i1/) |
 | 261107-qez | Engine skeleton + validator + determinism + self-score (FND-01..06, FND-08) | 2026-11-07 | 7838de3 | [261107-qez-engine-skeleton-validator-determinism-se](./quick/261107-qez-engine-skeleton-validator-determinism-se/) |
+| 261107-qx4 | Fraud baseline: history index, F1/F3/F5 bits, calibration, Jul-Oct replay report (FRD-01, FRD-02) | 2026-11-07 | d5216d7 | [261107-qx4-fraud-baseline-history-index-rarity-depo](./quick/261107-qx4-fraud-baseline-history-index-rarity-depo/) |
 
 ## Deferred Items
 
