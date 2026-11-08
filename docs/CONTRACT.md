@@ -24,7 +24,7 @@ Tip: generate TypeScript types from `/openapi.json` (for example with `openapi-t
 | GET | `/api/deals` | none | `list[DealSummary]` |
 | GET | `/api/deals/{folder}` | none | `DealDetail` (404 `unknown deal`) |
 | GET | `/api/clock` | none | `Clock` |
-| POST | `/api/clock/advance` | `ClockAdvance` (exactly one of `hours` or `to`) | `Clock` (clamped to start..end) |
+| POST | `/api/clock/advance` | `ClockAdvance` (exactly one of `hours` or `to`) | `Clock` (clamps to `end`; 422 when `to` is earlier than now, use `/api/clock/replay` to go back) |
 | POST | `/api/clock/replay` | optional `ClockReplay` (`speed`) | `Clock` (now = start) |
 | GET | `/api/inbox?status=pending\|answered` | none | `list[InboxItem]` |
 | POST | `/api/inbox/{item_id}/reply` | `InboxReply` (`option`, `note`) | `InboxItem` (404 unknown, 409 already answered, 422 bad option) |
@@ -39,6 +39,8 @@ Tip: generate TypeScript types from `/openapi.json` (for example with `openapi-t
 - Sim times are ISO strings in America/Chicago, always with the `-06:00` offset at minute resolution, for example `2026-11-04T18:00-06:00`. Anything else is rejected.
 - Unknown values are `null`. A fact the engine cannot find is `null` for the whole fact.
 - The folder name is the deal id. It can hold spaces, apostrophes and ampersands, so URL-encode it in paths (`encodeURIComponent(folder)`).
+- `POST /api/clock/advance` never rewinds: a `to` earlier than the current `now` returns 422 (a `to` equal to now is a no-op 200, a `to` after `end` clamps to `end`). Go back with `/api/clock/replay`.
+- `DealDetail` and `DealSummary` reject inconsistent fraud data: `fraud.held` requires `fraud.flagged`; `fraud.flagged` requires `flagged_at` and `stage_at_flag`; top-level `held` requires `fraud.flagged`; `watch` forbids `fraud.flagged`; a summary cannot be both `held` and `watch`. The submission models stay lenient on purpose, so `python -m prism validate` only warns on these in a submission file (the file is always written).
 - `watch` is UI-only and is never in the submission. A watch deal has `fraud.flagged` false.
 - The inbox holds staff-addressed requests only. Borrower requests (for example an info request) appear in the deal detail `human_requests`.
 - `needed_by_badge` (`none`, `ok`, `at_risk`, `overdue`) and `sla_pct` are computed by the server. `sla_pct` can exceed 1 for a stuck deal and freezes while a deal is held.

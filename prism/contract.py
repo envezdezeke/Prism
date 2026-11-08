@@ -216,6 +216,12 @@ class DealSummary(ContractModel):
     watch: bool  # UI-only, never in the submission
     rm: Optional[str] = None
 
+    @model_validator(mode="after")
+    def _held_not_watch(self) -> "DealSummary":
+        if self.held and self.watch:
+            raise ValueError("a held deal cannot also be on watch")
+        return self
+
 
 _SUMMARY_FIELDS = tuple(DealSummary.model_fields)
 
@@ -228,6 +234,19 @@ class DealDetail(DealSummary):
     human_requests: list[HumanRequest]
     alerts: list[Alert]
     fraud: Fraud
+
+    @model_validator(mode="after")
+    def _fraud_consistent(self) -> "DealDetail":
+        f = self.fraud
+        if f.held and not f.flagged:
+            raise ValueError("fraud.held requires fraud.flagged")
+        if f.flagged and (f.flagged_at is None or f.stage_at_flag is None):
+            raise ValueError("fraud.flagged requires flagged_at and stage_at_flag")
+        if self.held and not f.flagged:
+            raise ValueError("held requires fraud.flagged")
+        if self.watch and f.flagged:
+            raise ValueError("a watch deal cannot have fraud.flagged")
+        return self
 
     def summary(self) -> DealSummary:
         return DealSummary(**{k: getattr(self, k) for k in _SUMMARY_FIELDS})

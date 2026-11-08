@@ -71,6 +71,11 @@ def create_app() -> FastAPI:
                 now = end
         else:
             now = parse_sim_time(body.to)  # type: ignore[arg-type]
+            if now < parse_sim_time(clock["now"]):
+                raise HTTPException(
+                    status_code=422,
+                    detail="'to' is earlier than the current clock; use /api/clock/replay to go back",
+                )
         now = max(parse_sim_time(clock["start"]), min(now, end))
         return {**clock, "now": format_sim_time(now)}
 

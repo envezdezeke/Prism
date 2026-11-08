@@ -1,6 +1,7 @@
 """Contract tests: fixtures validate, validators accept/reject, every endpoint behaves."""
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 from urllib.parse import quote
@@ -17,11 +18,13 @@ from prism.contract import (
     ClockAdvance,
     DealDetail,
     DealSummary,
+    Fraud,
     FraudGraph,
     InboxItem,
     InvestigatorTrace,
     RedTeamReport,
     Submission,
+    SubmissionDeal,
     parse_sim_time,
 )
 from prism.derive import derive
@@ -143,8 +146,9 @@ def test_advance_clock(client):
     r = client.post("/api/clock/advance", json={"hours": 100000})
     assert r.json()["now"] == load("clock.json")["end"]
     assert client.post("/api/clock/advance", json={}).status_code == 422
+    # Q15: a 'to' earlier than now is rejected (F-02's clamp-to-start no longer applies)
     r = client.post("/api/clock/advance", json={"to": "2020-01-01T00:00-06:00"})
-    assert r.json()["now"] == load("clock.json")["start"]
+    assert r.status_code == 422
 
 
 def test_advance_clock_overflow_clamps(client):
@@ -403,3 +407,120 @@ def test_everything_503_when_mock_off(monkeypatch):
         r = getattr(c, method)(path, **({"json": body} if body is not None else {}))
         assert r.status_code == 503, path
     assert c.get("/docs").status_code == 200
+
+
+# ------------------------------------------------------------ Q14: fraud consistency (UI models only)
+
+
+def held_detail() -> dict:
+    return copy.deepcopy(load("deal_detail.json")["Bayou Bistro & Grill"])
+
+
+def watch_detail() -> dict:
+    return copy.deepcopy(load("deal_detail.json")["Cedar Ridge Welding"])
+
+
+def test_q14_fixtures_still_valid():
+    DealDetail.model_validate(held_detail())
+    DealDetail.model_validate(watch_detail())
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda d: d["fraud"].update(flagged=False),  # held without flagged
+        lambda d: d["fraud"].update(flagged_at=None),
+        lambda d: d["fraud"].update(stage_at_flag=None),
+        lambda d: d.update(held=True) or d["fraud"].update(flagged=False, held=False,
+                                                           flagged_at=None, stage_at_flag=None),
+    ],
+)
+def test_q14_detail_rejects_inconsistent_fraud(mutate):
+    d = held_detail()
+    mutate(d)
+    with pytest.raises(ValidationError):
+        DealDetail.model_validate(d)
+
+
+def test_q14_detail_rejects_held_flag_without_fraud_flag():
+    d = load("deal_detail.json")["Lone Star Dental"]
+    d = copy.deepcopy(d)
+    d["held"] = True
+    with pytest.raises(ValidationError):
+        DealDetail.model_validate(d)
+
+
+def test_q14_detail_rejects_watch_with_flagged():
+    d = held_detail()
+    d["held"] = False
+    d["watch"] = True
+    with pytest.raises(ValidationError):
+        DealDetail.model_validate(d)
+
+
+def test_q14_summary_rejects_held_and_watch():
+    s = DealDetail.model_validate(held_detail()).summary().model_dump()
+    s["watch"] = True
+    with pytest.raises(ValidationError):
+        DealSummary.model_validate(s)
+
+
+def test_q14_submission_models_stay_lenient():
+    f = Fraud(flagged=False, held=True)
+    g = Fraud(flagged=True, held=True)
+    assert f.held and not f.flagged and g.flagged_at is None
+    base = load("submission.json")["deals"]
+    deal = copy.deepcopy(next(iter(base.values())))
+    deal["fraud"] = {"flagged": True, "held": False}
+    assert SubmissionDeal.model_validate(deal).fraud.flagged
+    sub = {"team": "T", "set": "s", "deals": {"X": deal}, "history_flags": []}
+    Submission.model_validate(sub)
+
+
+# ------------------------------------------------------------ Q15: advance never rewinds
+
+
+def test_q15_earlier_to_is_422_and_clock_unchanged(client):
+    before = client.get("/api/clock").json()
+    r = client.post("/api/clock/advance", json={"to": "2026-11-03T08:00-06:00"})
+    assert r.status_code == 422
+    assert "/api/clock/replay" in r.json()["detail"]
+    assert client.get("/api/clock").json() == before
+
+
+def test_q15_to_equal_now_is_200(client):
+    now = load("clock.json")["now"]
+    r = client.post("/api/clock/advance", json={"to": now})
+    assert r.status_code == 200 and r.json()["now"] == now
+
+
+def test_q15_to_after_end_clamps(client):
+    r = client.post("/api/clock/advance", json={"to": "2030-01-01T00:00-06:00"})
+    assert r.status_code == 200 and r.json()["now"] == load("clock.json")["end"]
+
+
+def test_q15_hours_unchanged(client):
+    r = client.post("/api/clock/advance", json={"hours": 1})
+    assert r.json()["now"] == "2026-11-04T19:00-06:00"
+
+
+# ------------------------------------------------------------ field names are pinned (UI depends on them)
+
+SUMMARY = {"folder", "legal_name", "stage", "stage_entered_at", "sla_hours", "sla_pct", "needed_by",
+           "needed_by_badge", "amount_requested", "held", "watch", "rm"}
+
+
+def test_ui_contract_field_names_unchanged():
+    from prism.contract import ClockReplay
+
+    assert set(DealSummary.model_fields) == SUMMARY
+    assert set(DealDetail.model_fields) == SUMMARY | {
+        "facts", "issues", "resolved_issues", "stage_log", "human_requests", "alerts", "fraud"}
+    assert set(SubmissionDeal.model_fields) == {
+        "extracted", "issues", "stage_log", "human_requests", "alerts", "fraud"}
+    assert set(Fraud.model_fields) == {
+        "flagged", "held", "flagged_at", "stage_at_flag", "reason", "linked_deals"}
+    assert set(Submission.model_fields) == {"team", "set", "deals", "history_flags"}
+    assert set(Clock.model_fields) == {"now", "start", "end"}
+    assert set(ClockAdvance.model_fields) == {"hours", "to"}
+    assert set(ClockReplay.model_fields) == {"speed"}
