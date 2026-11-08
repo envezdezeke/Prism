@@ -1,0 +1,595 @@
+# Prism trick menu (docs/MODEL_DESIGN.md M5, M15, M16; HANDOFF.md section 3).
+#
+# A seeded catalogue of fraud trick FAMILIES, written at the level of history-schema rows
+# (history/deals.csv + history/monthly_deposits.csv columns), used ONLY to generate synthetic
+# validation cases. It is never used to learn or tune weights or thresholds.
+#
+# Every name, phone, account and id the generator invents is obviously fake
+# ("Zeta Works LLC", 555-01xx phones, X-### ids). Nothing here is copied from the dataset,
+# and no rule here may name a sample deal, a history id or a real party.
+#
+# Plain-English review sheet for this file: eval/TRICK_MENU_REVIEW.md
+
+version: 1
+owner: Jesse
+status: draft-for-review          # set to "frozen" when Jesse signs off
+seed: 20261107                    # master seed; every family/strength seed below is fixed too
+
+commit_rule: >
+  This file is committed BEFORE the first synthetic calibration run. After that run, any
+  change bumps `version`, gets a line in docs/AUDIT.md (M19), and every scorecard states the
+  menu version and commit hash it was generated from. Families are never edited to make a
+  result look better; a miss is reported, not removed.
+
+# --------------------------------------------------------------------------------------
+# What the engine has (so expectations below are honest)
+# --------------------------------------------------------------------------------------
+engine_reference:
+  hold_rule: "F1 (shared rare entity) AND at least 2 of F2-F5 fire (M8). F6 is evidence only."
+  watch_rule: "1 or more of F1-F5 fire, hold rule not met; flagged stays false (M14)."
+  old_trick_rule: >
+    A hit on one of the bank's five known checks goes straight to Fraud Ops with
+    flagged true (M8, checklist J17). Separate path from F1-F6.
+  f1_entity_kinds: [preparer, phone, registered_agent, address, vendor, remit_account,
+                    pdf_producer, bank, guarantor]
+  f1_not_indexed: [ein, preparer_firm, registered_agent_address, guarantor_dob,
+                   guarantor_ssn_last4, guarantor_dl_number]
+  f1_fires_when: "any entity used by under 2% of history deals links at least 2 deals (binary; type weight and repaid-discount change bits, not firing)"
+  built_now: [F1, F3, F5]         # quick task 261107-qx4
+  not_built_yet: [F2, F4]         # so today a hold needs F1 + F3 + F5 together
+  expectation_columns:
+    full: "expected outcome once F2 and F4 exist (the design)"
+    now:  "expected outcome with only F1, F3, F5 built (today); omitted when equal to full"
+
+# --------------------------------------------------------------------------------------
+# How cases are generated (applies to every family)
+# --------------------------------------------------------------------------------------
+generation:
+  unit: >
+    One CASE = a set of current deals (deal rows + 6 monthly deposit rows each), plus any
+    planted history rows. A ring case has ring_size deals; a twin case has its own size.
+  base_rows: >
+    Each synthetic deal starts from a clean history deal (funded, fraud_label none, repayment
+    current or paid_off) drawn with the case seed. Its business columns (industry, naics,
+    product, purpose, term_months, amounts, deposits) are kept; every identity column
+    (legal_name, ein, addresses, agent, guarantor fields, preparer fields, vendor, remit
+    account) is replaced by a fresh fake value, so a deal only shares what the trick says.
+  fake_values:
+    names: "two words from a fixed fake word list + legal suffix, e.g. Zeta Works LLC, Kappa Supply Inc"
+    phones: "555-01xx pattern, e.g. 512-555-0142"
+    ein: "00-7xxxxxx (never a real-looking prefix)"
+    remit_account_last4: "9xxx"
+    ids: "current deals S-<family>-<case>-<n>; planted history rows X-<family>-<case>-<n>"
+    pdf_producer_new: "\"FakeForge PDF <major>.<minor>\" (a producer string absent from history)"
+  quantiles: >
+    Deposit strengths are given as QUANTILES of the clean history's own per-deal
+    distribution (e.g. round_share_q 0.97 = the 97th-percentile clean round share), resolved
+    at generation time from whatever history ships. This keeps the menu dataset-independent
+    and keeps raw data values out of this file.
+  deposit_knobs:
+    round_share_q: "target pct_deposits_multiple_of_100 for every month, as a clean-history quantile"
+    weekdays: "number of distinct weekdays in deposit_weekdays (5 = normal Mon-Fri; 2 = e.g. Mon,Thu)"
+    regularity: "0 = keep base months; 1 = all 6 months identical count/share/label (a template)"
+  thresholds_from_rules: >
+    Any approval threshold (F6 "just under the limit") is read from rules/stages.json at
+    generation time, never typed here.
+  background: >
+    Each case is scored together with 10 fresh clean current deals (same base-row method,
+    no trick) so the run looks like a normal day, against the FULL history as the baseline
+    (as in real runs). Synthetic deals never enter threshold calibration (M5).
+  arrival: "deals arrive in application_date order; scores are recomputed on each arrival (M17)"
+  determinism: "case seed = strength seed + case index; same menu version + same history => identical cases"
+
+# --------------------------------------------------------------------------------------
+# How results are reported (eval/scorecard.{json,md}, M21)
+# --------------------------------------------------------------------------------------
+reporting:
+  catch_rate: >
+    Per family x strength: share of ring deals held (deal-level, the M6 criterion 4 number)
+    and share of cases with at least one deal held before Closed (case-level). Also: watch
+    rate, median arrival position of the first hold, and history_flags recall on planted
+    history rows.
+  false_flag_rate: >
+    Per twin: share of twin deals HELD (this is the false flag; target <= 5%, M6). Watch is
+    not a false flag (flagged stays false) but is reported separately as "friction", because
+    a watch with F3 sends the borrower a verification request (M14).
+  builds: "every number is reported twice: full rule and today's F1+F3+F5 build, until F2/F4 land"
+  headline_exclusion: >
+    T1 is the sample-like positive control. It is reported but excluded from the
+    "unseen trick" headline. Nothing is tuned on any family, so each of T2-T8 counts as
+    held-out. The M6 criterion 4 target (>= 70% of ring deals held) is judged on the
+    cells whose expected outcome is hold (full rule); cells marked blind_spot or expected
+    watch are reported next to it as known misses and never averaged into it.
+  blind_spots: "cells marked blind_spot are reported as expected misses, never hidden or patched with sample literals"
+  stamp: [menu_version, menu_commit, engine_commit, history_rows_count, computed_thresholds]
+
+outcomes: [hold, hold_old_rule, watch, clear]   # hold_old_rule = flagged via the known-checks path
+
+# ======================================================================================
+# FAMILIES
+# ======================================================================================
+families:
+
+  # ------------------------------------------------------------------------------------
+  - id: T1
+    name: shared_kit_ring
+    role: positive_control_sample_like
+    description: >
+      One organiser builds several "unrelated" borrowers from the same kit: the same tax
+      preparer and call-back phone, sometimes the same payout account, application packets
+      from the same tool, and bank deposits that look manufactured. Each deal passes the
+      bank's old checks on its own; only the overlap gives it away.
+    catch_by: [F1, F2, F4, F5, F3]
+    evades: ["the five known checks (each deal is clean alone)"]
+    perturbs:
+      preparer_name, preparer_phone: "one new fake preparer + phone shared by all ring deals"
+      vendor_remit_acct_last4: "high only: one new account shared; equipment product forced"
+      equipment_vendor: "high only: lookalike of a frequent history vendor (suffix swap)"
+      pdf_producer: "med/high: one new producer shared by the ring"
+      monthly_deposits: "round_share_q, weekdays, regularity per strength"
+      application_date: "ring spread over app_spread_days"
+    strengths:
+      low:
+        seed: 11101
+        count: 20
+        params: {ring_size: 2, shared: [preparer], app_spread_days: 45,
+                 round_share_q: 0.50, weekdays: 5, regularity: 0, producer: history_common}
+        expected: {full: watch, now: watch}
+        why: "F1 only; nothing else unusual"
+      med:
+        seed: 11102
+        count: 20
+        params: {ring_size: 3, shared: [preparer, phone], app_spread_days: 21,
+                 round_share_q: 0.97, weekdays: 2, regularity: 1, producer: new_shared}
+        expected: {full: hold, now: watch}
+        why: "F1 + F5 + F4 (+F2 burst). Today F3 is missing so F1+F5 = watch"
+      high:
+        seed: 11103
+        count: 20
+        params: {ring_size: 4, shared: [preparer, phone, remit_account], app_spread_days: 10,
+                 round_share_q: 0.995, weekdays: 2, regularity: 1, producer: new_shared,
+                 vendor_lookalike: suffix_swap, plant_history_members: 1}
+        expected: {full: hold, now: hold}
+        expected_history_flags: "the planted X- row (shares preparer AND phone = 2 links, M18)"
+        why: "F1 + F2 + F3 + F4 + F5"
+    benign_twins:
+      - id: T1-B1
+        name: family_bookkeeper
+        description: >
+          Three siblings' separate businesses all use the same long-time bookkeeper as
+          preparer. The bookkeeper also appears on 3 earlier history deals, all repaid.
+          Deposits, packets and terms are ordinary.
+        seed: 21101
+        count: 30
+        params: {twin_size: 3, shared: [preparer, phone], plant_history_members: 3,
+                 planted_outcome: paid_off, round_share_q: 0.50, weekdays: 5}
+        expected: {full: watch, now: watch}
+        must_not: hold
+        note: "F1 still fires (3-6 uses is under 2% of history); the repaid discount lowers bits but F1 is binary"
+      - id: T1-B2
+        name: big_firm_preparer
+        description: >
+          Five franchisees of one brand file through a large regional accounting firm whose
+          preparer and main phone line appear on many history deals.
+        seed: 21102
+        count: 30
+        params: {twin_size: 5, shared: [preparer, phone], shared_entity_history_share: 0.05,
+                 app_spread_days: 14, round_share_q: 0.50, weekdays: 5}
+        expected: {full: clear, now: clear}
+        must_not: hold
+        note: "entity used by ~5% of history deals is not rare, so F1 cannot fire; F2 burst alone = watch at most"
+
+  # ------------------------------------------------------------------------------------
+  - id: T2
+    name: vendor_lookalike_remit_swap
+    description: >
+      Equipment money is redirected: the quote names a vendor that looks like a well-known
+      dealer (an "Inc" instead of "LLC", or one letter off) or uses the real name with a new
+      bank account. The bank pays the "vendor" and the money disappears.
+    catch_by: [F3, F1, F2]
+    evades: ["the five known checks", "F5 (deposits are the borrower's real ones)"]
+    perturbs:
+      product: "forced to the equipment product"
+      equipment_vendor: "base name of a frequent history vendor (>= min_vendor_deals) with the change below"
+      vendor_remit_acct_last4: "new fake account (shared across ring deals at med/high)"
+      formation_date: "high only: 3-9 months before application"
+    strengths:
+      low:
+        seed: 11201
+        count: 20
+        params: {ring_size: 1, vendor_change: suffix_swap, remit: usual}
+        expected: {full: watch, now: watch}
+        why: "F3 only; M14 sends a vendor-verification request, no hold (one deal, nothing shared)"
+      med:
+        seed: 11202
+        count: 20
+        params: {ring_size: 2, vendor_change: edit_distance_1, remit: new_shared, app_spread_days: 30}
+        expected: {full: hold, now: watch}
+        why: "F1 (shared new account) + F3 + F2 (new account used twice). Today F1+F3 = watch"
+      high:
+        seed: 11203
+        count: 20
+        params: {ring_size: 3, vendor_change: edit_distance_1, remit: new_shared, app_spread_days: 14,
+                 formation_age_months: [3, 9], round_share_q: 0.97, weekdays: 3}
+        expected: {full: hold, now: hold}
+        why: "F1 + F2 + F3 + F5"
+    benign_twins:
+      - id: T2-B1
+        name: popular_vendor_busy_month
+        description: >
+          Four unrelated borrowers buy from the same big equipment dealer in the same month,
+          each quote showing the dealer's usual name and usual payment account.
+        seed: 21201
+        count: 30
+        params: {twin_size: 4, vendor: frequent_modal_form, remit: usual, app_spread_days: 30}
+        expected: {full: clear, now: clear}
+        must_not: hold
+        note: "exact usual form is not a lookalike; the vendor is common so F1 cannot fire"
+      - id: T2-B2
+        name: genuine_sister_dealer
+        description: >
+          A real regional dealer whose name resembles a big brand (e.g. "Kappa Supply Inc"
+          next to the frequent "Kappa Supply LLC") and which has its own 2 earlier repaid deals.
+        seed: 21202
+        count: 30
+        params: {twin_size: 1, vendor_change: suffix_swap, remit: own_stable,
+                 plant_history_members: 2, planted_outcome: paid_off}
+        expected: {full: watch, now: watch}
+        must_not: hold
+        note: "F3 fires (friction: a verification request), F1 may fire via its own history; no hold"
+
+  # ------------------------------------------------------------------------------------
+  - id: T3
+    name: manufactured_deposits_no_shared_party
+    description: >
+      Several applicants buy fake bank statements from the same "statement mill": deposits
+      are round numbers landing on the same two weekdays every month. But each applicant
+      uses its own preparer, phone, address and agent, so there is no shared name or number
+      to connect them.
+    catch_by: [F5]
+    evades: [F1, F3]
+    blind_spot: >
+      By design (M2) a ring that shares no rare entity lands on watch at best. The deposit
+      fingerprint can only link history deals to an already-held cluster (M18 link e).
+    perturbs:
+      monthly_deposits: "same fingerprint on every ring deal: round_share_q, weekdays, regularity"
+      everything_else: "fresh, unshared fake identities"
+    strengths:
+      low:
+        seed: 11301
+        count: 20
+        params: {ring_size: 3, round_share_q: 0.90, weekdays: 3, regularity: 0, app_spread_days: 30}
+        expected: {full: watch, now: watch}
+        why: "F5 may fire; no F1"
+      med:
+        seed: 11302
+        count: 20
+        params: {ring_size: 3, round_share_q: 0.97, weekdays: 2, regularity: 1, app_spread_days: 21}
+        expected: {full: watch, now: watch}
+        why: "F5 fires; no F1, so no hold however strong"
+      high:
+        seed: 11303
+        count: 20
+        params: {ring_size: 5, round_share_q: 0.995, weekdays: 2, regularity: 1, app_spread_days: 7,
+                 amount_below_threshold_pct: 1.5}
+        expected: {full: watch, now: watch}
+        why: "Strength cannot replace F1 (F6 'just under the limit' is evidence only)"
+    benign_twins:
+      - id: T3-B1
+        name: cash_business
+        description: >
+          A laundromat with a 6-year relationship deposits rounded cash twice a week and has
+          repaid an earlier loan. Its deposits look "manufactured" but are real.
+        seed: 21301
+        count: 30
+        params: {twin_size: 1, round_share_q: 0.97, weekdays: 2, relationship_years: 6}
+        expected: {full: watch, now: watch}
+        must_not: hold
+        note: "F5 alone = watch; checks we never hold on deposit style alone"
+      - id: T3-B2
+        name: pdf_software_update
+        description: >
+          A popular PDF tool ships a new version. Five unrelated honest applicants in the same
+          two weeks send packets carrying a producer string never seen in history.
+        seed: 21302
+        count: 30
+        params: {twin_size: 5, producer: new_shared, app_spread_days: 14, round_share_q: 0.50, weekdays: 5}
+        expected: {full: watch, now: watch}
+        must_not: hold
+        risk: >
+          pdf_producer is an F1 entity kind, so the new string links all five (F1), is new and
+          bursty (F2) and rare for its document class (F4): F1+F2+F4 = HOLD under the full rule.
+          See review sheet, decision 4.
+
+  # ------------------------------------------------------------------------------------
+  - id: T4
+    name: recycled_guarantor_identity
+    description: >
+      One real or stolen personal identity is used as the guarantor on several new,
+      otherwise unrelated businesses, each with its own preparer and address. Careful
+      fraudsters vary how the name is written (nickname, middle initial) while the date of
+      birth, SSN last 4 and licence number stay the same.
+    catch_by: [F1, F2, F5, F4]
+    evades: ["ID_MISMATCH (the ID matches the application on each deal)", "DUP_EIN (new EINs)"]
+    perturbs:
+      guarantor_name: "exact repeat (med/high) or a spelling variant (low)"
+      guarantor_dob, guarantor_ssn_last4, guarantor_dl_number: "identical across ring deals"
+      formation_date: "3-9 months before application"
+      pdf_producer, monthly_deposits: "high only"
+    strengths:
+      low:
+        seed: 11401
+        count: 20
+        params: {ring_size: 2, name_variant: nickname_or_initial, same_dob_ssn4_dl: true,
+                 formation_age_months: [3, 9], app_spread_days: 30}
+        expected: {full: clear, now: clear}
+        blind_spot: >
+          The engine indexes the guarantor by NAME only; DOB, SSN last 4 and licence are not
+          entities, so a respelled name breaks the link. Catching this needs an identity-key
+          rule the engine does not have.
+      med:
+        seed: 11402
+        count: 20
+        params: {ring_size: 3, name_variant: exact, same_dob_ssn4_dl: true,
+                 formation_age_months: [3, 9], app_spread_days: 30}
+        expected: {full: watch, now: watch}
+        why: "F1 (guarantor) + F2 burst = only one family besides F1"
+      high:
+        seed: 11403
+        count: 20
+        params: {ring_size: 4, name_variant: exact, same_dob_ssn4_dl: true,
+                 formation_age_months: [2, 6], app_spread_days: 14, producer: new_shared,
+                 round_share_q: 0.97, weekdays: 2}
+        expected: {full: hold, now: watch}
+        why: "F1 + F2 + F4 + F5. Today F1+F5 = watch"
+    benign_twins:
+      - id: T4-B1
+        name: serial_entrepreneur
+        description: >
+          One owner personally guarantees her third business; the first two are in history,
+          both repaid. Different preparers over the years.
+        seed: 21401
+        count: 30
+        params: {twin_size: 1, plant_history_members: 2, planted_outcome: paid_off,
+                 name_variant: exact, same_dob_ssn4_dl: true, app_gap_years: [1, 3]}
+        expected: {full: watch, now: watch}
+        must_not: hold
+        note: "F1 fires on the shared guarantor; nothing else; repaid history lowers bits"
+      - id: T4-B2
+        name: common_name_two_people
+        description: >
+          Two different people with a very common name (different DOB, SSN last 4, licence)
+          each guarantee their own business in the same month.
+        seed: 21402
+        count: 30
+        params: {twin_size: 2, name_variant: exact_common_name, same_dob_ssn4_dl: false,
+                 shared_entity_history_share: 0.03}
+        expected: {full: clear, now: clear}
+        must_not: hold
+        note: "a name used by ~3% of history is not rare; if a rare common-looking name collides, expect watch"
+
+  # ------------------------------------------------------------------------------------
+  - id: T5
+    name: bust_out_returning_customer
+    description: >
+      A borrower with a clean, repaid earlier loan comes back asking for several times the
+      amount. Revenue on paper is inflated, but kept just under the bank's 1.5x check, and the
+      last two months of deposits are pumped with round transfers. They plan to take the
+      money and default.
+    catch_by: [F5]
+    evades: ["REV_INFLATION (kept under 1.5x)", F3, "F1 (no other party involved)"]
+    blind_spot: >
+      The engine has no "change against the borrower's own history" rule (amount jump,
+      revenue jump, deposit pump). F1 may fire only by linking the borrower to its own
+      earlier deal, which is a self-link, not evidence of a ring.
+    perturbs:
+      relationship_since, prior_note: "returning customer, 2-5 years"
+      planted history row: "same legal_name, ein, guarantor, preparer; funded, paid_off"
+      amount_requested: "x amount_multiple of the planted prior amount"
+      annual_revenue_stated: "revenue_ratio x annualised deposits (kept < 1.5)"
+      monthly_deposits: "last 2 months total_deposits x pump; one round lump = largest_deposit"
+    strengths:
+      low:
+        seed: 11501
+        count: 20
+        params: {amount_multiple: 2.5, revenue_ratio: 1.20, pump: 1.3, plant_history_members: 1}
+        expected: {full: watch, now: watch}
+        why: "self-link F1 only"
+      med:
+        seed: 11502
+        count: 20
+        params: {amount_multiple: 4.0, revenue_ratio: 1.35, pump: 1.8, plant_history_members: 1}
+        expected: {full: watch, now: watch}
+        why: "self-link F1 + maybe F5; no second voting family"
+      high:
+        seed: 11503
+        count: 20
+        params: {amount_multiple: 6.0, revenue_ratio: 1.45, pump: 2.5, round_share_q: 0.97,
+                 plant_history_members: 1}
+        expected: {full: watch, now: watch}
+        why: "F5 likely fires; still no real cross-deal link"
+    benign_twins:
+      - id: T5-B1
+        name: honest_growth
+        description: >
+          A returning customer that has grown: asks for twice its earlier loan, stated revenue
+          matches its deposits, deposits rise steadily month over month.
+        seed: 21501
+        count: 30
+        params: {amount_multiple: 2.0, revenue_ratio: 1.05, pump: 1.0, growth_per_month: 0.03,
+                 plant_history_members: 1}
+        expected: {full: clear, now: clear}
+        must_not: hold
+        risk: "self-link to its own earlier deal makes F1 fire -> watch today. See decision 3"
+
+  # ------------------------------------------------------------------------------------
+  - id: T6
+    name: shell_burst_shared_agent
+    description: >
+      A batch of brand-new LLCs, formed a few months before applying, all registered through
+      the same small, obscure registered agent. Each uses a different preparer. Loan sizes sit
+      just under the committee approval limit so they get the lighter sign-off.
+    catch_by: [F1, F2, F4, F5]
+    evades: ["SHELL_ADDRESS (real-looking street addresses, not mailbox stores)", F3]
+    perturbs:
+      registered_agent: "one new fake agent shared by the batch"
+      formation_date: "formation_age_months before application"
+      amount_requested: "amount_below_threshold_pct under the nearest stages.json limit (F6 evidence)"
+      pdf_producer, monthly_deposits: "med/high"
+    strengths:
+      low:
+        seed: 11601
+        count: 20
+        params: {ring_size: 2, shared: [registered_agent], formation_age_months: [3, 6],
+                 app_spread_days: 30, round_share_q: 0.50, weekdays: 5}
+        expected: {full: watch, now: watch}
+      med:
+        seed: 11602
+        count: 20
+        params: {ring_size: 3, shared: [registered_agent], formation_age_months: [2, 5],
+                 app_spread_days: 10, amount_below_threshold_pct: 1.5, producer: new_shared}
+        expected: {full: hold, now: watch}
+        why: "F1 + F2 (agent burst) + F4. Today F1 only = watch"
+      high:
+        seed: 11603
+        count: 20
+        params: {ring_size: 5, shared: [registered_agent], formation_age_months: [1, 4],
+                 app_spread_days: 5, amount_below_threshold_pct: 1.0, producer: new_shared,
+                 round_share_q: 0.97, weekdays: 3}
+        expected: {full: hold, now: watch}
+        why: "F1 + F2 + F4 + F5. Today F1+F5 = watch (no vendor, so no F3)"
+    benign_twins:
+      - id: T6-B1
+        name: national_agent_service
+        description: >
+          Five honest new LLCs, formed recently, all using one of the big national
+          registered-agent services that appears on many history deals.
+        seed: 21601
+        count: 30
+        params: {twin_size: 5, shared: [registered_agent], shared_entity_history_share: 0.10,
+                 formation_age_months: [2, 8], app_spread_days: 30}
+        expected: {full: clear, now: clear}
+        must_not: hold
+      - id: T6-B2
+        name: small_law_firm_agent
+        description: >
+          A small-town law firm acts as registered agent for two related local businesses;
+          the firm appears on 2 earlier repaid history deals.
+        seed: 21602
+        count: 30
+        params: {twin_size: 2, shared: [registered_agent], plant_history_members: 2,
+                 planted_outcome: paid_off, formation_age_months: [24, 120]}
+        expected: {full: watch, now: watch}
+        must_not: hold
+
+  # ------------------------------------------------------------------------------------
+  - id: T7
+    name: velocity_shared_contact
+    description: >
+      A burst of applications within days, each naming a different preparer, but the
+      preparers' call-back phone number and the business address are the same. One person
+      is fielding the bank's verification calls for all of them.
+    catch_by: [F1, F2, F4, F5]
+    evades: ["single-deal checks", "preparer-name matching (names differ)"]
+    perturbs:
+      preparer_name: "distinct fake names per deal"
+      preparer_phone: "med/high: one new fake phone shared"
+      business_address: "one shared fake address (identical, including suite)"
+      application_date: "all within app_spread_days"
+      pdf_producer, monthly_deposits: "med/high"
+    strengths:
+      low:
+        seed: 11701
+        count: 20
+        params: {ring_size: 3, shared: [address], app_spread_days: 10}
+        expected: {full: watch, now: watch}
+        why: "F1 (address, weak type weight) + F2 burst"
+      med:
+        seed: 11702
+        count: 20
+        params: {ring_size: 4, shared: [address, phone], app_spread_days: 5, producer: new_shared}
+        expected: {full: hold, now: watch}
+        why: "F1 + F2 + F4"
+      high:
+        seed: 11703
+        count: 20
+        params: {ring_size: 6, shared: [address, phone], app_spread_days: 3, producer: new_shared,
+                 round_share_q: 0.97, weekdays: 2}
+        expected: {full: hold, now: watch}
+        why: "F1 + F2 + F4 + F5. Today F1+F5 = watch"
+    benign_twins:
+      - id: T7-B1
+        name: franchise_week
+        description: >
+          Five franchisees of one brand apply in the same week through the franchisor's
+          preferred accounting firm, whose main line appears on many history deals.
+        seed: 21701
+        count: 30
+        params: {twin_size: 5, shared: [phone], shared_entity_history_share: 0.05, app_spread_days: 7}
+        expected: {full: clear, now: clear}
+        must_not: hold
+        note: "common phone is not rare; F2 burst alone would be watch at most"
+      - id: T7-B2
+        name: shared_office_building
+        description: >
+          Three unrelated tenants of one small office building (same street address and
+          suite block) apply in the same month, each with its own preparer and phone.
+        seed: 21702
+        count: 30
+        params: {twin_size: 3, shared: [address], app_spread_days: 30}
+        expected: {full: watch, now: watch}
+        must_not: hold
+
+  # ------------------------------------------------------------------------------------
+  - id: T8
+    name: paper_revenue_inflation_old_rule
+    description: >
+      The single-deal "old trick": stated revenue far above what the bank statements show.
+      Included to prove the deterministic known-checks path still works and to measure where
+      it stops working (just under the 1.5x line).
+    catch_by: [old_trick_rule]
+    evades: ["F1-F5 (a single honest-looking deal)"]
+    note: >
+      Statement-math tampering (opening vs prior closing balance, line items vs totals) needs
+      PDF-level fields that the history schema does not carry; it is covered by the one
+      end-to-end PDF dry-run case (M5), not by this menu.
+    perturbs:
+      annual_revenue_stated: "revenue_ratio x annualised deposits (sum of 6 months x 2)"
+    strengths:
+      low:
+        seed: 11801
+        count: 20
+        params: {revenue_ratio: 1.40}
+        expected: {full: clear, now: clear}
+        blind_spot: "under the bank's own 1.5x line; no F-family looks at revenue"
+      med:
+        seed: 11802
+        count: 20
+        params: {revenue_ratio: 1.70}
+        expected: {full: hold_old_rule, now: hold_old_rule}
+      high:
+        seed: 11803
+        count: 20
+        params: {revenue_ratio: 2.50}
+        expected: {full: hold_old_rule, now: hold_old_rule}
+    benign_twins:
+      - id: T8-B1
+        name: seasonal_business
+        description: >
+          A landscaping company states full-year revenue, but its 6 months of statements are
+          the slow winter season, so stated revenue looks 1.3-1.45x the deposits.
+        seed: 21801
+        count: 30
+        params: {revenue_ratio: [1.30, 1.45], seasonal_dip: 0.6}
+        expected: {full: clear, now: clear}
+        must_not: hold
+      - id: T8-B2
+        name: one_off_asset_sale
+        description: >
+          A borrower sold an old truck; one month has a single large deposit worth half the
+          month's total. Revenue on the application matches normal operations.
+        seed: 21802
+        count: 30
+        params: {revenue_ratio: 0.95, lump_share_of_month: 0.5}
+        expected: {full: clear, now: clear}
+        must_not: hold
