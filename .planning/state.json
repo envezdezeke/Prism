@@ -1,0 +1,48 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": null,
+  "phases": [
+    {
+      "number": "1",
+      "name": "Foundations, Contract and Golden Labels",
+      "status": "pending"
+    },
+    {
+      "number": "2",
+      "name": "Pipeline Cockpit UI on Mock Data",
+      "status": "in_progress"
+    },
+    {
+      "number": "3",
+      "name": "Read the Folder",
+      "status": "pending"
+    },
+    {
+      "number": "4",
+      "name": "Move the Deal",
+      "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "Catch the Fakes",
+      "status": "pending"
+    },
+    {
+      "number": "6",
+      "name": "Nemotron Agents",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "Fraud Graph, Dry Run and Pitch",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 3 of 7 · 0% · executing"
+  },
+  "updated_at": "2026-11-08T05:10:26.960Z"
+}

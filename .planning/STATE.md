@@ -2,15 +2,16 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Read the Folder
-status: planning
+status: executing
 stopped_at: Phase 3 context gathered
-last_updated: "2026-11-08T03:34:52.884Z"
-last_activity: "2026-11-07 ~20:10 CT - Merged quick task 261107-qx3 (Move core; 353 tests). Fraud baseline (qx4) merged earlier. Next: Phase 3 Read (critical path), then Phase 5 decide/clusters/history_flags."
-state_head: c2ed1e43a2179031d96665675ab0e98a7999d749
+last_updated: "2026-11-08T05:10:26.853Z"
+last_activity: 2026-11-07
+last_activity_desc: Phase 03 execution started
+state_head: 6a86e58f25307042e0806e3dab61c80f33971a5f
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 4
+  total_plans: 8
   completed_plans: 3
   percent: 0
 ---
@@ -22,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-07)
 
 **Core value:** Catch the cross-deal fraud ring before money goes out, without blocking good deals, using a method that still works on the hidden set's different trick.
-**Current focus:** Phase 02 — Pipeline Cockpit UI on Mock Data
+**Current focus:** Phase 03 — Read the Folder
 
 ## Current Position
 
-Phase: 02 (Pipeline Cockpit UI on Mock Data) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-11-07 ~20:10 CT - Merged quick task 261107-qx3 (Move core; 353 tests). Fraud baseline (qx4) merged earlier. Next: Phase 3 Read (critical path), then Phase 5 decide/clusters/history_flags.
+Phase: 03 (Read the Folder) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 03
+Last activity: 2026-11-07 — Phase 03 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
