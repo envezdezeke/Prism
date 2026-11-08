@@ -123,7 +123,7 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 
 1. ✅ **Done Sat 18:29.** **Answer key `eval/gold.json`** for all 13 sample folders: the true extracted fields plus the true `issues`. This is the highest-value finance task; every READ result gets scored against it.
 2. Domain rules: per-field mismatch tolerances and the nickname list; required docs per stage; vendor and disbursement verification; the 7004 rule (business under 2 years old). **Started:** `docs/DETAILS_CHECKLIST.md` (rules plus judgment calls J1–J20 awaiting Jesse's sign-off).
-3. Credit memo template (Committee requires one): the 5 Cs, risk rating, flags with evidence, approval conditions. Nemotron fills it; deterministic facts only.
+3. ✅ **Done Sat ~19:00:** [`docs/CREDIT_MEMO_TEMPLATE.md`](docs/CREDIT_MEMO_TEMPLATE.md). Credit memo (Committee requires one): 5 Cs, rule-based 1–5 risk grade, assumed 9.0% rate, conditional recommendation, approval conditions, a 4-line version for the committee request, and test cases. Numbers, grade and recommendation are deterministic; Nemotron may only polish prose. **Zeke: add `credit_memo` to `DealDetail`.**
 4. Plain-English templates for human requests and SLA alerts (each must say: whose deal + RM, stage + duration, waiting on, what unblocks it).
 5. UI per PROJECT.md (pipeline board, inbox, alert feed, deal detail, fraud graph), and the pitch and Devpost.
 
