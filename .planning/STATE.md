@@ -4,9 +4,9 @@ current_phase: 02
 current_phase_name: Pipeline Cockpit UI on Mock Data
 status: executing
 stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-11-08T02:02:22.861Z"
+last_updated: "2026-11-08T02:06:04.854Z"
 last_activity: "2026-11-07 ~20:15 CT - Jesse: plan 02-01 done (UI scaffold, tokens, live pipeline board; 11/11 UI tests). Ezekiel: Merged quick task 261107-qx4 (fraud baseline, F1/F3/F5 + calibration; Jul-Oct replay: 1/72 good-deal false flags as lower bound, F1 fires on ~30% of clean deals). Move core (261107-qx3) still running in a worktree."
-state_head: a64e0c9e13fc7209b0aae37382d7e559e7ecda78
+state_head: 8bbd3db53341c83fdf268d1acc380380b627195c
 progress:
   total_phases: 7
   completed_phases: 0
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 02 (Pipeline Cockpit UI on Mock Data) — EXECUTING
 Plan: 3 of 4
 Status: Ready to execute
-Last activity: 2026-11-07 ~20:15 CT - Jesse: plan 02-01 done (UI scaffold, tokens, live pipeline board; 11/11 UI tests). Ezekiel: Merged quick task 261107-qx4 (fraud baseline, F1/F3/F5 + calibration; Jul-Oct replay: 1/72 good-deal false flags as lower bound, F1 fires on ~30% of clean deals). Move core (261107-qx3) still running in a worktree.
+Last activity: 2026-11-07 ~20:10 CT - Merged quick task 261107-qx3 (Move core; 353 tests). Fraud baseline (qx4) merged earlier. Next: Phase 3 Read (critical path), then Phase 5 decide/clusters/history_flags.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -119,6 +119,7 @@ None yet.
 | 261107-pfc | API contract + mock fixtures (FND-07, I1) | 2026-11-07 | 9712cde | [261107-pfc-api-contract-mock-fixtures-fnd-07-i1](./quick/261107-pfc-api-contract-mock-fixtures-fnd-07-i1/) |
 | 261107-qez | Engine skeleton + validator + determinism + self-score (FND-01..06, FND-08) | 2026-11-07 | 7838de3 | [261107-qez-engine-skeleton-validator-determinism-se](./quick/261107-qez-engine-skeleton-validator-determinism-se/) |
 | 261107-qx4 | Fraud baseline: history index, F1/F3/F5 bits, calibration, Jul-Oct replay report (FRD-01, FRD-02) | 2026-11-07 | d5216d7 | [261107-qx4-fraud-baseline-history-index-rarity-depo](./quick/261107-qx4-fraud-baseline-history-index-rarity-depo/) |
+| 261107-qx3 | Move core: stage machine, routing, SLA ladder, personas, credit memo, messages (MOVE-01..08, 10, 11) | 2026-11-07 | 8bbd3db | [261107-qx3-move-core-stage-machine-routing-sla-pers](./quick/261107-qx3-move-core-stage-machine-routing-sla-pers/) |
 
 ## Deferred Items
 
