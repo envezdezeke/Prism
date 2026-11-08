@@ -40,10 +40,11 @@ classify:
       - {kind: phrase, text: "amount requested", weight: 1.0, where: any}
       - {kind: phrase, text: "automatic extension", weight: -5.0, where: any}
     guarantor_id:
-      - {kind: regex, pattern: 'driver''?s?\s+licen[cs]e', weight: 3.0, where: title}
+      - {kind: regex, pattern: 'driver''?s?\s*licen[cs]e', weight: 3.0, where: title}
+      - {kind: regex, pattern: '\bdl\s*(?:number|no\.?|#)?\s*[:#]?\s*[a-z]{0,2}\s*\d{5,}', weight: 1.0, where: any}
       - {kind: phrase, text: "dl number", weight: 1.0, where: any}
-      - {kind: phrase, text: "date of birth", weight: 0.5, where: any}
-      - {kind: phrase, text: "expires", weight: 0.5, where: any}
+      - {kind: regex, pattern: '\b(?:dob|date\s*of\s*birth)\s*[:]?\s*\d', weight: 0.5, where: any}
+      - {kind: regex, pattern: '\b(?:exp|expires)\s*[:]?\s*\d', weight: 0.5, where: any}
       - {kind: phrase, text: "small business loan application", weight: -5.0, where: title}
     certificate_of_formation:
       - {kind: phrase, text: "certificate of formation", weight: 3.0, where: title}
@@ -81,7 +82,7 @@ classify:
       - {kind: phrase, text: "extended due date", weight: 1.0, where: any}
       - {kind: phrase, text: "tax year", weight: 0.5, where: any}
     request_letter:
-      - {kind: regex, pattern: '(?m)^\s*re:\s*loan request', weight: 3.0, where: title}
+      - {kind: regex, pattern: '(?m)^\s*re:\s*loan\s+request', weight: 3.0, where: title}
       - {kind: phrase, text: "we are requesting", weight: 1.0, where: any}
       - {kind: phrase, text: "small business loan application", weight: -5.0, where: title}
     equipment_quote:
@@ -122,6 +123,85 @@ labels:
     guarantor_dl: ["Driver license", "Driver's license", "Driver license number"]
     affiliated: ["Affiliated businesses", "Affiliates"]
     application_date: ["Application date", "Date of application", "Date submitted"]
+  guarantor_id:
+    name: ["Name", "Full name", "Holder name"]
+    address: ["Address", "Home address", "Residence address"]
+    dob: ["Date of birth", "DOB", "Birth date"]
+    dl: ["DL number", "Driver license number", "Driver's license number", "License number", "DL no", "DLN"]
+    class: ["Class"]
+    issued: ["Issued", "Issue date", "ISS"]
+    expires: ["Expires", "Expiration date", "Expiry date", "EXP"]
+  ein_letter:
+    name: ["Name of business", "Business name", "Legal name", "Name"]
+    ein: ["Employer Identification Number", "EIN", "Employer ID number"]
+    notice_date: ["Date of notice", "Notice date", "Date of this notice"]
+  certificate_of_formation:
+    entity_name: ["Entity name", "Name of entity", "Company name", "Name of company"]
+    entity_type: ["Entity type", "Type of entity"]
+    file_number: ["File number", "Filing number", "SOS file number"]
+    effective_date: ["Effective date", "Date of filing", "Filing date"]
+    principal_office: ["Principal office", "Principal address", "Principal place of business"]
+    registered_agent: ["Registered agent", "Registered agent name"]
+    registered_office: ["Registered office", "Registered office address", "Registered agent address"]
+    organizer: ["Organizer", "Organizers"]
+  tax_return:
+    name: ["Name", "Taxpayer name", "Name of entity", "Business name"]
+    ein: ["EIN", "Employer identification number"]
+    gross: ["Gross receipts or sales", "Gross receipts"]
+    income: ["Ordinary business income", "Ordinary income", "Ordinary business income (loss)"]
+    preparer: ["Paid preparer", "Preparer", "Paid preparer name"]
+    ptin: ["Preparer PTIN", "PTIN"]
+    filed: ["Date filed", "Filing date", "Date signed"]
+    tax_year: ["Tax year"]
+  form_7004:
+    name: ["Name", "Name of business", "Business name"]
+    ein: ["EIN", "Employer identification number"]
+    tax_year: ["Tax year"]
+    due: ["Extended due date", "New due date", "Extension due date"]
+    status: ["Status", "Filing status"]
+  equipment_quote:
+    remit: ["Remit to", "Remit payment to", "Pay to"]
+    total: ["Total", "Total due", "Grand total", "Quote total", "Total price"]
+    quote_date: ["Quote date", "Date of quote", "Date"]
+    customer: ["Customer", "Bill to", "Prepared for"]
+  financial_statements:
+    prepared_by: ["Prepared by", "Compiled by", "Accountant"]
+    pl_heading: ["Profit & Loss", "Profit and loss", "Income statement", "Profit & loss statement"]
+    revenue: ["Revenue", "Total revenue", "Sales", "Net sales"]
+    net_income: ["Net income", "Net profit", "Net income (loss)"]
+    cash: ["Cash", "Cash and equivalents", "Cash & equivalents"]
+    receivables: ["Accounts receivable", "Receivables", "Trade receivables"]
+    liabilities: ["Total liabilities", "Liabilities, total"]
+
+# Free-form generic patterns for the form parsers. Each pattern is matched against whitespace-collapsed
+# document text; the first capture group is the value. Only these config regexes are ever compiled.
+patterns:
+  tax_year:
+    - 'tax\s+year\W{0,4}(\d{4})'
+    - 'for\s+the\s+year\s+(?:ended\W+)?\w*\W*(\d{4})'
+  request_amount:
+    - 'we\s+are\s+requesting\s+(\$?\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:k|mm|m|thousand|million))?)(?![\w])'
+    - '(?:requesting|seeking|asking\s+for|request\s+for|loan\s+of)\s+(\$?\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:k|mm|m|thousand|million))?)(?![\w])'
+  quote_number: '^\s*(?:quotation|quote|estimate|proforma)\s*(?:no\.?|number|#)?\s*[:#]?\s*([A-Za-z0-9][\w./-]*)'
+  quote_account: 'acc(?:oun)?t\.?\s*(?:ending|no\.?|number|#)?\s*(?:in\s+)?[:.#]?\s*(?:x+|\*+|\.+)?\s*(\d{4})\b'
+  fy: ['\bfy\s*(\d{4})', 'fiscal\s+year\s+(\d{4})', 'year\s+ended\W+\w+\W+\d{1,2}\W+(\d{4})']
+  ytd: ['\bytd\W+([A-Za-z]{3,9})\W+([A-Za-z]{3,9})']
+  balance_date: 'as\s+of\s+(.+)$'
+
+credentials: ["CPA", "EA", "CMA", "CFA", "CFP", "CPA/PFS", "MBA", "JD", "Esq", "RTRP", "PTIN"]
+separators: ["·", "•", "|", "‧", "∙"]
+
+id_ocr:                  # OCR-style ID text (spaces may be missing, uppercase, prefixes glued to values)
+  dob_prefixes: ["dob", "dateofbirth", "birthdate", "birth"]
+  exp_prefixes: ["exp", "expires", "expiry", "expiration"]
+  dl_prefixes: ["dl", "dln", "licenseno", "licensenumber", "lic"]
+  label_prefixes: ["class", "iss", "issued", "sex", "hgt", "eyes", "end", "rest"]
+  noise: ["driver", "licen", "texas", "photo", "specimen", "synthetic", "state", "identification", "usa", "united", "front", "back", "scanned"]
+
+financial_statements:
+  pl_phrases: ["profit & loss", "profit and loss", "income statement"]
+  bs_phrases: ["balance sheet"]
+  months: ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
 sections:                # heading regexes (applied per line); the guarantor section is the owner block
   business: ['^\s*section\s+\w+\W+business']
