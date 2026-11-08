@@ -141,7 +141,7 @@ Cut in this order when a gate is at risk.
 **Depends on**: Phase 3 (stage guards read the issue list)
 **Owner**: Ezekiel
 **Window**: H5–H7.5 (Sat 20:55–23:25 CT)
-**Requirements**: MOVE-01, MOVE-02, MOVE-03, MOVE-04, MOVE-05, MOVE-06, MOVE-07, MOVE-08, MOVE-09
+**Requirements**: MOVE-01, MOVE-02, MOVE-03, MOVE-04, MOVE-05, MOVE-06, MOVE-07, MOVE-08, MOVE-09, MOVE-10, MOVE-11
 **Success Criteria** (what must be TRUE):
   1. A headless sample-week run with scripted personas takes clean deals through Intake, Credit, Committee, Product, Committed and Closed in order, and each stage writes a `stage_log` entry with what was seen, what was decided and why. No deal advances while it waits on a document, a human answer or a hold. An incomplete file gets a borrower `info_request`, never a `credit_decision` request.
   2. Sign-off requests go to the right person. Priya's credit request goes to marcus.lee because dana.whitfield is out. Committee goes to priscilla.nguyen under $250k and to harold.benson at $250k or more. Commitment goes to the deal's RM, funding to tasha.reed, and fraud-hold requests to victor.hale with monica.salas as backup.
@@ -149,7 +149,8 @@ Cut in this order when a gate is at risk.
   4. Priya's deal is prioritised, and a deadline-risk alert fires before her needed-by date would be missed.
   5. A reply posted through the live API inbox moves a deal exactly as the matching scripted reply would. A new paper added to an in-flight deal mid-run is absorbed and re-checked, and it resolves or raises issues.
 **Plans**: TBD
-**Notes**: The live API (same contract as the Phase 1 fixtures) ships here, so the H10 switch is a flag flip.
+  6. Every deal entering Committee gets the deterministic credit memo; the four sample deals that reach Committee grade as in `docs/CREDIT_MEMO_TEMPLATE.md` (Garza 1, Okafor 1, Priya 2, Harbor Tea 2). Every alert and request matches `docs/MESSAGE_TEMPLATES.md`.
+**Notes**: The live API (same contract as the Phase 1 fixtures) ships here, so the H10 switch is a flag flip. Add `credit_memo` to `DealDetail` in the contract for MOVE-10.
 
 ### Phase 5: Catch the Fakes
 **Goal**: The engine holds the cross-deal fraud ring before money goes out, as early as the evidence allows. It finds the ring's linked current and history deals and leaves every good deal alone, using rarity-weighted shared entities plus multi-signal agreement that carries over to an unseen trick.

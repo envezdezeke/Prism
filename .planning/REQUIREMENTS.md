@@ -40,6 +40,8 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 - [ ] **MOVE-07**: Borrower `info_request` is sent for missing items. No `credit_decision` request is sent on an incomplete file. (E)
 - [ ] **MOVE-08**: Human responses come from scripted personas (fast, slow, OOO, never-answers) for headless runs, or from the interactive inbox via the API. (E)
 - [ ] **MOVE-09**: New papers on an in-flight deal (the weekend drop) are absorbed, re-checked, and can resolve or raise issues. (E)
+- [ ] **MOVE-10**: On entering Committee, a deterministic credit memo is written per `docs/CREDIT_MEMO_TEMPLATE.md` (9.0% assumed rate, rule-based 1–5 grade, conditional recommendation, approval conditions); its 4-line short version is the `committee_approval` message. Committee never exits without it. Nemotron may only polish prose. (E, spec J)
+- [ ] **MOVE-11**: Alerts, escalations, reminders/backup reroutes (J21), the fraud-hold chase (J22), every request type and borrower `info_request`s use the deterministic wording in `docs/MESSAGE_TEMPLATES.md`; every alert states whose deal + RM, stage + duration, what it waits on and what unblocks it. (E, spec J)
 
 ### Catch the fakes (FRAUD)
 
@@ -129,6 +131,8 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 | MOVE-07 | Phase 4 | Pending |
 | MOVE-08 | Phase 4 | Pending |
 | MOVE-09 | Phase 4 | Pending |
+| MOVE-10 | Phase 4 | Pending |
+| MOVE-11 | Phase 4 | Pending |
 | FRD-01 | Phase 5 | Pending |
 | FRD-02 | Phase 5 | Pending |
 | FRD-03 | Phase 5 | Pending |
@@ -148,14 +152,14 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 | DEMO-03 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 48 total
-- Mapped to phases: 48
+- v1 requirements: 50 total
+- Mapped to phases: 50
 - Unmapped: 0
 
-**By phase:** Phase 1: 9 (Both) · Phase 2: 5 (Jesse) · Phase 3: 8 (Ezekiel) · Phase 4: 9 (Ezekiel) · Phase 5: 7 (Ezekiel) · Phase 6: 5 (Ezekiel) · Phase 7: 5 (Jesse lead, DEMO-01 Ezekiel). Owners per requirement are the E/J tags above.
+**By phase:** Phase 1: 9 (Both) · Phase 2: 5 (Jesse) · Phase 3: 8 (Ezekiel) · Phase 4: 11 (Ezekiel) · Phase 5: 7 (Ezekiel) · Phase 6: 5 (Ezekiel) · Phase 7: 5 (Jesse lead, DEMO-01 Ezekiel). Owners per requirement are the E/J tags above.
 
 NEM-02 (Nemotron smoke test) maps to Phase 1 instead of Phase 6, so hosted tool calling is proven before the agent phase depends on it.
 
 ---
 *Requirements defined: 2026-11-07*
-*Last updated: 2026-11-07 after roadmap creation (traceability filled)*
+*Last updated: 2026-11-07 18:50: added MOVE-10/MOVE-11 (deterministic credit memo and message templates; Committee can't exit without a memo, and NEM-06 alone is on the cut list)*
