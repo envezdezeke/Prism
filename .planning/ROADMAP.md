@@ -198,7 +198,11 @@ Plans:
   3. The red-team run proposes 3–5 new fraud tricks, a deterministic synthesizer builds deals for each, and a report on the red-team endpoint shows per-trick catch rate, time-to-hold and false flags.
   4. The VL reader reads Tyler's JPG ID and an unfamiliar layout. Its fields only fill nulls and never create a mismatch or a hold.
   5. Credit memos, sign-off requests and alerts read as plain words from Nemotron and fall back to templates when the API fails. A free-text human reply is parsed into one of the request's allowed options.
-**Plans**: TBD
+**Plans**: 3 plans (deadline-trimmed, 2026-11-08 ~08:20: NEM-05 already shipped in Phase 3 (03-04/03-05) and 06-01 only keeps it intact; NEM-06 cut, the MOVE-10/11 templates ship, so criterion 5 is met by templates only; research skipped)
+Plans:
+- [ ] 06-01-PLAN.md — Wave 1: shared Nemotron client extracted from vl.py into prism/agents/client.py (modes, cache, transport, env model IDs, budget) plus ChatClient tool-calling record/replay; off vs replay byte-identical (NEM-01, keeps NEM-05)
+- [ ] 06-02-PLAN.md — Wave 2: investigator tool loop (≤8 steps, 5 read-only tools), template degrade, /api/investigator served under MOCK=0, demo run recorded to eval/nemotron_replay (NEM-03)
+- [ ] 06-03-PLAN.md — Wave 2, cuttable (tier 3): red-team lite. Nemotron picks tricks from eval/trick_menu_redteam.yaml, Jesse's synth builds the deals, the engine scores them, RedTeamReport for /api/redteam; needs the origin/main eval files (NEM-04)
 **Notes**: Hosted build.nvidia.com API with the record/replay cache; Brev is break-glass only. Model IDs live in env vars. A plain OpenAI-SDK tool loop, no agent framework.
 - **Red-team protocol (`HANDOFF.md` §3):** write the trick menu before any tuning, with randomized strength and fields: a shared hidden party in different roles, number style, template fingerprint, a lookalike counterparty, threshold gaming and a timing burst.
 - Evaluate by leaving one trick family out at a time, never with a random row split.
