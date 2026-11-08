@@ -83,6 +83,8 @@ Short version below. The full rule-by-rule list is [`docs/DETAILS_CHECKLIST.md`]
 
 ## 5. Open questions for Vijay (the one list; post in the GS channel ASAP)
 
+> **Sun 11/08 ~02:45 (Jesse): not asking.** We build to the most likely answer for each; the assumed answers are logged in PROJECT.md Key Decisions ("Organizer questions ... will not be asked").
+
 Owner: Jesse. Record each answer in PROJECT.md Key Decisions. Ordered by how much score rides on the answer.
 
 1. **During judging, how do the "staff" answer our sign-off requests:** our UI, chat, email, a file, or an API they call? (Our build supports an inbox screen and scripted answers; the answer decides which to polish.)
