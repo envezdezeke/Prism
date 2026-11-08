@@ -57,7 +57,7 @@ To unblock it: {unblock}.{ Funds are needed by {needed_by}.}
 
 ### Rules for Zeke
 
-- **Exactly once** per deal × stage × level. If the clock jumps 6h+ at once, send **every** threshold crossed, each stamped with the time it was actually crossed.
+- **Exactly once** per deal × stage × threshold (100%, 150%, 200%). The 150% and 200% messages both have `level: escalation`, so the threshold, not the level, is the key. If the clock jumps 6h+ at once, send **every** threshold crossed, each stamped with the time it was actually crossed.
 - Timers are wall-clock sim hours; staff hours don't pause them (J16). Alerts go out at any hour.
 - Committee limits differ by route: delegated 24h (alerts at 24/36/48h), chair 48h (48/72/96h).
 

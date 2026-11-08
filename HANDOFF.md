@@ -123,8 +123,8 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 
 1. ✅ **Done Sat 18:29.** **Answer key `eval/gold.json`** for all 13 sample folders: the true extracted fields plus the true `issues`. This is the highest-value finance task; every READ result gets scored against it.
 2. Domain rules: per-field mismatch tolerances and the nickname list; required docs per stage; vendor and disbursement verification; the 7004 rule (business under 2 years old). **Started:** `docs/DETAILS_CHECKLIST.md` (rules plus judgment calls J1–J20 awaiting Jesse's sign-off).
-3. ✅ **Done Sat ~19:00:** [`docs/CREDIT_MEMO_TEMPLATE.md`](docs/CREDIT_MEMO_TEMPLATE.md). Credit memo (Committee requires one): 5 Cs, rule-based 1–5 risk grade, assumed 9.0% rate, conditional recommendation, approval conditions, a 4-line version for the committee request, and test cases. Numbers, grade and recommendation are deterministic; Nemotron may only polish prose. **Zeke: add `credit_memo` to `DealDetail`.**
-4. ✅ **Done Sat ~19:15:** [`docs/MESSAGE_TEMPLATES.md`](docs/MESSAGE_TEMPLATES.md). Plain-English templates for SLA alerts (100/150/200%), follow-ups and backup reroutes (J21), the fraud-hold chase (J22), all 7 request types, borrower info requests and the deadline-risk alert. Each alert says whose deal + RM, stage + duration, waiting on, and what unblocks it.
+3. ✅ **Done Sat ~18:40:** [`docs/CREDIT_MEMO_TEMPLATE.md`](docs/CREDIT_MEMO_TEMPLATE.md). Credit memo (Committee requires one): 5 Cs, rule-based 1–5 risk grade, assumed 9.0% rate, conditional recommendation, approval conditions, a 4-line version for the committee request, and test cases. Numbers, grade and recommendation are deterministic; Nemotron may only polish prose. **Zeke: add `credit_memo` to `DealDetail`.**
+4. ✅ **Done Sat ~18:45:** [`docs/MESSAGE_TEMPLATES.md`](docs/MESSAGE_TEMPLATES.md). Plain-English templates for SLA alerts (100/150/200%), follow-ups and backup reroutes (J21), the fraud-hold chase (J22), all 7 request types, borrower info requests and the deadline-risk alert. Each alert says whose deal + RM, stage + duration, waiting on, and what unblocks it.
 5. UI per PROJECT.md (pipeline board, inbox, alert feed, deal detail, fraud graph), and the pitch and Devpost.
 
 ## 8. History of this handoff
@@ -132,7 +132,7 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 - Jesse's earlier local session built a generic finance/actuarial Streamlit starter (VaR/CVaR, Monte Carlo, credit loss), written before the tracks were known. It's **not** in this repo (it conflicts with the FastAPI/React stack and the no-Claude rule) and lives only on Jesse's machine (local branch `starter-local`). Ignore it unless a specific function is useful.
 - That session went through several red-team passes. The conclusions are captured above and agree with PROJECT.md's key decisions: the deterministic engine owns the score, multi-signal agreement before a hold, nothing sample-specific hard-coded, and the data stays out of git.
 
-## 9. Open items for Jesse + Zeke (updated Sat ~18:45 CT)
+## 9. Open items for Jesse + Zeke (updated Sat 18:50 CT)
 
 Settle these together; each blocks clean hand-offs.
 
@@ -141,7 +141,7 @@ Settle these together; each blocks clean hand-offs.
 | 1 | ~~Contract + mock data~~ | | **Resolved:** delivered by Zeke Sat evening (`docs/CONTRACT.md`, `fixtures/`, `prism/`; 76 tests pass on Mac) |
 | 2 | ~~Answer key not started; shape undefined~~ | | **Resolved Sat 18:29:** Zeke's template (`eval/README.md`), all 13 deals `done`, pushed before the 20:00 deadline |
 | 3 | ~~Answer key must be labelled blind~~ | | **Done:** labelled from raw files, then diffed against the research: zero disagreements on issues, holds or links |
-| 4 | ~~Jesse's role vs. ~8h of UI coding~~ | | **Resolved Sat ~19:20:** Jesse keeps the UI role (Phase 2 + 7), building with Claude Code; finance items (checklist, answer key, memo, messages) already delivered first |
+| 4 | ~~Jesse's role vs. ~8h of UI coding~~ | | **Resolved Sat ~18:45:** Jesse keeps the UI role (Phase 2 + 7), building with Claude Code; finance items (checklist, answer key, memo, messages) already delivered first |
 | 5 | ~~Finance items not in the ROADMAP~~ | | **Resolved:** delivered: `docs/DETAILS_CHECKLIST.md`, `eval/gold.json`, `docs/CREDIT_MEMO_TEMPLATE.md`, `docs/MESSAGE_TEMPLATES.md` |
 | 6 | ~~Judgment calls J1–J20~~ | | **Locked** by Jesse; Zeke confirmed in STATE.md |
 | 7 | **Organizer questions** were in two places; now merged into §5 here, owned by Jesse | Who answers human requests during judging, and how `issues` is scored, both change the build | Jesse owns asking Vijay; record the answers in PROJECT.md Key Decisions |
@@ -152,3 +152,7 @@ Settle these together; each blocks clean hand-offs.
 | 12 | **NVIDIA asks for "external APIs and services"**; our agent's tools are engine functions inside our own program | Judges may read internal function calls as weak tool use | Have the agent call real HTTP services: our own API endpoints and the sim clock's API (`/now`, `/inbox`), and say so in the pitch |
 | 13 | **Goldman's slide says "leveraging AI/ML"**; our docs say "not a trained classifier" | A judge could hear "no ML" | Pitch wording: "unsupervised anomaly detection that learns what normal looks like from a year of history" (rarity scoring and deposit-pattern statistics *are* ML); "no classifier" is our reason it carries over to new tricks |
 | 14 | **Does submission require a public repo?** Spacetime's track does; the Goldman data is confidential, so ours is private | A required public link would force a scrubbed public copy | Ask Vijay / HackUTD; if needed, publish code only (no data, no challenge text) |
+| 15 | **Fraud-rule blind spot.** PROJECT.md / FRD-04 make F1 (a shared rare *entity*, i.e. names) mandatory for every hold. The challenge names three kinds of clue: "the same shape of documents, the same numbers style, the same names". A hidden-set trick using only document shape + number style would never be held | 🔴 Could zero the hidden-set fraud score | Require 3 agreeing families with **at least one cross-deal family**: a shared rare entity **or** a shared document fingerprint **or** a shared number pattern. Zeke to decide before Phase 5 (Sat 23:25) |
+| 16 | ~~Credit memo + message templates had no requirement in Phase 4~~ (only NEM-06 in Phase 6, which is on the cut list), yet Committee can't exit without a memo | | **Fixed:** added MOVE-10 (memo) and MOVE-11 (messages), deterministic, to REQUIREMENTS and ROADMAP Phase 4 |
+| 17 | **Nobody watches for the weekend drop**, and the blind-test headline needs a first-run score before anyone opens it | 🟠 Lose the headline number | Jesse watches the GS channel and `github.com/SushmaEati/HackUTD/tree/main/datasets` (last upload Fri 18:12 CT = the original pack; no drop as of Sat 18:50). On arrival: ping Zeke, don't open the files |
+| 18 | **Schedule slip at Sat 18:50 (H2.9).** Phase 1's validator, determinism harness, CLI and self-score script aren't on GitHub yet, and Phase 3 (due H2–H5) hasn't started there. Jesse's Phase 2 UI (H1–H9) hasn't started | 🟠 H10 engine freeze at risk | Zeke: push work in progress so we can see it. Jesse: start Phase 2 now (`/gsd-plan-phase 2`) |

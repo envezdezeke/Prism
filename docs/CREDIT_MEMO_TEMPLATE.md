@@ -132,8 +132,10 @@ Four lines, plain words, in this order:
 {legal_name} requests {amount} {product} over {term} months for {purpose}. Risk grade {grade} ({grade_name}): {recommendation}
 Coverage {coverage}x at an assumed 9.0%; revenue supported {revenue_support}x by bank deposits; {years} years in business; {relationship}.
 All documents and checks clear{; needed by {needed_by}}.
-Full memo on the deal page. Please approve or decline{ by {needed_by - lead time}}.
+Full memo on the deal page. Please approve or decline{ by {answer_by}}.
 ```
+
+`{answer_by}` (deadline deals only) = the latest time this approval can come and still fund by `needed_by`, using the remaining stages' typical durations from `history/stage_events.csv` and business hours for sign-offs (same rule as the deadline-risk alert, J18). Omit the clause when `needed_by` is null.
 
 ## Worked example (made-up deal, not from the sample)
 
