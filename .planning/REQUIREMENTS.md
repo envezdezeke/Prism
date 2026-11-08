@@ -22,7 +22,7 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 
 - [x] **READ-01**: Each PDF/CSV/JPG is classified by content (application, guarantor ID, certificate of formation, EIN letter, bank statement + month, financial statements, tax return, Form 7004, request letter, equipment quote, other). The classifier never uses the filename and never crashes. (E)
 - [x] **READ-02**: Extract legal_name, EIN, amount_requested, purpose_category, product, term_months, guarantor_name, annual_revenue_stated, needed_by (ISO or null), each with source doc and confidence. (E)
-- [ ] **READ-03**: Extract graph attributes: preparer name/firm/phone, registered agent + address, vendor name + remit bank/account, PDF producer/creator, business address, bank, guarantor DOB/DL, deposit features. (E)
+- [x] **READ-03**: Extract graph attributes: preparer name/firm/phone, registered agent + address, vendor name + remit bank/account, PDF producer/creator, business address, bank, guarantor DOB/DL, deposit features. (E)
 - [x] **READ-04**: Tyler's JPG ID is read by OCR (RapidOCR). An unreadable image counts as present-but-unverified, never as a mismatch. (E)
 - [ ] **READ-05**: `MISSING_DOC:<doc>` uses the requirements for the stage, the product and the business's age (Form 7004 accepted only for businesses under 2 years old; bank statements cover the 6 most recent full months). It fires only after 30 sim-minutes of quiet. (E)
 - [ ] **READ-06**: `MISSING_PAGE:<doc>` comes from the "Page X of N" markers, never from the PDF's page count. (E)
@@ -116,7 +116,7 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 | UI-05 | Phase 2 | Pending |
 | READ-01 | Phase 3 | Complete |
 | READ-02 | Phase 3 | Complete |
-| READ-03 | Phase 3 | Pending |
+| READ-03 | Phase 3 | Complete |
 | READ-04 | Phase 3 | Complete |
 | READ-05 | Phase 3 | Pending |
 | READ-06 | Phase 3 | Pending |

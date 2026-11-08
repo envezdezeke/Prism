@@ -138,9 +138,9 @@ Plans:
   2. The 10 submission facts for each of the 13 deals match the golden labels, each with source document and confidence, and `needed_by` is an ISO time or null (never "No specific date"). Graph attributes (preparer, agent, vendor and remit account, PDF producer/creator, address, bank, guarantor ID, deposit features) are extracted for every deal. Tyler's ID photo is read by OCR or marked present-but-unverified.
   3. The engine's issues match the golden expectations: Westfield `MISMATCH:ein`; Bluebonnet `MISMATCH:amount_requested` and `MISSING_DOC:equipment_quote`; LSFD `MISSING_DOC:tax_return` and `MISSING_DOC:equipment_quote`; Oakline `MISSING_PAGE` (not `STMT_TAMPER`); Tyler `MISSING_DOC:bank_statement_2026-06`; Granite Bay `OLD_TRICK:STMT_TAMPER` and `OLD_TRICK:REV_INFLATION`.
   4. Garza, Priya, Okafor, Harbor Tea and Tyler's non-June items get zero issues, and no `MISSING_DOC` fires while a folder is still landing (30 sim-minutes of quiet first).
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 - [x] 03-01-PLAN.md
-- [ ] 03-02-PLAN.md
+- [x] 03-02-PLAN.md
 - [ ] 03-03-PLAN.md
 - [ ] 03-04-PLAN.md
 **Notes**: Read `rules/known_fraud_checks.md` verbatim for the OLD_TRICK thresholds. Review the low-confidence classifications (`may statement.pdf`, Form 7004 vs tax return, LSFD scans). Where the golden labels and these research expectations disagree, discuss before coding; the golden file is the oracle.
@@ -223,7 +223,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundations, Contract and Golden Labels | 0/0 | Not started | - |
 | 2. Pipeline Cockpit UI on Mock Data | 3/4 | In Progress | - |
-| 3. Read the Folder | 1/4 | In Progress | - |
+| 3. Read the Folder | 2/4 | In Progress | - |
 | 4. Move the Deal | 0/0 | Not started | - |
 | 5. Catch the Fakes | 0/0 | Not started | - |
 | 6. Nemotron Agents | 0/0 | Not started | - |
