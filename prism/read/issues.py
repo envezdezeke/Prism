@@ -14,7 +14,7 @@ from typing import Callable
 from prism.contract import ISSUE_RE
 from prism.engine.config import Rules
 from prism.engine.state import DealState
-from prism.read import requirements
+from prism.read import old_tricks, requirements, statements
 from prism.read.settings import get_config
 
 log = logging.getLogger("prism")
@@ -26,9 +26,24 @@ def _missing_docs(state: DealState, rules: Rules) -> list[str]:
     return [f"MISSING_DOC:{label}" for label in requirements.required_labels(state)]
 
 
+def _missing_pages(state: DealState, rules: Rules) -> list[str]:
+    return [f"MISSING_PAGE:{label}" for label in statements.missing_page_labels(state)]
+
+
+def _stmt_tamper(state: DealState, rules: Rules) -> list[str]:
+    return ["OLD_TRICK:STMT_TAMPER"] if old_tricks.stmt_tamper(state) else []
+
+
+def _rev_inflation(state: DealState, rules: Rules) -> list[str]:
+    return ["OLD_TRICK:REV_INFLATION"] if old_tricks.rev_inflation(state) else []
+
+
 # Rule groups run in order; each is isolated so one strange document cannot freeze the deal.
 _GROUPS: tuple[tuple[str, Callable[[DealState, Rules], list[str]]], ...] = (
     ("missing_doc", _missing_docs),
+    ("missing_page", _missing_pages),
+    ("stmt_tamper", _stmt_tamper),
+    ("rev_inflation", _rev_inflation),
 )
 
 

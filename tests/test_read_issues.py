@@ -326,6 +326,10 @@ def test_garbage_parsed_objects_never_raise(tmp_path, monkeypatch):
 
 # ---------------------------------------------------------------- through run_sim on generated PDFs
 
+# monthly deposits large enough that the generated application's stated revenue is not inflated
+BIG_TXNS = ((2, "ACH CREDIT EXAMPLE CUSTOMER", 6_000_000), (10, "ACH DEBIT EXAMPLE LANDLORD", -1_000_000))
+
+
 def _arrivals(tmp_path, rows):
     arr = tmp_path / "arrivals.jsonl"
     arr.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
@@ -343,7 +347,7 @@ def _generated_deal(tmp_path, *, skip="2026-08", late_minutes=None):
         if m == skip and late_minutes is None:
             continue
         name = f"stmt_{m}.pdf"
-        write_statement(folder_dir, name, m, opening=opening)
+        opening = write_statement(folder_dir, name, m, BIG_TXNS, opening=opening)
         at = last + timedelta(minutes=2 + i) if m != skip else last + timedelta(minutes=late_minutes)
         rows.append({"path": f"Deal/{name}", "arrive_at": at.isoformat()})
     return rows

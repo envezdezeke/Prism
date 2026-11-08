@@ -36,3 +36,47 @@ requirements:
 statement_window_months: 6     # the six full calendar months before the month of the reference date
 young_business_years: 2        # a Form 7004 stands in for a tax return only below this age
 anchor_fallback: last_arrival  # reference date when the application shows no date: the last arrival's date
+
+# Bank statements (statements.py). Label synonyms are matched whole-line or "label: value" or
+# "label   value" (two or more spaces), longest synonym first; see prism/read/labels.py.
+statement:
+  labels:
+    holder: ["Account holder", "Account name", "Accountholder", "Customer name"]
+    account: ["Account", "Account number", "Account no"]
+    period: ["Statement period", "Period", "Statement date range"]
+    opening: ["Opening balance", "Beginning balance", "Previous balance", "Balance forward"]
+    credits: ["Total deposits & credits", "Total deposits and credits", "Total deposits", "Total credits",
+              "Deposits and other credits"]
+    debits: ["Total withdrawals & debits", "Total withdrawals and debits", "Total withdrawals", "Total debits",
+             "Withdrawals and other debits"]
+    closing: ["Closing balance", "Ending balance", "New balance"]
+  # PDF table header words, used only by the pdfplumber table fallback
+  table_words:
+    date: ["date", "posted"]
+    balance: ["balance", "bal"]
+    credit: ["credit", "deposit"]
+    debit: ["debit", "withdrawal"]
+    amount: ["amount"]
+    description: ["description", "details", "memo"]
+  # CSV header cells (substring match, balance is tested before amount)
+  csv_words:
+    balance: ["running bal", "balance", "bal"]
+    amount: ["amount"]
+    date: ["date"]
+    description: ["details", "description", "memo", "payee"]
+  csv_account_words: ["acct", "account"]
+  row_date_patterns:
+    - '^\d{1,2}/\d{1,2}/\d{2,4}$'
+    - '^\d{4}-\d{2}-\d{2}$'
+  max_rows: 2000          # transaction rows kept per statement
+  max_line_chars: 300     # longer lines are not table rows
+
+# MISSING_PAGE also applies to these document classes (the class name is the issue target).
+page_gap_classes: [application, guarantor_id, certificate_of_formation, ein_letter, financial_statements,
+                   tax_return, equipment_quote]
+
+thresholds:
+  rev_inflation_ratio: 1.5            # stated revenue strictly greater than this times annualized deposits
+  bank_balance_tolerance_cents: 100   # balance-sheet cash versus statement closing balance
+  revenue_tolerance_pct: 1.0          # application revenue versus a document for the same year
+  ocr_min_disagreeing_fields: 2       # an OCR-sourced ID raises ID_MISMATCH only with this many disagreements
