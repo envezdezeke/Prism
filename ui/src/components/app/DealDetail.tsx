@@ -12,12 +12,13 @@ import { fmtDuration, fmtHours, fmtMoney, fmtPct, fmtSimTime } from '../../lib/f
 import { alertLevelLabel, factFields, factValueText, isClearedAnswer, issueLabel, optionLabel, requestTypeLabel } from '../../labels.ts'
 import { personLabel, roleForAlert, roleForRequest } from '../../people.ts'
 import { useClockStore } from '../../state/clockStore.ts'
-import { useAnswersStore } from '../../state/answersStore.ts'
 import { useUiStore } from '../../state/uiStore.ts'
-import { alertsAt, boardAt, heldAt, inboxAt, requestsAt, requestsWithOverlay, simToMs, stageLimitsFrom, stageLogAt } from '../../time/timeview.ts'
-import type { BoardRow, InboxLike, SessionAnswers } from '../../time/timeview.ts'
+import { alertsAt, boardAt, heldAt, requestsAt, simToMs, stageLogAt } from '../../time/timeview.ts'
+import type { BoardRow } from '../../time/timeview.ts'
 import { StatusBadge } from './Badges.tsx'
 import { Caption, DealLink, EmptyState, ErrorState, LoadingState, NullValue, PageTitle, PipelineLink } from './Primitives.tsx'
+
+const HOUR_MS = 3600_000
 
 function Breadcrumb({ name }: { name: string | null }) {
   return (
@@ -42,24 +43,19 @@ function Row({ label, children, title }: { label: string; children: React.ReactN
 // Side panel. Stage, time in stage and SLA follow the clock; the rows below the caption are static (D-18).
 function SummaryPanel({ row }: { row: BoardRow<DealDetailData> }) {
   const { deal } = row
-  const frac = row.slaFraction
-  const over = frac !== null && Math.round(frac * 100) > 100
+  const over = Math.round(row.slaFraction * 100) > 100
   const rm = deal.rm == null ? null : personLabel(deal.rm, 'Relationship manager')
   return (
-    <section aria-label="Summary" className="flex flex-col gap-2 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Summary</h2>
+    <section aria-label="Summary" className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4">
+      <h2 className="text-base font-semibold">Summary</h2>
       <dl className="flex flex-col gap-2">
         <Row label="Stage">{row.stage}</Row>
         <Row label="Stage entered">{fmtSimTime(row.enteredAt)}</Row>
-        <Row label="Time in stage">{fmtDuration(row.dwellMs)}</Row>
+        <Row label="Time in stage">{fmtDuration(row.slaFraction * deal.sla_hours * HOUR_MS)}</Row>
         <Row label="SLA" title={row.held ? 'SLA clock stopped at the hold' : undefined}>
-          {frac === null || row.limitHours === null ? (
-            <NullValue title="The limit for this stage is not in the data" />
-          ) : (
-            <span className={over ? 'text-risk' : undefined}>
-              {fmtPct(frac)} of {fmtHours(row.limitHours)}
-            </span>
-          )}
+          <span className={over ? 'text-risk' : undefined}>
+            {fmtPct(row.slaFraction)} of {fmtHours(deal.sla_hours)}
+          </span>
         </Row>
       </dl>
       <Caption>As of end of run</Caption>
@@ -90,7 +86,7 @@ function FactsSection({ deal }: { deal: DealDetailData }) {
   return (
     <section aria-label="Facts" className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
-        <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Facts</h2>
+        <h2 className="text-base font-semibold">Facts</h2>
         <Caption>As of end of run</Caption>
       </div>
       {!anyFact ? (
@@ -98,8 +94,8 @@ function FactsSection({ deal }: { deal: DealDetailData }) {
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
-              <TableRow className="border-navy hover:bg-transparent">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Field</TableHead>
                 <TableHead>Value</TableHead>
                 <TableHead>Source</TableHead>
@@ -166,11 +162,11 @@ function IssuesSection({ deal }: { deal: DealDetailData }) {
   return (
     <section aria-label="Issues" className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
-        <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Issues</h2>
+        <h2 className="text-base font-semibold">Issues</h2>
         <Caption>As of end of run</Caption>
       </div>
       <IssueList issues={deal.issues} empty="No open issues." />
-      <h3 className="pt-2 text-xs font-bold tracking-wide text-navy uppercase">Resolved</h3>
+      <h3 className="pt-2 text-xs font-semibold text-ink-2">Resolved</h3>
       <IssueList issues={deal.resolved_issues} empty="No resolved issues." muted />
     </section>
   )
@@ -182,12 +178,12 @@ function StageLogSection({ deal, nowMs }: { deal: DealDetailData; nowMs: number 
   const entries = stageLogAt(deal.stage_log, nowMs)
   return (
     <section aria-label="Stage log" className="flex flex-col gap-2">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Stage log</h2>
-      <ol className="flex flex-col gap-4 border-l-2 border-navy pl-4">
+      <h2 className="text-base font-semibold">Stage log</h2>
+      <ol className="flex flex-col gap-4 border-l border-line pl-4">
         {entries.map((e) => (
           <li key={`${e.stage}-${e.entered_at}`} className="flex flex-col gap-1">
             <div className="flex items-baseline gap-2">
-              <h3 className="text-base font-bold text-navy">{e.stage}</h3>
+              <h3 className="text-base font-semibold">{e.stage}</h3>
               {e.open && <Caption>Current</Caption>}
             </div>
             <p className="text-sm tabular-nums text-ink-2">
@@ -211,32 +207,18 @@ function StageLogSection({ deal, nowMs }: { deal: DealDetailData; nowMs: number 
   )
 }
 
-// An answer given in the inbox is joined to the request by deal, type and sent time before the time rule
-// runs, so scrubbing the clock to before the answer hides it here too. No inbox data: requests as fetched.
-function RequestsSection({
-  deal,
-  nowMs,
-  when,
-  inboxItems,
-  answers,
-}: {
-  deal: DealDetailData
-  nowMs: number
-  when: string
-  inboxItems: InboxLike[]
-  answers: SessionAnswers
-}) {
-  const requests = requestsAt(requestsWithOverlay(deal.folder, deal.human_requests, inboxItems, answers), nowMs)
+function RequestsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: number; when: string }) {
+  const requests = requestsAt(deal.human_requests, nowMs)
   return (
     <section aria-label="Human requests" className="flex flex-col gap-2">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Human requests</h2>
+      <h2 className="text-base font-semibold">Human requests</h2>
       {requests.length === 0 ? (
         <p className="text-sm text-ink-2">No requests on this deal as of {when}.</p>
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
-              <TableRow className="border-navy hover:bg-transparent">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Sent</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>To</TableHead>
@@ -280,15 +262,15 @@ function AlertsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: num
   const alerts = alertsAt(deal.alerts, nowMs, 'oldest')
   return (
     <section aria-label="Alerts" className="flex flex-col gap-2">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Alerts</h2>
+      <h2 className="text-base font-semibold">Alerts</h2>
       {alerts.length === 0 ? (
         <p className="text-sm text-ink-2">No alerts on this deal as of {when}.</p>
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
-              <TableRow className="border-navy hover:bg-transparent">
-                <TableHead className="border-l-4 border-transparent">Time</TableHead>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="border-l-2 border-transparent">Time</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>To</TableHead>
                 <TableHead>Message</TableHead>
@@ -300,8 +282,8 @@ function AlertsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: num
                 const edge = a.level === 'escalation' ? 'border-risk' : 'border-transparent'
                 return (
                   <TableRow key={`${a.at}-${a.level}`} className="align-top">
-                    <TableCell className={`whitespace-nowrap border-l-4 font-semibold tabular-nums ${edge}`}>{fmtSimTime(a.at)}</TableCell>
-                    <TableCell className="whitespace-nowrap font-semibold text-navy">{alertLevelLabel(a.level, a.message)}</TableCell>
+                    <TableCell className={`whitespace-nowrap border-l-2 tabular-nums ${edge}`}>{fmtSimTime(a.at)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{alertLevelLabel(a.level, a.message)}</TableCell>
                     <TableCell className="whitespace-nowrap" title={who.title}>
                       {who.label}
                     </TableCell>
@@ -332,22 +314,13 @@ function FraudPanel({
 }) {
   const f = deal.fraud
   const held = heldAt(deal, simToMs(now))
-  // A release answered in this session does not change the mock hold; say so (UI-SPEC fraud panel).
-  const releaseRecorded = inboxAt(
-    inboxItems.filter((i) => i.deal === deal.folder),
-    simToMs(now),
-    answers,
-  ).some((i) => i.answeredInSession && i.status === 'answered' && i.answer === 'release_hold')
   const linked = f.linked_deals ?? []
   return (
-    <section aria-label="Fraud status" className="flex flex-col gap-2 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Fraud status</h2>
+    <section aria-label="Fraud status" className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4">
+      <h2 className="text-base font-semibold">Fraud status</h2>
       {held ? (
         <>
           <StatusBadge held watch={false} />
-          {releaseRecorded && (
-            <Caption>Release recorded in this session. The mock data does not change the hold.</Caption>
-          )}
           <p className="text-sm text-ink-2">
             Frozen at {f.stage_at_flag ?? 'its stage'}
             {f.flagged_at != null && ` as of ${fmtSimTime(f.flagged_at)}`}
@@ -355,7 +328,7 @@ function FraudPanel({
           {f.reason != null && <p className="text-base">{f.reason}</p>}
           {linked.length > 0 && (
             <div className="flex flex-col gap-1">
-              <h3 className="text-xs font-bold tracking-wide text-navy uppercase">Linked</h3>
+              <h3 className="text-xs font-semibold text-ink-2">Linked</h3>
               <ul className="flex flex-col gap-1 text-sm">
                 {linked.map((name) => (
                   <li key={name}>{boardFolders.includes(name) ? <DealLink folder={name}>{name}</DealLink> : name}</li>
@@ -407,7 +380,7 @@ export function DealDetailView({
   const name = detail.legal_name ?? detail.folder
   const nowMs = simToMs(now)
   const when = fmtSimTime(now)
-  const row = boardAt([detail], nowMs, stageLimits)[0]
+  const row = boardAt([detail], nowMs)[0]
   const showFolder = detail.legal_name != null && detail.legal_name !== detail.folder
 
   if (row === undefined) {
@@ -442,7 +415,7 @@ export function DealDetailView({
           <FactsSection deal={detail} />
           <IssuesSection deal={detail} />
           <StageLogSection deal={detail} nowMs={nowMs} />
-          <RequestsSection deal={detail} nowMs={nowMs} when={when} inboxItems={inboxItems} answers={answers} />
+          <RequestsSection deal={detail} nowMs={nowMs} when={when} />
           <AlertsSection deal={detail} nowMs={nowMs} when={when} />
         </div>
         <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">

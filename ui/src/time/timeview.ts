@@ -50,16 +50,14 @@ export interface AlertLike {
   message: string
 }
 
-// The contract's parse_sim_time accepts seconds and a fraction, so the UI does too (WR-07).
-const SIM_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?-06:00$/
+const SIM_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})-06:00$/
 const HOUR_MS = 3600_000
 
 export function simToMs(s: string): number {
   const m = SIM_RE.exec(s)
   if (!m) throw new Error(`not a -06:00 sim time: ${s}`)
   // -06:00 means UTC = wall clock + 6h
-  const ms = m[7] === undefined ? 0 : Math.round(+`0${m[7]}` * 1000)
-  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], m[6] === undefined ? 0 : +m[6], ms) + 6 * HOUR_MS
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) + 6 * HOUR_MS
 }
 
 // Inverse of simToMs: the YYYY-MM-DDTHH:mm-06:00 shape the contract's parse_sim_time accepts.
@@ -105,10 +103,9 @@ export function stageAt(log: StageLogEntry[], t: number): StageLogEntry | null {
   return cur
 }
 
-// Time spent in the stage entry that began at `enteredAt`, as of t. Held deals freeze at flagged_at
-// (contract: sla_pct freezes while held). The end of the deal's final stage entry also ends the clock
-// (held, declined or closed deals stop accruing). A duration needs no limit, so it is always known.
-export function dwellMsAt(deal: DetailLike, enteredAt: string, t: number): number {
+// Held deals freeze their SLA at flagged_at (contract: sla_pct freezes while held).
+// The end of the deal's final stage entry also ends the clock (held, declined or closed deals stop accruing).
+export function slaPctAt(deal: DetailLike, enteredAt: string, t: number): number {
   const f = deal.fraud
   const frozen = f.held && f.flagged_at != null && simToMs(f.flagged_at) <= t
   let end = frozen ? simToMs(f.flagged_at as string) : t
@@ -117,28 +114,7 @@ export function dwellMsAt(deal: DetailLike, enteredAt: string, t: number): numbe
     const exit = simToMs(last.exited_at)
     if (exit <= t && exit < end) end = exit
   }
-  return end - simToMs(enteredAt)
-}
-
-// Fraction of a stage limit used. `limitHours` defaults to the deal's own sla_hours, which is the limit of
-// its FINAL stage only; pass the entry's own stage limit for any earlier stage (CR-01).
-export function slaPctAt(deal: DetailLike, enteredAt: string, t: number, limitHours: number = deal.sla_hours): number {
-  return dwellMsAt(deal, enteredAt, t) / HOUR_MS / limitHours
-}
-
-// The contract carries one sla_hours per deal: the limit of that deal's final stage. A stage's limit is
-// therefore known from the deals that end in it, and only when they all agree (a delegated committee limit
-// can differ per deal). Stages with no such deal, or a disagreement, are left out: the limit is unknown.
-export function stageLimitsFrom(deals: { stage: string; sla_hours: number }[]): Record<string, number> {
-  const seen = new Map<string, number | null>()
-  for (const d of deals) {
-    const prev = seen.get(d.stage)
-    if (prev === undefined) seen.set(d.stage, d.sla_hours)
-    else if (prev !== d.sla_hours) seen.set(d.stage, null)
-  }
-  const out: Record<string, number> = {}
-  for (const [stage, hours] of seen) if (hours !== null) out[stage] = hours
-  return out
+  return (end - simToMs(enteredAt)) / HOUR_MS / deal.sla_hours
 }
 
 // Display rounding: round half up to 2 decimals, matches fixture values.
@@ -150,41 +126,14 @@ export function heldAt(deal: DetailLike, t: number): boolean {
   return deal.fraud.held && deal.fraud.flagged_at != null && simToMs(deal.fraud.flagged_at) <= t
 }
 
-// An answer given in this browser session (D-21): the mock API does not persist replies, so the client
-// holds them in memory. `answered_at` is the UI clock time of the reply, a -06:00 sim time.
-export interface SessionAnswer {
-  answer: string
-  answered_at: string
-  note?: string
-}
-export type SessionAnswers = Readonly<Record<string, SessionAnswer>>
-
-// `serverAnswered` is the raw fixture/server status. It stays true when the clock is before the answer
-// time and `status` reads pending, so a screen never offers buttons the server will refuse with a 409.
-export type InboxView<T extends InboxLike = InboxLike> = T & { answeredInSession: boolean; serverAnswered: boolean }
-
-function sessionAnswerFor(answers: SessionAnswers, id: string): SessionAnswer | undefined {
-  return Object.hasOwn(answers, id) ? answers[id] : undefined
-}
-
-// Requests sent by t, with the session overlay applied BEFORE the status check. A fixture answer that has
-// been reached wins. Otherwise a session answer whose time is reached makes the item answered, and one
-// that is still in the future leaves it pending. `answeredInSession` is true whenever an entry exists, so
-// the screen can explain a pending item that was answered later in the session.
-export function inboxAt<T extends InboxLike>(items: T[], t: number, answers: SessionAnswers = {}): InboxView<T>[] {
+export function inboxAt(items: InboxLike[], t: number): InboxLike[] {
   return items
     .filter((i) => simToMs(i.at) <= t)
     .map((i) => {
-      const mine = sessionAnswerFor(answers, i.id)
-      const answeredInSession = mine !== undefined
-      const serverAnswered = i.status === 'answered'
-      if (serverAnswered && i.answered_at != null && simToMs(i.answered_at) <= t) {
-        return { ...i, answeredInSession, serverAnswered }
-      }
-      if (mine !== undefined && simToMs(mine.answered_at) <= t) {
-        return { ...i, status: 'answered' as const, answer: mine.answer, answered_at: mine.answered_at, answeredInSession, serverAnswered }
-      }
-      return { ...i, status: 'pending' as const, answer: null, answered_at: null, answeredInSession, serverAnswered }
+      const answered = i.status === 'answered' && i.answered_at != null && simToMs(i.answered_at) <= t
+      return answered
+        ? { ...i }
+        : { ...i, status: 'pending' as const, answer: null, answered_at: null }
     })
 }
 
@@ -244,36 +193,22 @@ export interface BoardRow<T extends DetailLike = DetailLike> {
   deal: T
   stage: string
   enteredAt: string
-  // Time in the shown stage entry, as of t. Always known.
-  dwellMs: number
-  // The shown stage's own limit in hours, or null when the contract gives no way to know it (CR-01).
-  limitHours: number | null
-  // Raw, unrounded SLA fraction (1 = 100%) of THAT limit, or null when the limit is unknown.
-  // Round only at display time.
-  slaFraction: number | null
+  // Raw, unrounded SLA fraction (1 = 100%). Round only at display time.
+  slaFraction: number
   held: boolean
 }
 
 // One row per deal that has arrived by time t; deals not yet arrived are omitted.
-// `limits` is the per-stage limit map (stageLimitsFrom over every deal); it defaults to the given details.
-// The deal's own final stage always uses its own sla_hours.
-export function boardAt<T extends DetailLike>(
-  details: T[],
-  t: number,
-  limits: Record<string, number> = stageLimitsFrom(details),
-): BoardRow<T>[] {
+export function boardAt<T extends DetailLike>(details: T[], t: number): BoardRow<T>[] {
   const rows: BoardRow<T>[] = []
   for (const deal of details) {
     const cur = stageAt(deal.stage_log, t)
     if (cur === null) continue
-    const limitHours = cur.stage === deal.stage ? deal.sla_hours : Object.hasOwn(limits, cur.stage) ? limits[cur.stage] : null
     rows.push({
       deal,
       stage: cur.stage,
       enteredAt: cur.entered_at,
-      dwellMs: dwellMsAt(deal, cur.entered_at, t),
-      limitHours,
-      slaFraction: limitHours === null ? null : slaPctAt(deal, cur.entered_at, t, limitHours),
+      slaFraction: slaPctAt(deal, cur.entered_at, t),
       held: heldAt(deal, t),
     })
   }
@@ -310,8 +245,7 @@ export function nextEventAfter(details: EventSource[], t: number, extra: string[
     for (const a of d.alerts ?? []) consider(a.at)
   }
   for (const s of extra) consider(s)
-  // Round a time with seconds up to the next whole minute, so Next event always moves the clock forward.
-  return best === null ? null : msToSim(Math.ceil(best / 60_000) * 60_000)
+  return best === null ? null : msToSim(best)
 }
 
 // Held first, then soonest needed-by (none last), then longest in stage, then folder name.

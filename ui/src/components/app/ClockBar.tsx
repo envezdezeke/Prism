@@ -9,7 +9,7 @@ import { fmtSimTime } from '../../lib/format.ts'
 import { buildHash } from '../../route.ts'
 import { useClockStore } from '../../state/clockStore.ts'
 import { nextEventAfter, simToMs } from '../../time/timeview.ts'
-import { ErrorState, LoadingState } from './Primitives.tsx'
+import { Caption, ErrorState, LoadingState } from './Primitives.tsx'
 
 const HOLD_LINE_MS = 24 * 3600_000
 
@@ -72,10 +72,10 @@ export function ClockBar() {
   }
 
   return (
-    <div className={navyBarClass}>
+    <div className={barClass}>
       <div className="flex items-baseline gap-2">
-        <span className={barLabel}>Sim time (CT)</span>
-        <span className="text-base font-bold tabular-nums">{fmtSimTime(now)}</span>
+        <Caption>Sim time (CT)</Caption>
+        <span className="text-sm font-semibold tabular-nums">{fmtSimTime(now)}</span>
       </div>
       {freshHold !== null && (
         <p key={freshHold.folder} role="status" className="order-last flex basis-full animate-fade-in flex-wrap items-baseline gap-x-2 text-sm">
@@ -120,12 +120,12 @@ export function ClockBar() {
             Play
           </Button>
         )}
-        <Button onClick={replay} className="bg-sky font-bold text-navy hover:bg-sky hover:brightness-110 focus-visible:outline-sky">
+        <Button onClick={replay}>
           <RotateCcw aria-hidden="true" />
           Replay from start
         </Button>
         <label className="flex items-center gap-2">
-          <span className={barLabel}>Go to</span>
+          <Caption>Go to</Caption>
           <Input
             type="datetime-local"
             step={60}
@@ -141,15 +141,19 @@ export function ClockBar() {
         </Button>
       </div>
       {(nextEvent === null && !isLoading) || rangeMessage || syncError !== '' ? (
-        <div className="flex basis-full flex-wrap justify-end gap-x-4 text-xs text-surface/80">
-          {nextEvent === null && !isLoading && <p>No later event</p>}
+        <div className="flex basis-full flex-wrap justify-end gap-x-4">
+          {nextEvent === null && !isLoading && <Caption>No later event</Caption>}
           {rangeMessage && (
-            <p>
+            <Caption>
               Enter a time between {fmtSimTime(start)} and {fmtSimTime(end)}.
-            </p>
+            </Caption>
           )}
           {syncError !== '' && (
-            <p title={syncError}>The clock could not be set on the server. The screen shows {fmtSimTime(now)}.</p>
+            <Caption>
+              <span title={syncError}>
+                The clock could not be set on the server. The screen shows {fmtSimTime(now)}.
+              </span>
+            </Caption>
           )}
         </div>
       ) : null}
