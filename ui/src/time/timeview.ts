@@ -16,6 +16,7 @@ export interface FraudBlock {
 
 export interface DealLike {
   folder: string
+  needed_by?: string | null
   stage: string
   stage_entered_at: string
   sla_hours: number
@@ -59,6 +60,16 @@ export function simToMs(s: string): number {
   return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) + 6 * HOUR_MS
 }
 
+// Inverse of simToMs: the YYYY-MM-DDTHH:mm-06:00 shape the contract's parse_sim_time accepts.
+export function msToSim(ms: number): string {
+  const d = new Date(ms - 6 * HOUR_MS)
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}-06:00`
+}
+
+export function clampMs(x: number, lo: number, hi: number): number {
+  return x < lo ? lo : x > hi ? hi : x
+}
+
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // "Tue 11/03 3:05 PM CT" (house style, docs/MESSAGE_TEMPLATES.md)
@@ -93,10 +104,16 @@ export function stageAt(log: StageLogEntry[], t: number): StageLogEntry | null {
 }
 
 // Held deals freeze their SLA at flagged_at (contract: sla_pct freezes while held).
+// The end of the deal's final stage entry also ends the clock (held, declined or closed deals stop accruing).
 export function slaPctAt(deal: DetailLike, enteredAt: string, t: number): number {
   const f = deal.fraud
   const frozen = f.held && f.flagged_at != null && simToMs(f.flagged_at) <= t
-  const end = frozen ? simToMs(f.flagged_at as string) : t
+  let end = frozen ? simToMs(f.flagged_at as string) : t
+  const last = deal.stage_log[deal.stage_log.length - 1]
+  if (last && last.entered_at === enteredAt && last.exited_at != null) {
+    const exit = simToMs(last.exited_at)
+    if (exit <= t && exit < end) end = exit
+  }
   return (end - simToMs(enteredAt)) / HOUR_MS / deal.sla_hours
 }
 
@@ -148,4 +165,53 @@ export function boardAt<T extends DetailLike>(details: T[], t: number): BoardRow
     })
   }
   return rows
+}
+
+// Smallest sim time strictly after t across every timestamp a screen can change on, or null.
+// `extra` carries timestamps the caller holds outside the fetched data (for example in-session answers).
+// Strings that are not -06:00 sim times are skipped, never thrown on.
+export interface EventSource {
+  stage_log: { entered_at: string; exited_at?: string | null }[]
+  fraud: { flagged_at?: string | null }
+  human_requests?: { at: string; answered_at?: string | null }[]
+  alerts?: { at: string }[]
+}
+
+export function nextEventAfter(details: EventSource[], t: number, extra: string[] = []): string | null {
+  let best: number | null = null
+  const consider = (s: string | null | undefined): void => {
+    if (s == null || !SIM_RE.test(s)) return
+    const ms = simToMs(s)
+    if (ms > t && (best === null || ms < best)) best = ms
+  }
+  for (const d of details) {
+    for (const e of d.stage_log) {
+      consider(e.entered_at)
+      consider(e.exited_at)
+    }
+    consider(d.fraud.flagged_at)
+    for (const h of d.human_requests ?? []) {
+      consider(h.at)
+      consider(h.answered_at)
+    }
+    for (const a of d.alerts ?? []) consider(a.at)
+  }
+  for (const s of extra) consider(s)
+  return best === null ? null : msToSim(best)
+}
+
+// Held first, then soonest needed-by (none last), then longest in stage, then folder name.
+export function sortBoardRows<T extends DetailLike>(rows: BoardRow<T>[]): BoardRow<T>[] {
+  const nb = (r: BoardRow<T>): number => {
+    const s = r.deal.needed_by
+    return s != null && SIM_RE.test(s) ? simToMs(s) : Number.POSITIVE_INFINITY
+  }
+  return [...rows].sort((a, b) => {
+    if (a.held !== b.held) return a.held ? -1 : 1
+    const na = nb(a), nbb = nb(b)
+    if (na !== nbb) return na < nbb ? -1 : 1
+    const ea = simToMs(a.enteredAt), eb = simToMs(b.enteredAt)
+    if (ea !== eb) return ea - eb
+    return a.deal.folder < b.deal.folder ? -1 : a.deal.folder > b.deal.folder ? 1 : 0
+  })
 }

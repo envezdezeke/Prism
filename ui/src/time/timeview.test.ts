@@ -1,7 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { simToMs, fmtSimTime, fmtDuration, stageAt, slaPctAt, roundPct, heldAt, inboxAt, alertsAt, boardAt } from './timeview.ts'
+import {
+  simToMs, fmtSimTime, fmtDuration, stageAt, slaPctAt, roundPct, heldAt, inboxAt, alertsAt, boardAt,
+  msToSim, clampMs, nextEventAfter, sortBoardRows,
+} from './timeview.ts'
 
 // Repo-relative fixtures folder (ui/src/time/ -> repo root), so the test also runs on Windows.
 const FX = new URL('../../../fixtures/', import.meta.url)
@@ -113,4 +116,85 @@ test('boardAt at the snapshot: Intake 3, Credit 1, Committee 1, Bayou held', () 
 
 test('boardAt at the clock start returns no rows', () => {
   assert.deepEqual(boardAt(Object.values(detail), START), [])
+})
+
+test('msToSim round-trips and rolls over midnight in the fixed -06:00 offset', () => {
+  assert.equal(msToSim(simToMs('2026-11-03T15:05-06:00')), '2026-11-03T15:05-06:00')
+  assert.equal(msToSim(simToMs('2026-11-02T23:30-06:00') + 3600_000), '2026-11-03T00:30-06:00')
+})
+
+test('clampMs returns lo below the range, hi above it, and x inside', () => {
+  assert.equal(clampMs(1, 5, 10), 5)
+  assert.equal(clampMs(11, 5, 10), 10)
+  assert.equal(clampMs(7, 5, 10), 7)
+})
+
+test('nextEventAfter: first event from the start is 08:30 on 11/02, then strictly increasing and terminating', () => {
+  const all = Object.values(detail)
+  let t = START
+  const seen: string[] = []
+  for (let i = 0; i < 200; i++) {
+    const nxt = nextEventAfter(all, t)
+    if (nxt === null) break
+    assert.ok(simToMs(nxt) > t, 'strictly after')
+    seen.push(nxt)
+    t = simToMs(nxt)
+  }
+  assert.equal(seen[0], '2026-11-02T08:30-06:00')
+  assert.ok(seen.length > 5 && seen.length < 200, 'terminates')
+  assert.equal(nextEventAfter(all, simToMs('2026-11-06T18:00-06:00')), null)
+})
+
+test('nextEventAfter reads request, answer, alert and extra timestamps and ignores bad strings', () => {
+  const d: any = {
+    stage_log: [{ entered_at: '2026-11-02T08:00-06:00' }],
+    fraud: {},
+    human_requests: [{ at: '2026-11-02T09:00-06:00', answered_at: '2026-11-02T10:00-06:00' }, { at: 'garbage' }],
+    alerts: [{ at: '2026-11-02T09:30-06:00' }],
+  }
+  const at = (s: string) => simToMs(s)
+  assert.equal(nextEventAfter([d], at('2026-11-02T08:00-06:00')), '2026-11-02T09:00-06:00')
+  assert.equal(nextEventAfter([d], at('2026-11-02T09:00-06:00')), '2026-11-02T09:30-06:00')
+  assert.equal(nextEventAfter([d], at('2026-11-02T09:30-06:00')), '2026-11-02T10:00-06:00')
+  assert.equal(nextEventAfter([d], at('2026-11-02T10:00-06:00')), null)
+  assert.equal(nextEventAfter([d], at('2026-11-02T10:00-06:00'), ['2026-11-02T11:00-06:00']), '2026-11-02T11:00-06:00')
+})
+
+test('sortBoardRows: held first, then soonest needed-by (none last), then longest in stage, then folder', () => {
+  const mk = (folder: string, held: boolean, needed_by: string | null, enteredAt: string): any => ({
+    deal: { folder, needed_by },
+    stage: 'Intake',
+    enteredAt,
+    slaFraction: 0,
+    held,
+  })
+  const rows = [
+    mk('E', false, null, '2026-11-03T08:00-06:00'),
+    mk('D', false, '2026-11-06T15:00-06:00', '2026-11-03T08:00-06:00'),
+    mk('C', false, '2026-11-05T15:00-06:00', '2026-11-04T08:00-06:00'),
+    mk('B', true, null, '2026-11-04T08:00-06:00'),
+    mk('A', false, null, '2026-11-03T08:00-06:00'),
+    mk('F', false, null, '2026-11-02T08:00-06:00'),
+  ]
+  const sorted = sortBoardRows(rows).map((r) => r.deal.folder)
+  assert.deepEqual(sorted, ['B', 'C', 'D', 'F', 'A', 'E'])
+  // input untouched
+  assert.equal(rows[0].deal.folder, 'E')
+})
+
+test('slaPctAt stops accruing at the end of the final stage entry (declined deal stays flat)', () => {
+  const d: any = {
+    sla_hours: 8,
+    fraud: { held: false, flagged_at: null },
+    stage_log: [{ stage: 'Intake', entered_at: '2026-11-02T08:00-06:00', exited_at: '2026-11-02T12:00-06:00' }],
+  }
+  const atExit = slaPctAt(d, d.stage_log[0].entered_at, simToMs('2026-11-02T12:00-06:00'))
+  const later = slaPctAt(d, d.stage_log[0].entered_at, simToMs('2026-11-05T12:00-06:00'))
+  assert.equal(atExit, 0.5)
+  assert.equal(later, 0.5)
+  // before the exit it still accrues
+  assert.equal(slaPctAt(d, d.stage_log[0].entered_at, simToMs('2026-11-02T10:00-06:00')), 0.25)
+  // an open entry keeps accruing
+  const open: any = { ...d, stage_log: [{ stage: 'Intake', entered_at: '2026-11-02T08:00-06:00', exited_at: null }] }
+  assert.equal(slaPctAt(open, open.stage_log[0].entered_at, simToMs('2026-11-02T16:00-06:00')), 1)
 })
