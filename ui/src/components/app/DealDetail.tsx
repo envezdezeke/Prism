@@ -44,8 +44,8 @@ function SummaryPanel({ row }: { row: BoardRow<DealDetailData> }) {
   const over = Math.round(row.slaFraction * 100) > 100
   const rm = deal.rm == null ? null : personLabel(deal.rm, 'Relationship manager')
   return (
-    <section aria-label="Summary" className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4">
-      <h2 className="text-base font-semibold">Summary</h2>
+    <section aria-label="Summary" className="flex flex-col gap-2 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
+      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Summary</h2>
       <dl className="flex flex-col gap-2">
         <Row label="Stage">{row.stage}</Row>
         <Row label="Stage entered">{fmtSimTime(row.enteredAt)}</Row>
@@ -84,7 +84,7 @@ function FactsSection({ deal }: { deal: DealDetailData }) {
   return (
     <section aria-label="Facts" className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
-        <h2 className="text-base font-semibold">Facts</h2>
+        <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Facts</h2>
         <Caption>As of end of run</Caption>
       </div>
       {!anyFact ? (
@@ -92,8 +92,8 @@ function FactsSection({ deal }: { deal: DealDetailData }) {
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
+            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+              <TableRow className="border-navy hover:bg-transparent">
                 <TableHead>Field</TableHead>
                 <TableHead>Value</TableHead>
                 <TableHead>Source</TableHead>
@@ -160,11 +160,11 @@ function IssuesSection({ deal }: { deal: DealDetailData }) {
   return (
     <section aria-label="Issues" className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
-        <h2 className="text-base font-semibold">Issues</h2>
+        <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Issues</h2>
         <Caption>As of end of run</Caption>
       </div>
       <IssueList issues={deal.issues} empty="No open issues." />
-      <h3 className="pt-2 text-xs font-semibold text-ink-2">Resolved</h3>
+      <h3 className="pt-2 text-xs font-bold tracking-wide text-navy uppercase">Resolved</h3>
       <IssueList issues={deal.resolved_issues} empty="No resolved issues." muted />
     </section>
   )
@@ -176,12 +176,12 @@ function StageLogSection({ deal, nowMs }: { deal: DealDetailData; nowMs: number 
   const entries = stageLogAt(deal.stage_log, nowMs)
   return (
     <section aria-label="Stage log" className="flex flex-col gap-2">
-      <h2 className="text-base font-semibold">Stage log</h2>
-      <ol className="flex flex-col gap-4 border-l border-line pl-4">
+      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Stage log</h2>
+      <ol className="flex flex-col gap-4 border-l-2 border-navy pl-4">
         {entries.map((e) => (
           <li key={`${e.stage}-${e.entered_at}`} className="flex flex-col gap-1">
             <div className="flex items-baseline gap-2">
-              <h3 className="text-base font-semibold">{e.stage}</h3>
+              <h3 className="text-base font-bold text-navy">{e.stage}</h3>
               {e.open && <Caption>Current</Caption>}
             </div>
             <p className="text-sm tabular-nums text-ink-2">
@@ -223,14 +223,14 @@ function RequestsSection({
   const requests = requestsAt(requestsWithOverlay(deal.folder, deal.human_requests, inboxItems, answers), nowMs)
   return (
     <section aria-label="Human requests" className="flex flex-col gap-2">
-      <h2 className="text-base font-semibold">Human requests</h2>
+      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Human requests</h2>
       {requests.length === 0 ? (
         <p className="text-sm text-ink-2">No requests on this deal as of {when}.</p>
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
+            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+              <TableRow className="border-navy hover:bg-transparent">
                 <TableHead>Sent</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>To</TableHead>
@@ -274,15 +274,15 @@ function AlertsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: num
   const alerts = alertsAt(deal.alerts, nowMs, 'oldest')
   return (
     <section aria-label="Alerts" className="flex flex-col gap-2">
-      <h2 className="text-base font-semibold">Alerts</h2>
+      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Alerts</h2>
       {alerts.length === 0 ? (
         <p className="text-sm text-ink-2">No alerts on this deal as of {when}.</p>
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="border-l-2 border-transparent">Time</TableHead>
+            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+              <TableRow className="border-navy hover:bg-transparent">
+                <TableHead className="border-l-4 border-transparent">Time</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>To</TableHead>
                 <TableHead>Message</TableHead>
@@ -294,8 +294,8 @@ function AlertsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: num
                 const edge = a.level === 'escalation' ? 'border-risk' : 'border-transparent'
                 return (
                   <TableRow key={`${a.at}-${a.level}`} className="align-top">
-                    <TableCell className={`whitespace-nowrap border-l-2 tabular-nums ${edge}`}>{fmtSimTime(a.at)}</TableCell>
-                    <TableCell className="whitespace-nowrap">{alertLevelLabel(a.level, a.message)}</TableCell>
+                    <TableCell className={`whitespace-nowrap border-l-4 font-semibold tabular-nums ${edge}`}>{fmtSimTime(a.at)}</TableCell>
+                    <TableCell className="whitespace-nowrap font-semibold text-navy">{alertLevelLabel(a.level, a.message)}</TableCell>
                     <TableCell className="whitespace-nowrap" title={who.title}>
                       {who.label}
                     </TableCell>
@@ -336,8 +336,8 @@ function FraudPanel({
   ).some((i) => i.answeredInSession && i.status === 'answered' && i.answer === 'release_hold')
   const linked = f.linked_deals ?? []
   return (
-    <section aria-label="Fraud status" className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4">
-      <h2 className="text-base font-semibold">Fraud status</h2>
+    <section aria-label="Fraud status" className="flex flex-col gap-2 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
+      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Fraud status</h2>
       {held ? (
         <>
           <StatusBadge held watch={false} />
@@ -351,7 +351,7 @@ function FraudPanel({
           {f.reason != null && <p className="text-base">{f.reason}</p>}
           {linked.length > 0 && (
             <div className="flex flex-col gap-1">
-              <h3 className="text-xs font-semibold text-ink-2">Linked</h3>
+              <h3 className="text-xs font-bold tracking-wide text-navy uppercase">Linked</h3>
               <ul className="flex flex-col gap-1 text-sm">
                 {linked.map((name) => (
                   <li key={name}>{boardFolders.includes(name) ? <DealLink folder={name}>{name}</DealLink> : name}</li>
