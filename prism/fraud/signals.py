@@ -109,9 +109,13 @@ def score_f1(
     )
 
 
+# Text placed between the F1 entity part and its partner list; decide() cuts the reason here.
+LINK_MARK = "; linked to "
+
+
 def _f1_evidence(res: F1Result) -> str:
     parts = [f"{_plain(k)} used by {df} of {res.n} history deals" for k, _v, df in res.shared]
-    return "shared rare " + "; ".join(parts) + "; linked to " + ", ".join(res.partners)
+    return "shared rare " + "; ".join(parts) + LINK_MARK + ", ".join(res.partners)
 
 
 # ------------------------------------------------------------------------------- F3

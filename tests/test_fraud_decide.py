@@ -1,0 +1,121 @@
+"""decide(): hold rule, non-voting families, sticky holds, reason text, current-deal links.
+
+Synthetic DealStates and hand-built FamilySignal tuples; no sample data needed.
+"""
+from __future__ import annotations
+
+import dataclasses
+
+from test_move_support import at, make_state
+
+from prism.contract import StageLogEntry, format_sim_time
+from prism.engine.config import load_fraud_config
+from prism.fraud.decide import decide
+from prism.fraud.signals import LINK_MARK, FamilySignal
+
+CFG = load_fraud_config()
+T1 = "2026-03-02T10:00"
+T2 = "2026-03-03T15:00"
+F1_EV = "shared rare preparer used by 2 of 40 history deals" + LINK_MARK + "Bolt Inc, H-HIST-A"
+
+
+def sig(family, deals, fired=True, evidence=None):
+    return FamilySignal(family=family, deals=tuple(deals), bits=5.0, fired=fired,
+                        evidence=evidence if evidence is not None else family + " evidence text")
+
+
+def ring_signals(folder="Acme Co", partners=("Bolt Inc", "H-HIST-A")):
+    return [
+        sig("F1", (folder, *partners), evidence=F1_EV),
+        sig("F3", (folder,), evidence="vendor name differs from the usual supplier"),
+        sig("F5", (folder,), evidence="deposits are all round hundreds"),
+    ]
+
+
+def states_of(*sts):
+    return {s.folder: s for s in sts}
+
+
+def run(signals, states, t=T1, cfg=CFG):
+    return decide(signals, None, states, None, cfg, at(t))
+
+
+def test_f1_f3_f5_flags_and_holds_with_time_stage_and_reason():
+    st = make_state("Acme Co")
+    out = run(ring_signals(), states_of(st, make_state("Bolt Inc")))
+    fr = out.per_deal["Acme Co"]
+    assert fr.flagged and fr.held
+    assert fr.flagged_at == format_sim_time(at(T1))
+    assert fr.stage_at_flag == "Intake"
+    assert fr.reason and fr.reason.strip()
+
+
+def test_stage_at_flag_comes_from_the_stage_log_not_state_stage():
+    st = make_state("Acme Co")
+    st.stage_log = [
+        StageLogEntry(stage="Intake", entered_at="2026-03-02T09:00-06:00", exited_at="2026-03-02T09:30-06:00", why="w"),
+        StageLogEntry(stage="Credit", entered_at="2026-03-02T09:30-06:00", why="w"),
+        StageLogEntry(stage="Committee", entered_at="2026-03-02T11:00-06:00", why="w"),
+    ]
+    st.stage = "Committee"
+    out = run(ring_signals(), states_of(st, make_state("Bolt Inc")))
+    assert out.per_deal["Acme Co"].stage_at_flag == "Credit"
+
+
+def test_hold_rule_needs_f1_plus_two_more():
+    a = make_state("Acme Co")
+    states = states_of(a, make_state("Bolt Inc"))
+    f1, f3, f5 = ring_signals()
+    cases = [
+        [f1],
+        [f1, f3],
+        [f3, f5],
+        [f1, dataclasses.replace(f3, fired=False), dataclasses.replace(f5, fired=False)],
+    ]
+    for signals in cases:
+        assert "Acme Co" not in run(signals, states).per_deal
+
+
+def test_non_voting_family_never_counts():
+    cfg = dataclasses.replace(CFG, hold_additional_from=tuple(CFG.hold_additional_from) + ("F6",),
+                              non_voting=("F6",))
+    f1, f3, _f5 = ring_signals()
+    signals = [f1, f3, sig("F6", ("Acme Co",))]
+    out = run(signals, states_of(make_state("Acme Co"), make_state("Bolt Inc")), cfg=cfg)
+    assert "Acme Co" not in out.per_deal
+
+
+def test_hold_is_sticky_when_the_evidence_disappears():
+    st = make_state("Acme Co")
+    states = states_of(st, make_state("Bolt Inc"))
+    first = run(ring_signals(), states).per_deal["Acme Co"]
+    st.fraud = first
+    second = run([], states, t=T2).per_deal["Acme Co"]
+    assert second.flagged and second.held
+    assert second.flagged_at == first.flagged_at
+    assert second.stage_at_flag == first.stage_at_flag
+    assert second.reason == first.reason
+
+
+def test_reason_has_entity_part_and_family_evidence_but_no_partners():
+    out = run(ring_signals(), states_of(make_state("Acme Co"), make_state("Bolt Inc")))
+    reason = out.per_deal["Acme Co"].reason
+    assert "shared rare preparer used by 2 of 40 history deals" in reason
+    assert "vendor name differs from the usual supplier" in reason
+    assert "deposits are all round hundreds" in reason
+    assert LINK_MARK.strip("; ") not in reason
+    assert "Bolt Inc" not in reason and "H-HIST-A" not in reason
+
+
+def test_linked_deals_are_current_partners_only():
+    states = states_of(make_state("Acme Co"), make_state("Bolt Inc"), make_state("Zed Co"))
+    signals = ring_signals(partners=("Zed Co", "H-HIST-A", "Bolt Inc"))
+    out = run(signals, states)
+    assert out.per_deal["Acme Co"].linked_deals == ["Bolt Inc", "Zed Co"]
+
+
+def test_decide_does_not_mutate_states():
+    st = make_state("Acme Co")
+    states = states_of(st, make_state("Bolt Inc"))
+    run(ring_signals(), states)
+    assert not st.fraud.flagged
