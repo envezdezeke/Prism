@@ -39,8 +39,8 @@ function Rail() {
   const pending =
     status === 'ready' && inbox.data !== undefined ? pendingCount(inboxAt(inbox.data, simToMs(now), answers)) : null
   return (
-    <aside aria-label="Primary" className="w-50 shrink-0 border-r border-line bg-surface">
-      <p className="px-4 py-4 text-sm font-semibold text-ink">Prism</p>
+    <aside aria-label="Primary" className="min-h-screen w-50 shrink-0 bg-navy">
+      <p className="border-b border-surface/15 px-4 py-4 text-base font-bold tracking-wide text-surface">Prism</p>
       <nav aria-label="Views">
         <ul className="flex flex-col">
           {NAV_ITEMS.map((item) => {
@@ -50,13 +50,15 @@ function Rail() {
                 <a
                   href={buildHash(item.route)}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex h-9 items-center justify-between border-l-2 px-4 text-sm ${
-                    active ? 'border-navy font-semibold text-navy' : 'border-transparent text-ink-2 hover:bg-subtle'
+                  className={`flex h-10 items-center justify-between border-l-4 px-4 text-sm focus-visible:outline-sky ${
+                    active
+                      ? 'border-sky bg-surface/10 font-bold text-surface'
+                      : 'border-transparent font-medium text-surface/75 hover:bg-surface/5 hover:text-surface'
                   }`}
                 >
                   {item.label}
                   {item.id === 'inbox' && pending !== null && (
-                    <span className="font-normal tabular-nums text-ink-2" aria-label={`${pending} pending`}>
+                    <span className="rounded-sm bg-sky px-1.5 text-xs font-bold tabular-nums text-navy" aria-label={`${pending} pending`}>
                       {pending}
                     </span>
                   )}

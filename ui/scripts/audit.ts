@@ -47,7 +47,9 @@ const RULES: Rule[] = [
   { name: 'blur or drop-shadow', re: /\bbackdrop-blur|(?:^|[\s"'`:])blur(?:-[a-z0-9]+)?(?=$|[\s"'`])|(?<![\w-])drop-shadow/ },
   { name: 'medium-or-larger shadow outside components/ui/', re: /(?<![\w-])shadow-(?:md|lg|xl|2xl)\b/, allow: ['src/components/ui/'] },
   { name: 'placeholder text', re: /lorem ipsum|coming soon/i },
-  { name: 'forbidden brand reference', re: /goldman|7399C6/i },
+  { name: 'forbidden brand name', re: /goldman/i },
+  // D-03 amended 2026-11-08: the sponsor's sky blue is allowed as a token in index.css only.
+  { name: 'sky blue outside index.css', re: /7399C6/i, allow: ['src/index.css'] },
   { name: 'toast or sonner import', re: /\bfrom\s+['"][^'"]*(?:sonner|toast)[^'"]*['"]|\bimport\s+['"][^'"]*(?:sonner|toast)[^'"]*['"]/i },
   { name: 'VITE_ variable', re: /VITE_/ },
   { name: 'participant data reference', re: /teams\.json|data\/participant|\bparticipant\// },
