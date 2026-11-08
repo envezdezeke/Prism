@@ -5,6 +5,7 @@
 \usepackage{enumitem}
 \usepackage{xcolor}
 \usepackage[hidelinks]{hyperref}
+\usepackage{lmodern}\usepackage[T1]{fontenc}\usepackage{microtype}\emergencystretch=1.5em
 \setlist{nosep,leftmargin=1.4em}
 \definecolor{navy}{HTML}{1B2A41}
 \newcommand{\B}{\mathcal{B}}
@@ -118,11 +119,10 @@ The configuration stores the \emph{percentile} (0.95) and \emph{fraction} ($\rho
 The fraud examples and the 13 sample deals are \emph{never} used to set a threshold.
 
 \section{Decision rule}
-\begin{equation}
-\textsc{Hold}(d,t)\iff \text{fires}_1(d,t)\;\wedge\;\sum_{f=2}^{5}\text{fires}_f(d,t)\ge 2 ,
-\qquad
-\textsc{Watch}(d,t)\iff 1\le\sum_{f=1}^{5}\text{fires}_f(d,t)\;\wedge\;\neg\textsc{Hold}(d,t).
-\end{equation}
+\begin{align}
+\textsc{Hold}(d,t)&\iff \text{fires}_1(d,t)\;\wedge\;\sum_{f=2}^{5}\text{fires}_f(d,t)\ge 2 ,\\
+\textsc{Watch}(d,t)&\iff 1\le\sum_{f=1}^{5}\text{fires}_f(d,t)\;\wedge\;\neg\textsc{Hold}(d,t).
+\end{align}
 A hit on any of the bank's five known-fraud checks goes straight to Fraud Operations (bank policy).
 
 \paragraph{False-alarm bound.} If families misfire independently with rates $\alpha_1$ and $\alpha=0.05$,
@@ -151,7 +151,7 @@ Scores are recomputed on every file arrival. With $\mathcal{A}$ the arrival time
 Holds are \emph{sticky}: once requested, a deal stays held until a human sends \texttt{fraud\_release}. Weaker later evidence adds a log entry and never un-flags.
 
 \section{Validation design}
-\begin{center}
+\begin{center}\small
 \begin{tabular}{@{}llll@{}}
 \toprule
 Set & Size & Role & Tuned on? \\
@@ -192,12 +192,15 @@ Agents (adaptive red-team, prosecutor/defender) use read-only HTTP tools; every 
 \appendix
 \section{UI handoff (for Jesse's agents)}
 The full agent-ready playbook is \texttt{docs/UI\_PLAYBOOK.md}; the locked visual decisions are in \texttt{.planning/phases/02-*/02-CONTEXT.md} (D-01 to D-16). To set up Claude Code on the Mac, inside the repo:
+{\small
 \begin{verbatim}
+# inside Claude Code (frontend-design + webapp-testing skills):
 /plugin marketplace add anthropics/skills
-/plugin install example-skills@anthropic-agent-skills   # frontend-design, webapp-testing
-npx shadcn@latest mcp init --client claude              # shadcn component MCP
-claude mcp add playwright -- npx @playwright/mcp@latest # agent sees the page
-\end{verbatim}
+/plugin install example-skills@anthropic-agent-skills
+# in a terminal (shadcn component MCP; Playwright MCP so the agent sees the page):
+npx shadcn@latest mcp init --client claude
+claude mcp add playwright -- npx @playwright/mcp@latest
+\end{verbatim}}
 How this model shows up on screen: the evidence panel lists the families in order F1--F6 with their bits and thresholds; F6 is visually marked ``evidence only''. Edges in the graph are weighted by $I(v)$ (thicker means rarer), and common entities are drawn faint with their history count (``used by 15 deals, mostly repaid''). The cluster header shows the permutation $p$-value and ``$k$ of 4 voting families agree''.
 
 \end{document}
