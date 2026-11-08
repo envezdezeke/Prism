@@ -8,18 +8,35 @@ families:
     votes: true
     rarity_fraction: 0.02  # entity counts only if fewer than 2% of history deals use it
     min_linked_deals: 2    # ... and it links at least this many deals
+    # Pair-score weights per entity kind (weights, not bit thresholds). No percentile here:
+    # F1 is mandatory for a hold and fires on any strong shared entity.
+    type_weights:
+      remit_account: 1.0     # account, preparer, agent: strong
+      preparer: 1.0
+      registered_agent: 1.0
+      phone: 1.0             # a phone follows its preparer
+      guarantor: 1.0         # one guarantor across businesses is a ring tell
+      vendor: 0.5            # common tooling and vendors are shared by honest deals
+      pdf_producer: 0.5
+      address: 0.25          # address and bank: weak
+      bank: 0.25
+    outcome_beta: 0.5        # discount for shared values whose history deals repaid
   F2:                      # novelty or burst
     votes: true
     percentile: 0.95
   F3:                      # lookalike vendor or account
     votes: true
     percentile: 0.95
+    min_similarity: 0.8    # token-set similarity floor for "same base name"
+    max_edit_distance: 2   # ... or a typo within this many edits
+    min_vendor_deals: 3    # a "frequent" history vendor has at least this many deals
   F4:                      # document forensics
     votes: true
     percentile: 0.95
   F5:                      # deposit pattern
     votes: true
     percentile: 0.95
+    dirichlet_alpha: 0.5   # weekday-distribution smoothing
   F6:                      # terms shape: evidence only, never votes
     votes: false
 
