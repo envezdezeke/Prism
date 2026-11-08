@@ -105,6 +105,18 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-07 15:55 CT
-Stopped at: Roadmap and state created; next is `/gsd-plan-phase 1`
+Last session: 2026-11-07 (Ezekiel, planning session)
+Stopped at: Planning complete; next is `/gsd-plan-phase 1`
 Resume file: None
+
+**Loose ends from the planning session:**
+- **Folder rename pending.** Exit Claude Code, then `cd C:\Users\ezeki\hack && ren "Goldman I" Prism && cd Prism && claude`. The git remote already points to `github.com/envezdezeke/Prism`.
+- **After the rename,** disable unused account connectors for this project: `/mcp disable` for claude.ai Google Drive, Google Calendar, S&P Global and Claude Docs.
+- **Nemotron key verified (Ezekiel's account).**
+  - Working models, all with native tool calling: `nemotron-3.5-super-vl-120b-a12b` (agents + VL), `nemotron-3.5-lightning-30b-a3b` (fast), `nemotron-3-nano-omni-30b-a3b-reasoning` (VL fallback), `nemotron-3.5-bolt-e4b` (tiny).
+  - `nemotron-3-super-120b-a12b` and `nemotron-nano-3-30b-a3b` return 404 on our tier.
+  - The NEM-02 tool-call part is effectively done. Only the VL read of Tyler's JPG is left to check in Phase 1.
+- **Jesse:** get a second NVIDIA key (doubles the rate limit). Update your remote with `git remote set-url origin https://github.com/envezdezeke/Prism.git`.
+- **Rotate Ezekiel's NVIDIA key after the hackathon.** It was pasted into a chat log.
+- **GSD model profile is now `budget`** (Sonnet writes, Haiku researches), to save usage.
+- **Jesse's `docs/DETAILS_CHECKLIST.md` J1–J20 are locked judgment calls.** They agree with PROJECT.md's Key Decisions. Items marked "Vijay?" are still open; J20 (how judges answer staff requests) is top priority.
