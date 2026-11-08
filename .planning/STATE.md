@@ -1,17 +1,17 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 1
-current_phase_name: Foundations, Contract and Golden Labels
-status: planning
-stopped_at: Planning complete; next is `/gsd-plan-phase 1`
-last_updated: "2026-11-08T01:49:41.005Z"
-last_activity: "2026-11-07 19:22 CT - Completed quick task 261107-qez: engine skeleton (arrival gate, CLI run/validate/score, determinism, stub interfaces for read/move/fraud). Phase 1 engine work done; NEM-02 VL smoke folded into Phase 3 (N10)."
-state_head: d5216d763865f22b3134cc52a5b7fb3069f48ab0
+current_phase: 02
+current_phase_name: Pipeline Cockpit UI on Mock Data
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-11-08T01:53:15.481Z"
+last_activity: "2026-11-07 ~20:15 CT - plan 02-01 complete; Ezekiel merged 261107-qx4 fraud baseline"
+state_head: b12359b7f21c8764a9bcb291346d9e43f8407489
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 4
+  completed_plans: 1
   percent: 0
 ---
 
@@ -22,14 +22,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-07)
 
 **Core value:** Catch the cross-deal fraud ring before money goes out, without blocking good deals, using a method that still works on the hidden set's different trick.
-**Current focus:** Phase 1 work is done (contract, fixtures, engine skeleton, validator, self-score, golden labels). Ezekiel: Phase 5 history baseline (quick task 261107-qx4), Phases 3-4 in parallel. Jesse: Phase 2 UI (planned, design contract written, not yet executed).
+**Current focus:** Phase 02 — Pipeline Cockpit UI on Mock Data
 
 ## Current Position
 
-Phase: 1 of 7 (Foundations, Contract and Golden Labels)
-Plan: 0 of TBD in current phase
-Status: Phase 1 work delivered through quick tasks (pfc, qez); Phase 2 planned (02-01..02-04 + 02-UI-SPEC), execution next
-Last activity: 2026-11-07 ~20:10 CT - Merged quick task 261107-qx4 (fraud baseline, F1/F3/F5 + calibration; Jul-Oct replay: 1/72 good-deal false flags as lower bound, F1 fires on ~30% of clean deals). Move core (261107-qx3) still running in a worktree.
+Phase: 02 (Pipeline Cockpit UI on Mock Data) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-11-07 ~20:15 CT - Jesse: plan 02-01 done (UI scaffold, tokens, live pipeline board; 11/11 UI tests). Ezekiel: Merged quick task 261107-qx4 (fraud baseline, F1/F3/F5 + calibration; Jul-Oct replay: 1/72 good-deal false flags as lower bound, F1 fires on ~30% of clean deals). Move core (261107-qx3) still running in a worktree.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -78,6 +78,11 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 | - | - | - | - |
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 02 P01 | 8min | 2 tasks | 31 files |
 
 ## Accumulated Context
 
@@ -89,6 +94,8 @@ Full log in the PROJECT.md Key Decisions table. Most load-bearing right now:
 - Roadmap: the live API ships in Phase 4 on the Phase 1 contract, so the H10 mock-to-live switch is a flag flip.
 - The deterministic engine owns every scored output; `NEMOTRON=off` must reproduce it byte for byte.
 - Hold = F1 shared rare entity + at least 2 other families; 1–2 families = watch tier; no sample literals in detection code.
+- [Phase 02]: openapi-typescript runs via npx with its own TypeScript 5 (TS 7 has no JS compiler API); not a local dependency
+- [Phase 02]: Plan 02-01: no destructive Badge/Button variant; red exists only via hold tokens (D-05)
 
 ### Pending Todos
 
@@ -118,8 +125,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-07 (Ezekiel, planning session)
-Stopped at: Planning complete; next is `/gsd-plan-phase 1`
+Last session: 2026-11-08T01:53:15.467Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
 
 **Loose ends from the planning session:**

@@ -64,8 +64,8 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 
 ### UI (UI)
 
-- [ ] **UI-01**: A clean, light fintech design system (type scale, tabular money numerals, red reserved for holds). (J)
-- [ ] **UI-02**: A pipeline board shows deals by stage with SLA timers and deadline badges. (J)
+- [x] **UI-01**: A clean, light fintech design system (type scale, tabular money numerals, red reserved for holds). (J)
+- [x] **UI-02**: A pipeline board shows deals by stage with SLA timers and deadline badges. (J)
 - [ ] **UI-03**: Sim clock controls: current time, advance, and replay from the start. (J)
 - [ ] **UI-04**: Deal detail shows extracted facts with source chips, issues, stage log, human requests and alerts. (J)
 - [ ] **UI-05**: A human inbox lets whoever plays the staff answer pending requests. (J)
@@ -109,8 +109,8 @@ Owner key: **E** = Ezekiel (engine, fraud, Nemotron) · **J** = Jesse (labels, U
 | FND-07 | Phase 1 | Pending |
 | FND-08 | Phase 1 | Pending |
 | NEM-02 | Phase 1 | Pending |
-| UI-01 | Phase 2 | Pending |
-| UI-02 | Phase 2 | Pending |
+| UI-01 | Phase 2 | Complete |
+| UI-02 | Phase 2 | Complete |
 | UI-03 | Phase 2 | Pending |
 | UI-04 | Phase 2 | Pending |
 | UI-05 | Phase 2 | Pending |
