@@ -8,3 +8,5 @@ dist/
 sim/.clock_state.json
 live_inbox/
 out/
+.pytest_cache/
+*.egg-info/
