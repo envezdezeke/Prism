@@ -5,7 +5,7 @@
     "labelled_by": "Jesse",
     "blind": true,
     "how_to": "See eval/README.md",
-    "history_notes": "history_flags: H-2608-002 (Trinity Bend Plumbing, funded, 30 days past due) and H-2609-008 (Mesquite Ridge Signs, funded, current) share all six ring signs: preparer K. Delacroix, agent Commerce Street, vendor Metroplex Equipment Supply LLC ...4471, DocuForge, deposits 100% round $100s Mon/Thu, amount just under $250k. must_not_flag: H-2511-010 and H-2601-022 share only DocuForge; H-2604-007 only the agent; H-2511-002/H-2512-005/H-2601-006 are returning customers (Garza, Priya, Okafor)."
+    "history_notes": "history_flags: H-2608-002 (Trinity Bend Plumbing, funded, 30 days past due) and H-2609-008 (Mesquite Ridge Signs, funded, current) share all six ring signs: preparer K. Delacroix, agent Commerce Street, vendor Metroplex Equipment Supply LLC ...4471, DocuForge, deposits 100% round $100s Mon/Thu, amount just under $250k. must_not_flag: H-2511-010 and H-2601-022 share only DocuForge; H-2604-007 only the agent; H-2511-002/H-2512-005/H-2601-006 are returning customers (Garza, Priya, Okafor). Plus the 14 clean history loans at 5950 Berkshire Ln Ste 1000 (Harbor Tea's shared address)."
   },
   "deals": {
     "Bluebonnet Landscape": {
@@ -60,7 +60,11 @@
         "annual_revenue_stated": 1920000,
         "needed_by": null
       },
-      "extracted_accept": {},
+      "extracted_accept": {
+        "purpose_category": [
+          "working_capital"
+        ]
+      },
       "sources": {},
       "issues": [],
       "issues_optional": [],
@@ -144,7 +148,7 @@
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": "Trap: business address 5950 Berkshire Ln Ste 1000 = registered agent Northstar's office; 28 history loans tie to that address/agent (17 funded/current, 3 paid off, 6 declined, 2 old-trick frauds incl. one PMB at a different address). SHELL_ADDRESS needs a mailbox store/PMB, so not met; one shared sign alone never holds. $320k -> chair. Revenue 3.1M = deposits annualized 3.10M."
+      "notes": "Trap: business address 5950 Berkshire Ln Ste 1000 = registered agent Northstar's office; 15 history loans share the business address (14 clean, 1 REV_INFLATION) and 27 share the agent Northstar (one SHELL_ADDRESS fraud used a PMB at a different address). SHELL_ADDRESS needs a mailbox store/PMB, so not met; one shared sign alone never holds. $320k -> chair. Revenue 3.1M = deposits annualized 3.10M."
     },
     "LSFD_docs": {
       "status": "done",
@@ -416,6 +420,10 @@
         "annual_revenue_stated": [
           400000,
           500000
+        ],
+        "purpose_category": [
+          "payroll",
+          "working_capital"
         ]
       },
       "sources": {},
@@ -487,6 +495,20 @@
     "H-2604-007",
     "H-2511-002",
     "H-2512-005",
-    "H-2601-006"
+    "H-2601-006",
+    "H-2512-003",
+    "H-2512-006",
+    "H-2512-018",
+    "H-2512-019",
+    "H-2601-026",
+    "H-2603-004",
+    "H-2603-009",
+    "H-2605-009",
+    "H-2605-012",
+    "H-2605-013",
+    "H-2606-001",
+    "H-2606-006",
+    "H-2609-011",
+    "H-2610-026"
   ]
 }
