@@ -122,10 +122,11 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 ## 7. Jesse's work items (finance)
 
 1. ✅ **Done Sat 18:29.** **Answer key `eval/gold.json`** for all 13 sample folders: the true extracted fields plus the true `issues`. This is the highest-value finance task; every READ result gets scored against it.
-2. Domain rules: per-field mismatch tolerances and the nickname list; required docs per stage; vendor and disbursement verification; the 7004 rule (business under 2 years old). **Started:** `docs/DETAILS_CHECKLIST.md` (rules plus judgment calls J1–J20 awaiting Jesse's sign-off).
+2. Domain rules: per-field mismatch tolerances and the nickname list; required docs per stage; vendor and disbursement verification; the 7004 rule (business under 2 years old). **Done:** `docs/DETAILS_CHECKLIST.md` (rules plus judgment calls J1–J22, all decided; J5, J10, J14, J20 still marked "Vijay?").
 3. ✅ **Done Sat ~18:40:** [`docs/CREDIT_MEMO_TEMPLATE.md`](docs/CREDIT_MEMO_TEMPLATE.md). Credit memo (Committee requires one): 5 Cs, rule-based 1–5 risk grade, assumed 9.0% rate, conditional recommendation, approval conditions, a 4-line version for the committee request, and test cases. Numbers, grade and recommendation are deterministic; Nemotron may only polish prose. **Zeke: add `credit_memo` to `DealDetail`.**
 4. ✅ **Done Sat ~18:45:** [`docs/MESSAGE_TEMPLATES.md`](docs/MESSAGE_TEMPLATES.md). Plain-English templates for SLA alerts (100/150/200%), follow-ups and backup reroutes (J21), the fraud-hold chase (J22), all 7 request types, borrower info requests and the deadline-risk alert. Each alert says whose deal + RM, stage + duration, waiting on, and what unblocks it.
-5. UI per PROJECT.md (pipeline board, inbox, alert feed, deal detail, fraud graph), and the pitch and Devpost.
+5. UI per PROJECT.md (pipeline board, inbox, alert feed, deal detail, fraud graph), and the pitch and Devpost. **Phase 2 planned and design contract written (Sat ~19:35); execution next.**
+6. **Trick menu `eval/trick_menu.yaml`** (`docs/MODEL_DESIGN.md` M5/M15/M16): 6–8 fraud trick families with strength ranges and 1–2 honest look-alike twins each, used to build synthetic test deals. **Must be committed before Zeke's first synthetic calibration run.** Not needed by quick task 261107-qx4 (it calibrates on real clean history).
 
 ## 8. History of this handoff
 

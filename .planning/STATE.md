@@ -22,13 +22,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-07)
 
 **Core value:** Catch the cross-deal fraud ring before money goes out, without blocking good deals, using a method that still works on the hidden set's different trick.
-**Current focus:** Phase 1: Foundations, Contract and Golden Labels (both). Phase 2 (Jesse's UI on mock data) opens at H1.
+**Current focus:** Phase 1 work is done (contract, fixtures, engine skeleton, validator, self-score, golden labels). Ezekiel: Phase 5 history baseline (quick task 261107-qx4), Phases 3-4 in parallel. Jesse: Phase 2 UI (planned, design contract written, not yet executed).
 
 ## Current Position
 
 Phase: 1 of 7 (Foundations, Contract and Golden Labels)
 Plan: 0 of TBD in current phase
-Status: Ready to plan
+Status: Phase 1 work delivered through quick tasks (pfc, qez); Phase 2 planned (02-01..02-04 + 02-UI-SPEC), execution next
 Last activity: 2026-11-07 19:22 CT - Completed quick task 261107-qez: engine skeleton (arrival gate, CLI run/validate/score, determinism, stub interfaces for read/move/fraud). Phase 1 engine work done; NEM-02 VL smoke folded into Phase 3 (N10).
 
 Progress: [░░░░░░░░░░] 0%
@@ -39,8 +39,8 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 
 | Phase | Owner | Window | Status |
 |-------|-------|--------|--------|
-| 1. Foundations, Contract and Golden Labels | Ezekiel (engine, contract) + Jesse (golden labels) | H0–H2 | Ready to plan |
-| 2. Pipeline Cockpit UI on Mock Data | Jesse | H1–H9 | Opens when the contract lands (H1) |
+| 1. Foundations, Contract and Golden Labels | Ezekiel (engine, contract) + Jesse (golden labels) | H0–H2 | Delivered via quick tasks |
+| 2. Pipeline Cockpit UI on Mock Data | Jesse | H1–H9 | Planned, executing next (behind schedule) |
 | 3. Read the Folder | Ezekiel | H2–H5 | Not started |
 | 4. Move the Deal | Ezekiel | H5–H7.5 | Not started |
 | 5. Catch the Fakes | Ezekiel | H7.5–H10 | Not started |
@@ -49,9 +49,9 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 
 ## Right Now and Next
 
-**Ezekiel, now:** contract + mock fixtures delivered (quick task 261107-pfc; 76 tests pass, also on Jesse's Mac). Next per ROADMAP: the rest of Phase 1 (validator, determinism harness, CLI, self-score script against `eval/gold.json`, VL read of Tyler's JPG), then Phase 3.
+**Ezekiel, now:** contract + mock fixtures (261107-pfc) and engine skeleton + validator + determinism + self-score (261107-qez) delivered; 168 tests pass on Jesse's Mac (Sat 19:38). Sample run: 13 deals, 173 files, 0 errors, byte-identical, valid. Next: fraud history baseline F1/F3/F5 + calibration (261107-qx4, planned 19:35), then Phases 3-4. VL read of Tyler's JPG folded into Phase 3.
 
-**Jesse, now:** golden labels delivered Sat 18:29: `eval/gold.json` has all 13 deals `done`, plus `history_flags` and a 20-id `history_must_not_flag`. Labelled blind, then diffed against the research with zero disagreements on issues, holds or links. Judgment calls J1–J20 are locked in `docs/DETAILS_CHECKLIST.md`. Next: credit-memo template and alert/request wording (HANDOFF §7 items 3–4); Jesse's UI role is still open with Ezekiel (HANDOFF §9 item 4).
+**Jesse, now:** golden labels delivered Sat 18:29: `eval/gold.json` has all 13 deals `done`, plus `history_flags` and a 20-id `history_must_not_flag`. Labelled blind, then diffed against the research with zero disagreements on issues, holds or links. Judgment calls J1–J20 are locked in `docs/DETAILS_CHECKLIST.md`. Judgment calls J1–J22 all decided. Credit memo template and message templates delivered (~18:40/18:45). Jesse keeps the UI: Phase 2 plans 02-01..02-04 (19:29) and design contract 02-UI-SPEC (19:3x) committed; staff shown as role labels until the engine supplies names (D-22). Next: execute Phase 2. Also owed: `eval/trick_menu.yaml` before Zeke's first synthetic calibration (MODEL_DESIGN M5).
 
 **Next hand-offs and gates:**
 - H1 (Sat 16:55): contract + mock fixtures, Ezekiel to Jesse
@@ -128,7 +128,8 @@ Resume file: None
   - Working models, all with native tool calling: `nemotron-3.5-super-vl-120b-a12b` (agents + VL), `nemotron-3.5-lightning-30b-a3b` (fast), `nemotron-3-nano-omni-30b-a3b-reasoning` (VL fallback), `nemotron-3.5-bolt-e4b` (tiny).
   - `nemotron-3-super-120b-a12b` and `nemotron-nano-3-30b-a3b` return 404 on our tier.
   - The NEM-02 tool-call part is effectively done. Only the VL read of Tyler's JPG is left to check in Phase 1.
-- **Jesse:** get a second NVIDIA key (doubles the rate limit). Update your remote with `git remote set-url origin https://github.com/envezdezeke/Prism.git`.
+- **Jesse:** get a second NVIDIA key (doubles the rate limit). Remote already updated to `github.com/envezdezeke/Prism`.
+- **Revoke Jesse's first NVIDIA key.** It was pasted into a chat log on Sat; make a new one and put it only in `.env`.
 - **Rotate Ezekiel's NVIDIA key after the hackathon.** It was pasted into a chat log.
 - **GSD model profile is now `budget`** (Sonnet writes, Haiku researches), to save usage.
-- **Jesse's `docs/DETAILS_CHECKLIST.md` J1–J20 are locked judgment calls.** They agree with PROJECT.md's Key Decisions. Items marked "Vijay?" are still open; J20 (how judges answer staff requests) is top priority.
+- **Jesse's `docs/DETAILS_CHECKLIST.md` J1–J22 are locked judgment calls.** They agree with PROJECT.md's Key Decisions. Items marked "Vijay?" are still open; J20 (how judges answer staff requests) is top priority.
