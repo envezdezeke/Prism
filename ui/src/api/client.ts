@@ -1,6 +1,6 @@
 // Typed fetch wrapper. Runs under Vite and under Node (scripts/smoke.ts), so: relative imports with
 // explicit .ts extensions, import type for types, and no import.meta.env.
-import type { Clock, DealDetail, DealSummary } from './types.ts'
+import type { AlertFeedItem, Clock, DealDetail, DealSummary, InboxItem } from './types.ts'
 
 let base = ''
 
@@ -95,4 +95,23 @@ export async function getDeal(folder: string): Promise<DealDetail> {
     }
     throw e
   }
+}
+
+export function getInbox(): Promise<InboxItem[]> {
+  return apiGet<InboxItem[]>('/api/inbox')
+}
+
+export function getAlerts(): Promise<AlertFeedItem[]> {
+  return apiGet<AlertFeedItem[]>('/api/alerts')
+}
+
+export const NOTE_MAX = 500
+
+// The body is exactly {option} plus, only for a non-empty trimmed note, {note} capped at 500 characters.
+// InboxReply forbids extra keys, so nothing else is ever added here (T-02-13, T-02-15).
+export function postReply(itemId: string, option: string, note?: string): Promise<InboxItem> {
+  const body: { option: string; note?: string } = { option }
+  const trimmed = (note ?? '').trim().slice(0, NOTE_MAX)
+  if (trimmed !== '') body.note = trimmed
+  return apiPost<InboxItem>(`/api/inbox/${encodeURIComponent(itemId)}/reply`, body)
 }

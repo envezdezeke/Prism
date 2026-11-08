@@ -126,15 +126,61 @@ export function heldAt(deal: DetailLike, t: number): boolean {
   return deal.fraud.held && deal.fraud.flagged_at != null && simToMs(deal.fraud.flagged_at) <= t
 }
 
-export function inboxAt(items: InboxLike[], t: number): InboxLike[] {
+// An answer given in this browser session (D-21): the mock API does not persist replies, so the client
+// holds them in memory. `answered_at` is the UI clock time of the reply, a -06:00 sim time.
+export interface SessionAnswer {
+  answer: string
+  answered_at: string
+  note?: string
+}
+export type SessionAnswers = Readonly<Record<string, SessionAnswer>>
+
+export type InboxView<T extends InboxLike = InboxLike> = T & { answeredInSession: boolean }
+
+function sessionAnswerFor(answers: SessionAnswers, id: string): SessionAnswer | undefined {
+  return Object.hasOwn(answers, id) ? answers[id] : undefined
+}
+
+// Requests sent by t, with the session overlay applied BEFORE the status check. A fixture answer that has
+// been reached wins. Otherwise a session answer whose time is reached makes the item answered, and one
+// that is still in the future leaves it pending. `answeredInSession` is true whenever an entry exists, so
+// the screen can explain a pending item that was answered later in the session.
+export function inboxAt<T extends InboxLike>(items: T[], t: number, answers: SessionAnswers = {}): InboxView<T>[] {
   return items
     .filter((i) => simToMs(i.at) <= t)
     .map((i) => {
-      const answered = i.status === 'answered' && i.answered_at != null && simToMs(i.answered_at) <= t
-      return answered
-        ? { ...i }
-        : { ...i, status: 'pending' as const, answer: null, answered_at: null }
+      const mine = sessionAnswerFor(answers, i.id)
+      const answeredInSession = mine !== undefined
+      if (i.status === 'answered' && i.answered_at != null && simToMs(i.answered_at) <= t) {
+        return { ...i, answeredInSession }
+      }
+      if (mine !== undefined && simToMs(mine.answered_at) <= t) {
+        return { ...i, status: 'answered' as const, answer: mine.answer, answered_at: mine.answered_at, answeredInSession }
+      }
+      return { ...i, status: 'pending' as const, answer: null, answered_at: null, answeredInSession }
     })
+}
+
+// Pending requests that still need an answer: an item answered in this session does not count, even when
+// the clock has been scrubbed back before the answer (it then shows pending but is not answerable again).
+export function pendingCount(view: InboxView[]): number {
+  return view.filter((i) => i.status === 'pending' && !i.answeredInSession).length
+}
+
+// Human requests of one deal with the session answer applied, joined to the inbox item by deal, type and
+// sent time. Run requestsAt on the result so the answer still waits for its time. A fixture answer is kept.
+export function requestsWithOverlay<T extends { type: string; at: string; answer?: string | null; answered_at?: string | null }>(
+  deal: string,
+  requests: T[],
+  inboxItems: InboxLike[],
+  answers: SessionAnswers,
+): T[] {
+  return requests.map((r) => {
+    if (r.answer != null) return r
+    const item = inboxItems.find((i) => i.deal === deal && i.type === r.type && i.at === r.at)
+    const mine = item === undefined ? undefined : sessionAnswerFor(answers, item.id)
+    return mine === undefined ? r : { ...r, answer: mine.answer, answered_at: mine.answered_at }
+  })
 }
 
 // Alerts visible at t. Needs only an `at` field, so the detail's alerts (no id or deal) work too.

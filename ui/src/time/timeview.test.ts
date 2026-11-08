@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   simToMs, fmtSimTime, fmtDuration, stageAt, slaPctAt, roundPct, heldAt, inboxAt, alertsAt, boardAt,
-  msToSim, clampMs, nextEventAfter, sortBoardRows, stageLogAt, requestsAt,
+  msToSim, clampMs, nextEventAfter, sortBoardRows, stageLogAt, requestsAt, pendingCount, requestsWithOverlay,
 } from './timeview.ts'
 
 // Repo-relative fixtures folder (ui/src/time/ -> repo root), so the test also runs on Windows.
@@ -277,4 +277,82 @@ test('Bayou Bistro and Grill: no hold and no fraud_hold request at 11:00, both b
   assert.equal(before[0].decision, null)
   assert.equal(before[0].why, '')
   assert.equal(stageLogAt(d.stage_log, simToMs('2026-11-03T11:30-06:00'))[0].decision, 'held')
+})
+
+// ---- session-answer overlay (plan 04, D-21)
+const ANSWER_001 = { 'inbox-001': { answer: 'approve', answered_at: '2026-11-04T18:00-06:00' } }
+
+test('overlay: inboxAt with no third argument behaves as before, and an empty overlay changes nothing', () => {
+  const plain = inboxAt(inbox, SNAP)
+  const withEmpty = inboxAt(inbox, SNAP, {})
+  assert.deepEqual(plain.map((i) => [i.id, i.status, i.answer]), withEmpty.map((i) => [i.id, i.status, i.answer]))
+  assert.ok(plain.every((i) => i.answeredInSession === false))
+})
+
+test('overlay: inbox-001 answered approve at 18:00 shows answered from 18:00, pending (still flagged in session) at 17:00', () => {
+  const at1800 = inboxAt(inbox, simToMs('2026-11-04T18:00-06:00'), ANSWER_001).find((i) => i.id === 'inbox-001')!
+  assert.equal(at1800.status, 'answered')
+  assert.equal(at1800.answer, 'approve')
+  assert.equal(at1800.answered_at, '2026-11-04T18:00-06:00')
+  assert.equal(at1800.answeredInSession, true)
+  const at1700 = inboxAt(inbox, simToMs('2026-11-04T17:00-06:00'), ANSWER_001).find((i) => i.id === 'inbox-001')!
+  assert.equal(at1700.status, 'pending')
+  assert.equal(at1700.answer, null)
+  assert.equal(at1700.answered_at, null)
+  assert.equal(at1700.answeredInSession, true)
+})
+
+test('overlay: a fixture-answered item keeps its fixture answer even when the overlay has an entry for it', () => {
+  const o = { 'inbox-005': { answer: 'decline', answered_at: '2026-11-04T18:00-06:00' } }
+  const item = inboxAt(inbox, SNAP, o).find((i) => i.id === 'inbox-005')!
+  assert.equal(item.status, 'answered')
+  assert.equal(item.answer, 'approve')
+  assert.equal(item.answered_at, '2026-11-02T11:50-06:00')
+})
+
+test('overlay: applied before the status filter, so a pending fixture item becomes answered once the overlay time is reached', () => {
+  const view = inboxAt(inbox, SNAP, ANSWER_001)
+  assert.deepEqual(view.filter((i) => i.status === 'answered').map((i) => i.id).sort(), ['inbox-001', 'inbox-005'])
+  assert.deepEqual(view.filter((i) => i.status === 'pending').map((i) => i.id).sort(), ['inbox-002', 'inbox-003', 'inbox-004'])
+})
+
+test('overlay: inboxAt does not mutate its inputs and ignores inherited keys such as __proto__', () => {
+  const before = JSON.stringify(inbox)
+  inboxAt(inbox, SNAP, ANSWER_001)
+  assert.equal(JSON.stringify(inbox), before)
+  const view = inboxAt([{ ...inbox[0], id: '__proto__' }], SNAP, {})
+  assert.equal(view[0].answeredInSession, false)
+})
+
+test('overlay: pendingCount is 4 at the fixture snapshot with no overlay and 3 after answering inbox-001', () => {
+  assert.equal(pendingCount(inboxAt(inbox, SNAP)), 4)
+  assert.equal(pendingCount(inboxAt(inbox, SNAP, ANSWER_001)), 3)
+})
+
+test('overlay: pendingCount does not count an item answered in session even when the clock is scrubbed back before the answer', () => {
+  const view = inboxAt(inbox, simToMs('2026-11-04T17:00-06:00'), ANSWER_001)
+  assert.equal(view.find((i) => i.id === 'inbox-001')!.status, 'pending')
+  assert.equal(pendingCount(view), 3)
+})
+
+test('overlay: requestsWithOverlay joins by deal, type and at; requestsAt hides the answer until the overlay time', () => {
+  const reqs = detail['Lone Star Dental'].human_requests
+  const joined = requestsWithOverlay('Lone Star Dental', reqs, inbox, ANSWER_001)
+  assert.equal(joined.length, 1)
+  assert.equal(joined[0].answer, 'approve')
+  assert.equal(joined[0].answered_at, '2026-11-04T18:00-06:00')
+  assert.equal(requestsAt(joined, simToMs('2026-11-04T18:00-06:00'))[0].answer, 'approve')
+  assert.equal(requestsAt(joined, simToMs('2026-11-04T17:00-06:00'))[0].answer, null)
+  // the input requests are untouched
+  assert.equal(reqs[0].answer, null)
+})
+
+test('overlay: requestsWithOverlay leaves other deals, other types and fixture answers alone', () => {
+  const mama = detail["Mama Rosa's Kitchen"].human_requests
+  const out = requestsWithOverlay("Mama Rosa's Kitchen", mama, inbox, ANSWER_001)
+  assert.deepEqual(out, mama)
+  const o = { 'inbox-005': { answer: 'decline', answered_at: '2026-11-04T18:00-06:00' } }
+  assert.equal(requestsWithOverlay("Mama Rosa's Kitchen", mama, inbox, o)[0].answer, 'approve')
+  const none = requestsWithOverlay('Lone Star Dental', detail['Lone Star Dental'].human_requests, inbox, {})
+  assert.equal(none[0].answer, null)
 })
