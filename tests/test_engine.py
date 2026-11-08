@@ -290,3 +290,153 @@ def test_deal_dir_without_arrivals_still_gets_an_entry(tiny_set):
 def test_missing_arrivals_file_is_a_usage_error(tmp_path):
     with pytest.raises(FileNotFoundError):
         run_sim(tmp_path, tmp_path / "none.jsonl")
+
+
+# ------------------------------------------------------------ determinism, crash isolation (task 2)
+
+import ast
+import re
+
+from prism.cli import main
+
+ENGINE_PKGS = ("engine", "read", "move", "fraud")
+
+
+def _run_cli(folder, arrivals, out):
+    code = main(["run", "--folder", str(folder), "--arrivals", str(arrivals), "--out", str(out)])
+    assert code == 0
+    return Path(out).read_bytes()
+
+
+def test_run_is_deterministic(tiny_set, tmp_path):
+    folder, arrivals = tiny_set
+    a = _run_cli(folder, arrivals, tmp_path / "a" / "submission.json")
+    b = _run_cli(folder, arrivals, tmp_path / "b" / "submission.json")
+    assert a == b
+    data = json.loads(a)
+    assert sorted(data["deals"]) == ["Alpha Trading", "Beta & Sons"]
+    assert b"\r\n" not in a and a.endswith(b"\n")
+    for m in re.findall(r'"(\d{4}-\d\d-\d\dT[^"]+)"', a.decode("utf-8")):
+        assert m.endswith("-06:00")
+
+
+def test_crash_isolation(tiny_set, tmp_path, monkeypatch):
+    import prism.read.extract as extract
+    from prism.engine.validate import validate_submission_file
+
+    folder, arrivals = tiny_set
+
+    def boom(state, rules):
+        if state.folder == "Alpha Trading":
+            raise RuntimeError("boom")
+        return {}
+
+    monkeypatch.setattr(extract, "extract_facts", boom)
+    out = tmp_path / "out" / "submission.json"
+    assert main(["run", "--folder", str(folder), "--arrivals", str(arrivals), "--out", str(out)]) == 0
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert "boom" in data["deals"]["Alpha Trading"]["_error"]
+    assert "Traceback" not in data["deals"]["Alpha Trading"]["_error"]
+    assert "_error" not in data["deals"]["Beta & Sons"]
+    res = validate_submission_file(out, folders=["Alpha Trading", "Beta & Sons"])
+    assert res.ok and any("engine error" in w for w in res.warnings)
+
+
+def test_errored_deal_is_frozen_on_later_ticks(tiny_set, monkeypatch):
+    import prism.read.extract as extract
+
+    folder, arrivals = tiny_set
+    calls = []
+
+    def boom(state, rules):
+        calls.append(state.folder)
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(extract, "extract_facts", boom)
+    result = run_sim(folder, arrivals)
+    assert calls.count("Alpha Trading") == 1  # later arrivals skip the errored deal
+    assert result.states["Alpha Trading"].error.startswith("extract_facts: RuntimeError: boom")
+
+
+def test_fraud_crash_is_recorded_not_fatal(tiny_set, monkeypatch):
+    import prism.fraud.decide as decide
+
+    def boom(*a, **k):
+        raise ValueError("graph exploded")
+
+    monkeypatch.setattr(decide, "evaluate", boom)
+    folder, arrivals = tiny_set
+    result = run_sim(folder, arrivals)
+    assert any(e.startswith("fraud: ValueError") for e in result.errors)
+    assert result.states["Alpha Trading"].error is None
+
+
+def test_writer_falls_back_on_unserializable_state():
+    from prism.contract import Fact
+    from prism.engine.state import DealState
+
+    bad = DealState(folder="Bad Co")
+    bad.facts["legal_name"] = Fact.model_construct(value=["not", "a", "string"], source_doc="x", confidence=1)
+    good = DealState(folder="Good Co")
+    payload = build_submission(
+        {"Bad Co": bad, "Good Co": good}, [], [], team="T", set_name="sample"
+    )
+    assert payload["deals"]["Bad Co"]["_error"].startswith("serialize:")
+    assert all(v is None for v in payload["deals"]["Bad Co"]["extracted"].values())
+    assert "_error" not in payload["deals"]["Good Co"]
+    from prism.engine.validate import validate_submission_data
+
+    assert validate_submission_data(payload).ok
+
+
+_CLOCK_ATTRS = {"now", "utcnow", "today", "time", "monotonic", "perf_counter", "time_ns", "process_time"}
+_BANNED_IMPORTS = {"random", "uuid", "secrets"}
+
+
+def _engine_sources():
+    for pkg in ENGINE_PKGS:
+        for p in sorted((ROOT / "prism" / pkg).rglob("*.py")):
+            yield p
+
+
+def test_engine_has_no_wall_clock_or_randomness():
+    offenders = []
+    for p in _engine_sources():
+        tree = ast.parse(p.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                offenders += [f"{p.name}: import {a.name}" for a in node.names
+                              if a.name.split(".")[0] in _BANNED_IMPORTS]
+            elif isinstance(node, ast.ImportFrom):
+                if (node.module or "").split(".")[0] in _BANNED_IMPORTS:
+                    offenders.append(f"{p.name}: from {node.module}")
+            elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                if node.func.attr in _CLOCK_ATTRS:
+                    offenders.append(f"{p.name}: .{node.func.attr}()")
+    assert offenders == []
+
+
+def test_no_sample_literals_in_code():
+    hist = re.compile(r"H-\d{4}")
+    for p in _engine_sources():
+        assert not hist.search(p.read_text(encoding="utf-8")), f"history id literal in {p}"
+    shared = DATA / "shared_folder"
+    if not shared.is_dir():
+        pytest.skip("sample data not present")
+    names = [d.name.lower() for d in shared.iterdir() if d.is_dir()]
+    texts = {p: p.read_text(encoding="utf-8").lower() for p in (ROOT / "prism").rglob("*.py")}
+    texts[ROOT / "config" / "fraud.yaml"] = (ROOT / "config" / "fraud.yaml").read_text(encoding="utf-8").lower()
+    for p, t in texts.items():
+        for n in names:
+            assert n not in t, f"sample folder name {n!r} in {p.name}"
+
+
+@pytest.mark.skipif(not DATA.is_dir(), reason="sample data not present")
+def test_cli_smoke_on_participant_data(tmp_path):
+    out = tmp_path / "submission.json"
+    code = main([
+        "run", "--folder", str(DATA / "shared_folder"),
+        "--arrivals", str(DATA / "sim" / "arrivals.jsonl"), "--out", str(out),
+    ])
+    assert code == 0
+    assert main(["validate", str(out), "--folder", str(DATA / "shared_folder")]) == 0
