@@ -49,6 +49,7 @@ def test_graph_at_keeps_deal_nodes_and_clusters(client):
     assert early["clusters"] == full["clusters"]
 
 
-def test_graph_503_when_mock_off(monkeypatch):
+def test_graph_503_when_mock_off_and_not_generated(monkeypatch, tmp_path):
     monkeypatch.setenv("MOCK", "0")
+    monkeypatch.setenv("PRISM_GRAPH_PATH", str(tmp_path / "missing.json"))
     assert TestClient(create_app()).get("/api/graph").status_code == 503

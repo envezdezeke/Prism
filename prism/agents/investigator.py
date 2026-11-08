@@ -202,13 +202,15 @@ def context_from_run(folder: Path | str, arrivals: Path | str, *, data_root: Opt
     rules = load_rules(root, fraud_path=fp)
     baseline = build_baseline(rules.history_dir, rules.fraud)
     graph = build_graph(result.states, baseline)
-    clusters: list = []
-    try:
-        times = ArrivalLog.from_jsonl(arrivals).times()
-        now = max(times) + timedelta(minutes=30)
-        clusters = list(evaluate(result.states, baseline, rules.fraud, now).clusters)
-    except Exception:  # noqa: BLE001 - no outcome clusters: the flagged-deal fallback is used
-        clusters = []
+    # The run's last-tick clusters (the same ids /api/graph serves); re-evaluate only if absent.
+    clusters: list = list(getattr(result, "clusters", None) or [])
+    if not clusters:
+        try:
+            times = ArrivalLog.from_jsonl(arrivals).times()
+            now = max(times) + timedelta(minutes=30)
+            clusters = list(evaluate(result.states, baseline, rules.fraud, now).clusters)
+        except Exception:  # noqa: BLE001 - no outcome clusters: the flagged-deal fallback is used
+            clusters = []
     return InvestigationContext(result.states, baseline, graph, case_targets(result.states, clusters))
 
 

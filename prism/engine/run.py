@@ -36,6 +36,7 @@ _MAX_ERR = 300
 class RunResult:
     states: dict[str, DealState] = field(default_factory=dict)
     history_flags: list[str] = field(default_factory=list)
+    clusters: list = field(default_factory=list)  # last fraud tick's clusters (graph/agents; not scored)
     errors: list[str] = field(default_factory=list)
     unattached: list[str] = field(default_factory=list)
     n_files: int = 0
@@ -196,6 +197,7 @@ def run_sim(
                 if name in states:
                     states[name].fraud = outcome.per_deal[name]
             result.history_flags = sorted(set(outcome.history_flags))
+            result.clusters = list(outcome.clusters)
         except NotImplementedError:
             pass
         except Exception as e:  # noqa: BLE001

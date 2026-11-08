@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from prism.agents.routes import build_agents_router
+from prism.api.graph_routes import build_graph_router
 from prism.contract import (
     AlertFeedItem,
     Clock,
@@ -126,24 +127,11 @@ def create_app() -> FastAPI:
         now = load_fixture("clock.json")["now"]
         return {**item, "status": "answered", "answer": body.option, "answered_at": now}
 
-    # ---- graph and agents
-    @api.get("/graph", response_model=FraudGraph)
-    def get_graph(at: Optional[str] = Query(default=None)) -> Any:
-        graph = load_fixture("graph.json")
-        if at is None:
-            return graph
-        try:
-            cutoff = parse_sim_time(at)
-        except ValueError:
-            raise HTTPException(status_code=422, detail="at must be a sim time ending -06:00")
-        edges = [e for e in graph["edges"] if parse_sim_time(e["first_visible_at"]) <= cutoff]
-        used = {e["source"] for e in edges} | {e["target"] for e in edges}
-        nodes = [n for n in graph["nodes"] if n["type"] != "entity" or n["id"] in used]
-        return {**graph, "nodes": nodes, "edges": edges}
-
+    # ---- graph and agents: /api/graph lives in prism/api/graph_routes.py (engine graph under MOCK=0).
     # /api/investigator and /api/redteam live in prism/agents/routes.py (recorded output under MOCK=0).
     app.include_router(api)
     app.include_router(build_agents_router(load_fixture, mock_enabled))
+    app.include_router(build_graph_router(load_fixture, mock_enabled))
     return app
 
 
