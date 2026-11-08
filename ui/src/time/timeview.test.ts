@@ -394,3 +394,20 @@ test('CR-01 an earlier stage whose limit is unknown gives an unknown SLA, never 
   assert.equal(end.limitHours, 48)
   assert.notEqual(end.slaFraction, null)
 })
+
+// WR-03: an item the server already answered, viewed before its answer time, must not look answerable.
+test('WR-03 inboxAt keeps serverAnswered on an item the fixture answers later in the run', () => {
+  const before = inboxAt(inbox, simToMs('2026-11-02T11:00-06:00')).find((i) => i.id === 'inbox-005')!
+  assert.equal(before.status, 'pending')
+  assert.equal(before.serverAnswered, true)
+  assert.equal(before.answer, null)
+  const after = inboxAt(inbox, simToMs('2026-11-02T12:00-06:00')).find((i) => i.id === 'inbox-005')!
+  assert.equal(after.status, 'answered')
+  assert.equal(after.serverAnswered, true)
+  // a request the server has not answered stays answerable
+  const open = inboxAt(inbox, SNAP).find((i) => i.status === 'pending')!
+  assert.equal(open.serverAnswered, false)
+  // a session answer does not make it serverAnswered
+  const o = { [open.id]: { answer: 'approve', answered_at: '2026-11-04T18:00-06:00' } }
+  assert.equal(inboxAt(inbox, SNAP, o).find((i) => i.id === open.id)!.serverAnswered, false)
+})

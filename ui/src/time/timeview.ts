@@ -157,7 +157,9 @@ export interface SessionAnswer {
 }
 export type SessionAnswers = Readonly<Record<string, SessionAnswer>>
 
-export type InboxView<T extends InboxLike = InboxLike> = T & { answeredInSession: boolean }
+// `serverAnswered` is the raw fixture/server status. It stays true when the clock is before the answer
+// time and `status` reads pending, so a screen never offers buttons the server will refuse with a 409.
+export type InboxView<T extends InboxLike = InboxLike> = T & { answeredInSession: boolean; serverAnswered: boolean }
 
 function sessionAnswerFor(answers: SessionAnswers, id: string): SessionAnswer | undefined {
   return Object.hasOwn(answers, id) ? answers[id] : undefined
@@ -173,13 +175,14 @@ export function inboxAt<T extends InboxLike>(items: T[], t: number, answers: Ses
     .map((i) => {
       const mine = sessionAnswerFor(answers, i.id)
       const answeredInSession = mine !== undefined
-      if (i.status === 'answered' && i.answered_at != null && simToMs(i.answered_at) <= t) {
-        return { ...i, answeredInSession }
+      const serverAnswered = i.status === 'answered'
+      if (serverAnswered && i.answered_at != null && simToMs(i.answered_at) <= t) {
+        return { ...i, answeredInSession, serverAnswered }
       }
       if (mine !== undefined && simToMs(mine.answered_at) <= t) {
-        return { ...i, status: 'answered' as const, answer: mine.answer, answered_at: mine.answered_at, answeredInSession }
+        return { ...i, status: 'answered' as const, answer: mine.answer, answered_at: mine.answered_at, answeredInSession, serverAnswered }
       }
-      return { ...i, status: 'pending' as const, answer: null, answered_at: null, answeredInSession }
+      return { ...i, status: 'pending' as const, answer: null, answered_at: null, answeredInSession, serverAnswered }
     })
 }
 

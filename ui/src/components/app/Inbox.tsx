@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { CircleAlert } from 'lucide-react'
 import { ApiError, describeError, postReply, NOTE_MAX } from '../../api/client.ts'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +33,8 @@ function dealName(names: Map<string, string | null>, folder: string): DealName {
 
 // Options that need a second, inline confirmation before they are sent (UI-SPEC answer flow).
 const CONFIRM_OPTIONS = ['decline', 'release_hold']
+
+const ALREADY_ANSWERED = 'This request was already answered. The list has been refreshed.'
 
 function AnswerLine({ answer, at }: { answer: string; at: string }) {
   return (
@@ -97,19 +99,18 @@ function Pane({
   onRefresh: () => void
 }) {
   const record = useAnswersStore((s) => s.record)
+  const sending = useAnswersStore((s) => Object.hasOwn(s.inflight, item.id))
+  const conflict = useAnswersStore((s) => Object.hasOwn(s.conflicts, item.id))
   const [note, setNote] = useState('')
-  const [sending, setSending] = useState(false)
   const [error, setError] = useState<{ text: string; retryable: boolean } | null>(null)
   const [confirm, setConfirm] = useState<string | null>(null)
   const [lastOption, setLastOption] = useState<string | null>(null)
-  // A ref closes the gap between a click and the re-render that disables the buttons.
-  const inFlight = useRef(false)
 
   const send = async (option: string): Promise<void> => {
-    if (inFlight.current || item.answeredInSession || item.status === 'answered') return
+    if (item.answeredInSession || item.serverAnswered || conflict || item.status === 'answered') return
     if (!item.options.includes(option)) return
-    inFlight.current = true
-    setSending(true)
+    // The guard lives in the store (WR-09): a pane remounted by switching items still sees it.
+    if (!useAnswersStore.getState().begin(item.id)) return
     setError(null)
     setConfirm(null)
     setLastOption(option)
@@ -120,7 +121,8 @@ function Pane({
     } catch (e) {
       // A failed or interrupted send writes nothing to the overlay: the item stays pending.
       if (e instanceof ApiError && e.status === 409) {
-        setError({ text: 'This request was already answered. The list has been refreshed.', retryable: false })
+        useAnswersStore.getState().markConflict(item.id)
+        setError({ text: ALREADY_ANSWERED, retryable: false })
         onRefresh()
       } else if (e instanceof ApiError && e.status === 422) {
         setError({ text: `The server rejected that option: ${e.message}`, retryable: false })
@@ -128,8 +130,7 @@ function Pane({
         setError({ text: describeError(e), retryable: true })
       }
     } finally {
-      inFlight.current = false
-      setSending(false)
+      useAnswersStore.getState().end(item.id)
     }
   }
 
@@ -139,7 +140,9 @@ function Pane({
   }
 
   const answered = item.status === 'answered' && item.answer != null && item.answered_at != null
-  const answerable = !answered && !item.answeredInSession
+  // A request the server has already answered is never answerable here, even while the clock is still
+  // before its answer time: the server would refuse every click with a 409.
+  const answerable = !answered && !item.answeredInSession && !item.serverAnswered && !conflict
 
   return (
     <aside aria-label="Request" className="flex flex-col gap-3 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
@@ -161,6 +164,14 @@ function Pane({
           Answered in this session at <span className="tabular-nums">{fmtSimTime(session.answered_at)}</span>. The clock is set
           before that time.
         </p>
+      )}
+
+      {!answered && !item.answeredInSession && item.serverAnswered && (
+        <p className="text-sm text-ink-2">This request is answered later in the run. The clock is set before that time.</p>
+      )}
+
+      {!answered && !item.answeredInSession && !item.serverAnswered && conflict && error === null && (
+        <p className="text-sm text-ink-2">{ALREADY_ANSWERED}</p>
       )}
 
       {answerable && confirm !== null && (
