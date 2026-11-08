@@ -67,7 +67,7 @@ Alone, each fake passes every check the bank runs. But rings are built cheaply. 
 
 **Bullets**
 - Unsupervised anomaly detection: every signal is surprise measured against a year of clean history. A rare shared entity scores high, a common one scores near zero.
-- Three families vote today: shared rare entity, lookalike counterparty and deposit pattern. Loan terms are shown and never vote. Sudden new activity and document fingerprint are next.
+- Six evidence families: shared rare entity, sudden new activity, lookalike counterparty, document fingerprint, deposit pattern, and loan terms (shown, never votes).
 - Hold only when a shared rare entity is present and at least two other families agree. One or two families gives a visible watch list, not a hold.
 - Thresholds come from false-alarm rates on clean deals only. They are never fitted to fraud examples.
 
@@ -113,16 +113,14 @@ A single scorecard table rendered from `eval/scorecard.md`: set, size, tuned on 
 
 ## Slide 6: Nemotron works around the engine, not inside the score
 
-> **Audit Sun 08:40 CT:** no Nemotron agent code is pushed yet (Zeke's Phase 6). Say only the bullets whose agent has shipped by the H18 freeze; if none has, cut this slide to one line: "Next: Nemotron agents to investigate and attack the engine, never inside the score."
+> **Sun 09:00 CT:** the investigator and vision reader shipped (06-01, 06-02). The red team (06-03) was cut and no prosecutor/defender code exists, so neither is on the slide; do not mention them.
 
 **Bullets**
 - Investigator agent: plans, calls our live HTTP API and the bank's clock service, and writes a cited evidence case for each held or watched cluster.
-- Prosecutor and defender: two briefs on the same evidence, so Fraud Ops sees the innocent explanation too. The rule still decides.
-- Adaptive red team: Nemotron invents new fraud tricks, sees only which ones were caught, and evolves them over generations: [[RED_TRICKS]] tricks invented, catch rate by generation [[RED_CATCH_BY_GEN]].
 - Vision reader for documents the parser cannot read, validated before it can fill any field. The scored output is byte-identical with Nemotron on or off.
 
 **Speaker notes**
-Nemotron works around the engine, not inside the score. An investigator calls our real API and the sim clock over HTTP and builds a cited case. A red team invents tricks to attack our detector. Nemotron advises; the rule engine decides.
+Nemotron works around the engine, not inside the score. An investigator calls our real API and the sim clock over HTTP and builds a cited case. Nemotron advises; the rule engine decides.
 
 **Visual**
 `[pending 07-04/07-05]` The investigation panel (labelled advisory) beside the red-team results table; show only the part that has shipped. Fallback until either ships: text only.
@@ -187,7 +185,7 @@ The final hold is a rule, on purpose: Fraud Ops and auditors need to know exactl
 Because the labels describe old tricks, and the hidden set uses a new one. A classifier trained on known fraud learns those tricks and misses the next one. We model what normal looks like instead, so anything abnormal and shared across deals stands out. A second reason: with only a handful of labelled fraud deals, a classifier's false-alarm rate cannot be estimated reliably. Ours is set directly, family by family, on clean deals.
 
 **3. "How do you know it generalizes?"**
-Four tests, none of which we tuned on. The blind weekend drop, run once on a frozen engine before anyone looked: [[BLIND_HELD]] of [[BLIND_TOTAL]], [[BLIND_FALSE_FLAGS]] false flags. History replayed in time order with the last four months held out: [[HIST_FLAGS]] flags, [[HIST_FALSE_POS]] false positives. Synthetic fraud families with one family left out at a time: [[SYN_HELD_PCT]] held, [[SYN_TWIN_PCT]] of twins flagged. And Nemotron's red team, which invents tricks we did not write: catch rate by generation [[RED_CATCH_BY_GEN]]. The sample week is not on that list, because we studied its trick and it is no longer a fair test.
+Three tests, none of which we tuned on. The blind weekend drop, run once on a frozen engine before anyone looked: [[BLIND_HELD]] of [[BLIND_TOTAL]], [[BLIND_FALSE_FLAGS]] false flags. History replayed in time order with the last four months held out: [[HIST_FLAGS]] flags, [[HIST_FALSE_POS]] false positives. Synthetic fraud families with one family left out at a time: [[SYN_HELD_PCT]] held, [[SYN_TWIN_PCT]] of twins flagged. The sample week is not on that list, because we studied its trick and it is no longer a fair test.
 
 **4. "What if the hidden trick shares no entity across deals?"**
 Then Prism will not hold it. Those deals would show on the watch list with their evidence, and a human would decide. This is a deliberate trade. Requiring a shared rare entity is what keeps honest but unusual borrowers out of the fraud queue, and false holds are expensive for the bank and the borrower. Our bet is that a ring, by definition, reuses something. The bank's existing single-deal checks still run alongside.
@@ -196,7 +194,7 @@ Then Prism will not hold it. Those deals would show on the watch list with their
 By design, each voting family misfires on about 5% of clean deals, and a hold needs the mandatory family plus two of four others. If the families were independent, that is under one false hold per thousand deals. They are not fully independent, so we treat that as a target and measure the real rate: [[HIST_FALSE_POS]] false positives among [[HIST_GOOD_N]] good deals on held-out history, and [[SAMPLE_FALSE_HOLDS]] false holds on [[TRAP_N]] odd-but-honest sample borrowers.
 
 **6. "What does Nemotron actually do, and why trust it near fraud decisions?"**
-It never makes one. The investigator, prosecutor and defender read the evidence through read-only HTTP tools, real calls to our API and the sim clock, and write briefs that must cite evidence IDs; uncited claims are marked by code, uncited rate [[UNCITED_RATE]]. The red team attacks the detector to test it. The vision reader can only fill a field the parser left empty, after a format check and agreement with a second document, and it can never raise an issue or a hold. Every call is cached, so the run replays exactly, and the scored file is byte-identical with Nemotron off.
+It never makes one. The investigator reads the evidence through read-only HTTP tools, real calls to our API and the sim clock, and writes a case that must cite evidence IDs; uncited claims are marked by code, uncited rate [[UNCITED_RATE]]. The vision reader can only fill a field the parser left empty, after a format check and agreement with a second document, and it can never raise an issue or a hold. Every call is cached, so the run replays exactly, and the scored file is byte-identical with Nemotron off.
 
 **7. "How early does it catch the ring?"**
 Scores are recomputed on every file arrival, and the hold fires on the first arrival that meets the rule, even at Intake. Holds are sticky until Fraud Ops releases them. On the blind drop the first hold came at stage [[BLIND_FIRST_STAGE]]; in the history replay, the first flag came at deal [[HIST_FIRST_DEAL]] of the scheme.
@@ -205,7 +203,7 @@ Scores are recomputed on every file arrival, and the hold fires on the first arr
 Nothing changes in the score. Prism checks for the key at startup; without it, Nemotron is switched off and the deterministic engine writes the same file. Any single failed call also falls back to off. The engine takes the folder and arrival log as arguments, so a new dataset runs with no code changes, and its thresholds recompute from whatever history ships with it.
 
 **Spare questions, if time allows**
-- *"Why bits?"* One unit lets different signals be compared and summed for display, and it reads naturally: 10 bits means about one in a thousand by chance under clean history. The hold decision never uses the sum, only the rule.
+- *"Why bits?"* One unit lets six different signals be compared and summed for display, and it reads naturally: 10 bits means about one in a thousand by chance under clean history. The hold decision never uses the sum, only the rule.
 - *"Why does the loan-terms family not vote?"* Young companies, round amounts and amounts just under an approval limit are common among honest small businesses, and they move together. Letting them vote would double-count and push good borrowers into holds.
 - *"Is this AI/ML?"* Yes: unsupervised anomaly detection that learns what normal looks like from a year of history, plus Nemotron agents. "No classifier" is our reason it carries over to a new trick, not a lack of machine learning.
 
