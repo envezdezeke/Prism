@@ -29,7 +29,7 @@ def main() -> int:
     env = load_env()
     key = env.get("NVIDIA_API_KEY", "")
     base = env.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
-    model = env.get("NEMOTRON_FAST_MODEL", "nvidia/nemotron-nano-3-30b-a3b")
+    model = env.get("NEMOTRON_FAST_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
     if not key or "REPLACE_ME" in key:
         print("FAIL: NVIDIA_API_KEY missing in .env (copy .env.example to .env and paste your nvapi-... key)")
         return 1
