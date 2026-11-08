@@ -57,7 +57,7 @@ Every flag on a good history deal got a written finance review, because "no know
 
 **Nemotron agents work around the engine, never inside the score.**
 
-- An **investigator** (ReAct loop) uses read-only HTTP tools: real calls to our FastAPI service and the simulation's clock API. It writes a cited evidence case for each held or watched cluster, and a deterministic check marks any claim without an evidence ID. Nemotron advises; the rule engine decides.
+- An **investigator** (ReAct loop) calls five read-only tools over the deal graph, the deals' documents and the loan history over up to eight steps. It writes a cited evidence case for each held or watched cluster, and a deterministic check marks any claim without an evidence ID. Nemotron advises; the rule engine decides.
 - A **vision reader** handles documents the parser cannot read. It may fill a field only when the parser left it empty, the value passes a format check and a second document agrees. It can never raise an issue or a hold.
 - Every call goes through a record-and-replay cache keyed on the full request, so runs replay exactly. The scored output is byte-identical with Nemotron on, in replay, or off.
 
@@ -108,7 +108,7 @@ Prism covers the full commercial loan lifecycle the track asks for. **Read:** co
 
 ## For the NVIDIA Nemotron track
 
-Nemotron does agent work, not chat. **Beyond a chatbot:** the investigator runs on its own for each held or watched cluster, without a user prompting it. **Multi-step workflows:** the investigator plans, calls tools, observes the results and revises over up to eight steps. **Tool integration with external services:** agents call real HTTP endpoints, our FastAPI engine and the simulation's clock and inbox API, and every call is logged in a trace shown in the UI [pending 07-04]. Nemotron's vision model reads documents the parser cannot. **Real-world impact:** loan-fraud operations at a bank, where agent output must be cited and checked before anyone acts on it. Measured value: uncited claim rate [[UNCITED_RATE]] and vision fill accuracy on masked documents [[VL_FILL]]. Agents run on `nemotron-3.5-super-vl-120b` (agents, vision), `nemotron-3.5-lightning-30b` (fast text) and `nemotron-3-nano-omni-30b` reasoning (vision fallback), with a record-and-replay cache so the demo runs offline.
+Nemotron does agent work, not chat. **Beyond a chatbot:** the investigator runs on its own for each held or watched cluster, without a user prompting it. **Multi-step workflows:** the investigator plans, calls tools, observes the results and revises over up to eight steps. **Tool use:** the investigator calls five read-only tools over the deal graph, the deals' documents and the loan history (cluster summary, deal entities, deals sharing an entity, history deal, deal documents); none can change state or a scored field, and every step is shown in the UI as an advisory trace, replayed over the fraud graph. Nemotron's vision model reads documents the parser cannot. **Real-world impact:** loan-fraud operations at a bank, where agent output must be cited and checked before anyone acts on it. Measured value: uncited claim rate [[UNCITED_RATE]] and vision fill accuracy on masked documents [[VL_FILL]]. Agents run on `nemotron-3.5-super-vl-120b` (agents, vision), `nemotron-3.5-lightning-30b` (fast text) and `nemotron-3-nano-omni-30b` reasoning (vision fallback), with a record-and-replay cache so the demo runs offline.
 
 ## Links
 

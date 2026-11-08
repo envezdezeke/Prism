@@ -10,7 +10,7 @@
 - **Headline = the first blind run on the weekend drop**, recorded with its commit before anyone opened the files (HANDOFF §3 item 6). **Fallback:** if `eval/blind_drop_record.json` does not exist by H18 (Sun 09:55 CT), slide 5 leads with the held-out history replay and slide 1's headline uses it (D-24).
 - **Confidentiality (D-49):** no borrower or business names, tax IDs, history deal IDs, staff names, folder names or dollar figures from the data pack, and no challenge text beyond the public title. Say "a 13-deal sample" and "a year of the bank's loan history". For the strange-is-not-fake line say "an honest borrower with a messy file", never a name. Screenshots come from the mock data (made-up names), never from the live sample run.
 - **Never show a screen that is not built.** Lines tagged `[pending 07-xx]` describe a screen from a later plan. Say them only once that plan has shipped; otherwise use the fallback beside them.
-- **Method language (D-29):** "unsupervised anomaly detection that learns what normal looks like from a year of history". The agents' tools are real HTTP calls to our API and the sim clock. Nemotron advises and the rule engine decides (D-28).
+- **Method language (D-29):** "unsupervised anomaly detection that learns what normal looks like from a year of history". The investigator's tools are five read-only tools over the deal graph, the deals' documents and the loan history; they run in-process and are read-only. Nemotron advises and the rule engine decides (D-28).
 - **Sell the consequence, not the control.** Lead with what was caught; keep the technical name as a small label. Save the math for Q&A.
 - Plain, calm delivery. No superlatives.
 
@@ -116,11 +116,11 @@ A single scorecard table rendered from `eval/scorecard.md`: set, size, tuned on 
 > **Sun 09:00 CT:** the investigator and vision reader shipped (06-01, 06-02). The red team (06-03) was cut and no prosecutor/defender code exists, so neither is on the slide; do not mention them.
 
 **Bullets**
-- Investigator agent: plans, calls our live HTTP API and the bank's clock service, and writes a cited evidence case for each held or watched cluster.
+- Investigator agent: plans, calls five read-only tools over the deal graph, the deals' documents and the loan history, and writes a cited evidence case for each held or watched cluster.
 - Vision reader for documents the parser cannot read, validated before it can fill any field. The scored output is byte-identical with Nemotron on or off.
 
 **Speaker notes**
-Nemotron works around the engine, not inside the score. An investigator calls our real API and the sim clock over HTTP and builds a cited case. Nemotron advises; the rule engine decides.
+Nemotron works around the engine, not inside the score. An investigator calls five read-only tools over the deal graph, the deals' documents and the loan history and builds a cited case. Nemotron advises; the rule engine decides.
 
 **Visual**
 `[pending 07-04/07-05]` The investigation panel (labelled advisory) beside the red-team results table; show only the part that has shipped. Fallback until either ships: text only.
@@ -194,7 +194,7 @@ Then Prism will not hold it. Those deals would show on the watch list with their
 By design, each voting family misfires on about 5% of clean deals, and a hold needs the mandatory family plus two of four others. If the families were independent, that is under one false hold per thousand deals. They are not fully independent, so we treat that as a target and measure the real rate: [[HIST_FALSE_POS]] false positives among [[HIST_GOOD_N]] good deals on held-out history, and [[SAMPLE_FALSE_HOLDS]] false holds on [[TRAP_N]] odd-but-honest sample borrowers.
 
 **6. "What does Nemotron actually do, and why trust it near fraud decisions?"**
-It never makes one. The investigator reads the evidence through read-only HTTP tools, real calls to our API and the sim clock, and writes a case that must cite evidence IDs; uncited claims are marked by code, uncited rate [[UNCITED_RATE]]. The vision reader can only fill a field the parser left empty, after a format check and agreement with a second document, and it can never raise an issue or a hold. Every call is cached, so the run replays exactly, and the scored file is byte-identical with Nemotron off.
+It never makes one. The investigator reads the evidence through five read-only tools over the deal graph, the deals' documents and the loan history, and writes a case that must cite evidence IDs; uncited claims are marked by code, uncited rate [[UNCITED_RATE]]. The vision reader can only fill a field the parser left empty, after a format check and agreement with a second document, and it can never raise an issue or a hold. Every call is cached, so the run replays exactly, and the scored file is byte-identical with Nemotron off.
 
 **7. "How early does it catch the ring?"**
 Scores are recomputed on every file arrival, and the hold fires on the first arrival that meets the rule, even at Intake. Holds are sticky until Fraud Ops releases them. On the blind drop the first hold came at stage [[BLIND_FIRST_STAGE]]; in the history replay, the first flag came at deal [[HIST_FIRST_DEAL]] of the scheme.
