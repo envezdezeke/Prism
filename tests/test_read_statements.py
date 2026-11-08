@@ -97,6 +97,17 @@ def test_row_whose_amount_disagrees_with_the_balance_is_a_footing_failure(tmp_pa
     assert "row_amount" in statements.footing_errors(ps)
 
 
+def test_pdf_with_summary_but_unparsed_rows_is_not_row_verified(tmp_path):
+    pages = statement_pages("2026-05")
+    for i, ln in enumerate(pages[0]):  # drop the year from every row date: 05/03/2026 -> 05/03
+        if isinstance(ln, list) and ln and ln[0][1].count("/") == 2:
+            pages[0][i] = [(ln[0][0], ln[0][1].rsplit("/", 1)[0])] + list(ln[1:])
+    _doc, ps = load(write_pdf(tmp_path / "s.pdf", pages))
+    assert ps.txns == () and ps.opening_cents is not None
+    assert ps.signs_verified is not True
+    assert statements.footing_errors(ps) == []
+
+
 def test_pdf_without_summary_or_rows_is_not_a_statement(tmp_path):
     p = write_pdf(tmp_path / "s.pdf", [["Business Checking Statement", "Opening balance", "nothing else here"]])
     _doc, ps = load(p)

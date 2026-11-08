@@ -226,8 +226,6 @@ def _parse_pdf(dt: DocText, doc: Any, cfg: dict[str, Any]) -> Optional[ParsedSta
                           int(cfg.get("max_line_chars") or 300), opening)
     if not rows:
         rows, ok = _table_rows(getattr(doc, "abs_path", None), cfg, opening)
-        if not rows:
-            ok = True
     summary_seen = any(v is not None for v in (opening, credits, debits, closing))
     if not rows and not summary_seen:
         return None
@@ -242,7 +240,7 @@ def _parse_pdf(dt: DocText, doc: Any, cfg: dict[str, Any]) -> Optional[ParsedSta
         source="pdf", period=period, period_start=start, period_end=end,
         holder=(got.get("holder") or "").strip()[:120] or None, account_last4=last4(got.get("account", "")),
         opening_cents=opening, closing_cents=closing, total_credits_cents=credits, total_debits_cents=debits,
-        txns=tuple(rows), pages_found=found, pages_total=total, signs_verified=bool(ok and (rows or summary_seen)),
+        txns=tuple(rows), pages_found=found, pages_total=total, signs_verified=bool(ok and rows),
     )
 
 
