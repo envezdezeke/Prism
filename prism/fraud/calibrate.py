@@ -21,8 +21,8 @@ from datetime import date
 from typing import Optional
 
 from prism.fraud.baseline import Baseline, Calibration
-from prism.fraud.rarity import FraudParams, percentile, upper_tail_bits
-from prism.fraud.signals import F5_STATS, f5_statistics, score_f1, score_f3
+from prism.fraud.rarity import FraudParams, percentile
+from prism.fraud.signals import F5_STATS, f5_bits, f5_statistics, score_f1, score_f3
 
 
 # A clean set smaller than this is too thin to calibrate on, so the label-none deals of any
@@ -92,11 +92,11 @@ def compute_thresholds(
             f5_stats.append(stats)
 
     reference = {s: sorted(st[s] for st in f5_stats) for s in F5_STATS} if f5_stats else {}
-    f5_bits = [max(upper_tail_bits(st[s], reference[s]) for s in F5_STATS) for st in f5_stats]
+    f5_values = [f5_bits(st, reference)[0] for st in f5_stats]
 
     tau: dict[str, Optional[float]] = {
         "F3": _tau(f3_bits, params, "F3", empty_is_floor=True),
-        "F5": _tau(f5_bits, params, "F5", empty_is_floor=False),
+        "F5": _tau(f5_values, params, "F5", empty_is_floor=False),
     }
 
     def rate(bits: list[float], t: Optional[float]) -> float:
@@ -111,7 +111,7 @@ def compute_thresholds(
         fire_rate_clean={
             "F1": f1_fired / n_clean if n_clean else 0.0,
             "F3": rate(f3_bits, tau["F3"]),
-            "F5": rate(f5_bits, tau["F5"]),
+            "F5": rate(f5_values, tau["F5"]),
         },
         percentiles=dict(params.percentiles),
     )

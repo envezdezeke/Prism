@@ -154,11 +154,15 @@ def test_signals_are_deterministic(tmp_path, cfg):
     assert one == two
 
 
-def test_engine_output_unchanged_decide_is_stub(tmp_path, cfg):
+def test_engine_output_lone_shared_account_is_watch_only(tmp_path, cfg):
     base = build_baseline(tracer_history(tmp_path), cfg)
     states = {"a": DealState(folder="a", entities=[EntityRef("remit_account", "4321", "d")])}
     out = evaluate(states, base, cfg, NOW)
-    assert out == FraudOutcome() and out.per_deal == {} and out.clusters == []
+    assert isinstance(out, FraudOutcome)
+    assert out.per_deal == {} and out.history_flags == []
+    assert len(out.clusters) == 1
+    c = out.clusters[0]
+    assert c.tier == "watch" and c.deals == ["a"] and c.families["F1"].fired
 
 
 # ------------------------------------------------------------- Task 2: deposits, F3, F5
@@ -301,7 +305,10 @@ def test_f5_shrinkage_and_concentration(params):
     two = score_f5(deposits_profile("200", "0.2", "Mon,Thu"), b, params, REF)
     five = score_f5(deposits_profile("200", "0.2", "Mon-Fri"), b, params, REF)
     assert two.stat_bits["conc"] > five.stat_bits["conc"]
-    assert two.bits == max(two.stat_bits.values()) == two.stat_bits[two.stat]
+    sb = two.stat_bits
+    assert two.bits == max(sb["round"], min(sb["conc"], sb["kl"]))
+    assert two.stat in ("round", "weekday") and two.bits == (
+        sb["round"] if two.stat == "round" else min(sb["conc"], sb["kl"]))
     assert score_f5(DealProfile("q", {}), b, params, REF) is None
     assert score_f5(deposits_profile("4", "1.0", "Mon-Fri"), b, params, {}) is None
 

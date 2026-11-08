@@ -3,8 +3,9 @@
 Contract: one FamilySignal per fired-or-evaluated family per deal group; F6 is evidence
 only and never votes. Thresholds come from ``FraudConfig`` percentiles, not literals.
 
-Built so far: F1 (shared rare entity), F3 (lookalike vendor or account) and F5 (deposit
-pattern). F2, F4 and F6 are not built. F1 has no percentile: it fires iff a strong shared
+Built so far: F1 (shared rare entity), F3 (lookalike vendor name or legal suffix, or a new
+remit account where the history accounts are stable) and F5 (round-number deposits, or a
+concentrated and unusual weekday pattern). F2, F4 and F6 are not built. F1 has no percentile: it fires iff a strong shared
 entity exists. F3 and F5 fire iff ``bits > 0`` and ``bits >= tau`` where tau is the startup
 calibration percentile on ``Baseline.calibration`` (never fires when tau is missing).
 """
@@ -130,14 +131,35 @@ class F3Result:
     evidence: str
 
 
-def _modal_form(members: list[tuple[str, str, str, str]]) -> tuple[str, str]:
-    """Most common (full key, account) form; ties broken by lexicographic order."""
-    counts = Counter((o[2], o[3]) for o in members)
-    return min(counts, key=lambda form: (-counts[form], form))
+# A history vendor group is account-stable when its modal remit account covers at least this
+# share of the members that carry an account. Honest vendors that show a different last four on
+# every deal (red-team R2) fall below it, so for them an account change is not a difference.
+# A share of observations, not a bit threshold.
+F3_STABLE_ACCOUNT_SHARE = 0.8
 
 
-def _differs(full: str, account: str, modal: tuple[str, str]) -> bool:
-    return full != modal[0] or bool(account and modal[1] and account != modal[1])
+def _modal_full(members: list[tuple[str, str, str, str]]) -> str:
+    """Most common full vendor key (base plus legal suffix); ties broken lexicographically."""
+    counts = Counter(o[2] for o in members)
+    return min(counts, key=lambda full: (-counts[full], full))
+
+
+def _stable_account(members: list[tuple[str, str, str, str]], params: FraudParams) -> str:
+    """The modal remit account of a group whose accounts are stable, else "" (account ignored).
+
+    Stable: at least ``params.min_vendor_deals`` members carry an account and the modal
+    account covers at least ``F3_STABLE_ACCOUNT_SHARE`` of them.
+    """
+    counts = Counter(o[3] for o in members if o[3])
+    total = sum(counts.values())
+    if total < params.min_vendor_deals:
+        return ""
+    modal = min(counts, key=lambda acct: (-counts[acct], acct))
+    return modal if counts[modal] / total >= F3_STABLE_ACCOUNT_SHARE else ""
+
+
+def _differs(full: str, account: str, modal_full: str, stable_account: str) -> bool:
+    return full != modal_full or bool(account and stable_account and account != stable_account)
 
 
 def score_f3(
@@ -147,8 +169,9 @@ def score_f3(
     *,
     exclude: Optional[str] = None,
 ) -> Optional[F3Result]:
-    """F3: a vendor with a frequent history vendor's base name but another suffix, name
-    spelling or remit account. ``bits = -log2((n_pat + 1) / (n_vend + 1))`` (M1)."""
+    """F3: a vendor with a frequent history vendor's base name but another suffix or name
+    spelling; a new remit account counts only against a vendor whose history accounts are
+    stable (``_stable_account``). ``bits = -log2((n_pat + 1) / (n_vend + 1))`` (M1)."""
     vendors = profile.entities.get("vendor", ())
     groups = baseline.vendor_groups()
     if not vendors or not groups:
@@ -166,18 +189,20 @@ def score_f3(
                     continue
                 if not base_similar(key.base, gbase, params.min_similarity, params.max_edit_distance):
                     continue
-                modal = _modal_form(members)
-                if not _differs(key.full, account, modal):
+                modal_full = _modal_full(members)
+                stable = _stable_account(members, params)
+                if not _differs(key.full, account, modal_full, stable):
                     continue
                 diffs = []
                 if key.base != gbase:
                     diffs.append("name")
-                if key.suffix != split_legal_suffix(modal[0]).suffix:
+                if key.suffix != split_legal_suffix(modal_full).suffix:
                     diffs.append("suffix")
-                if account and modal[1] and account != modal[1]:
+                if account and stable and account != stable:
                     diffs.append("remit account")
                 n_pat = sum(
-                    1 for o in group.similar if o[0] != exclude and _differs(o[2], o[3], modal)
+                    1 for o in group.similar
+                    if o[0] != exclude and _differs(o[2], o[3], modal_full, stable)
                 )
                 bits = -math.log2((n_pat + 1) / (n_vend + 1))
                 bits = bits if bits > 0 else 0.0
@@ -199,16 +224,15 @@ def score_f3(
 F5_STATS = ("round", "conc", "kl")
 _F5_LABELS = {
     "round": "round-number deposit share",
-    "conc": "weekday concentration",
-    "kl": "weekday pattern unlike history",
+    "weekday": "weekday pattern concentrated and unlike history",
 }
 
 
 @dataclass(frozen=True)
 class F5Result:
-    bits: float  # maximum over the statistics
-    stat: str  # statistic that gave the maximum (ties in the order round, conc, kl)
-    stat_bits: dict[str, float]
+    bits: float  # max(round, min(conc, kl)), see ``f5_bits``
+    stat: str  # winning component: "round" or "weekday" (ties go to "round")
+    stat_bits: dict[str, float]  # the three raw statistics in bits
     z: dict[str, float]
     evidence: str
 
@@ -245,6 +269,22 @@ def f5_statistics(
     }
 
 
+def f5_bits(stats: Mapping[str, float], reference: Mapping[str, list[float]]) -> tuple[float, str]:
+    """The one F5 combination, shared by the live score and the clean-set percentile.
+
+    ``max(round_bits, min(conc_bits, kl_bits))``: a high round-number share is suspicious on
+    its own; a weekday pattern is suspicious only when it is both more concentrated than the
+    clean history and unlike it. A label that is merely rare (spread over six days, or the
+    ordinary days plus one) is unlike history but not concentrated, so it does not fire.
+    Returns the bits and the winning component, ``"round"`` or ``"weekday"``.
+    """
+    bits = {s: upper_tail_bits(stats[s], reference.get(s) or []) for s in F5_STATS}
+    weekday = min(bits["conc"], bits["kl"])
+    if bits["round"] >= weekday:
+        return bits["round"], "round"
+    return weekday, "weekday"
+
+
 def score_f5(
     profile: DealProfile,
     baseline: Baseline,
@@ -262,15 +302,15 @@ def score_f5(
     }
     if not stat_bits:
         return None
-    top = max(F5_STATS, key=lambda s: (stat_bits.get(s, -1.0), -F5_STATS.index(s)))
+    bits, top = f5_bits(stats, reference)
     return F5Result(
-        bits=stat_bits[top],
+        bits=bits,
         stat=top,
         stat_bits=stat_bits,
         z={s: stats[s] for s in stat_bits},
         evidence=(
             f"deposit pattern unusual versus clean history: strongest on {_F5_LABELS[top]} "
-            f"({stat_bits[top]:.2f} bits)"
+            f"({bits:.2f} bits)"
         ),
     )
 
