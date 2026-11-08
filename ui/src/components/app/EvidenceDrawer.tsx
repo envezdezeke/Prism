@@ -3,6 +3,9 @@ import type { ReactNode } from 'react'
 import { describeError } from '../../api/client.ts'
 import type { TraceStep } from '../../api/types.ts'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft, CircleCheck, CircleDashed, FileText, Link2 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useInvestigator } from '../../data/queries.ts'
 import { edgesOfNode, sharersOf } from '../../graph/graphview.ts'
 import type { GCluster, GEdge, GraphView } from '../../graph/graphview.ts'
@@ -18,6 +21,106 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
     <section className="flex flex-col gap-2 border-t border-line pt-4">
       <h3 className="border-l-4 border-sky pl-2 text-xs font-bold tracking-wide text-navy uppercase">{title}</h3>
       {children}
+    </section>
+  )
+}
+
+// One categorized card: circular icon, title, muted one-line description (optionally a button).
+function CardRow({
+  icon: Icon,
+  title,
+  children,
+  muted = false,
+  tone = 'navy',
+  onClick,
+}: {
+  icon: LucideIcon
+  title: string
+  children: ReactNode
+  muted?: boolean
+  tone?: 'navy' | 'hold' | 'risk'
+  onClick?: () => void
+}) {
+  const ring = tone === 'hold' ? 'border-hold text-hold' : tone === 'risk' ? 'border-risk text-risk' : muted ? 'border-line text-ink-2' : 'border-navy text-navy'
+  const body = (
+    <>
+      <span className={`flex size-7 shrink-0 items-center justify-center rounded-full border ${ring}`}>
+        <Icon className="size-3.5" aria-hidden="true" />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className={`truncate text-sm font-semibold ${muted ? 'text-ink-2' : 'text-ink'}`}>{title}</span>
+        <span className="line-clamp-2 text-xs text-ink-2">{children}</span>
+      </span>
+    </>
+  )
+  const cls = 'flex w-full items-start gap-3 rounded-md border border-line bg-surface p-2.5 text-left'
+  return onClick ? (
+    <button type="button" onClick={onClick} className={`${cls} transition-colors duration-150 hover:bg-subtle`}>
+      {body}
+    </button>
+  ) : (
+    <div className={cls}>{body}</div>
+  )
+}
+
+function Overview({
+  cluster,
+  view,
+  ringDeals,
+  ringHeld,
+  nodeLabel,
+  onSelect,
+}: {
+  cluster: GCluster | null
+  view: GraphView
+  ringDeals: Set<string>
+  ringHeld: boolean
+  nodeLabel: (id: string) => string
+  onSelect: (s: Selection) => void
+}) {
+  const deals = view.nodes.filter((n) => ringDeals.has(n.id))
+  const edges = [...view.ringEdges].sort((a, b) => b.rarity - a.rarity).slice(0, 5)
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-ink-2">Select a card below, or click a node or edge on the canvas.</p>
+      {cluster !== null && (
+        <Category title="Ring deals" count={deals.length}>
+          {deals.length === 0 ? (
+            <p className="text-sm text-ink-2">No ring deal is on screen yet. Move the clock forward.</p>
+          ) : (
+            deals.map((n) => (
+              <li key={n.id}>
+                <CardRow icon={FileText} title={n.label} tone={ringHeld ? 'hold' : 'risk'} onClick={() => onSelect({ kind: 'node', id: n.id })}>
+                  {ringHeld ? 'In the held ring' : 'In the ring, not held yet'}
+                </CardRow>
+              </li>
+            ))
+          )}
+        </Category>
+      )}
+      {edges.length > 0 && (
+        <Category title="Rarest shared values" count={edges.length}>
+          {edges.map((e) => (
+            <li key={`${e.source}-${e.target}`}>
+              <CardRow icon={Link2} title={nodeLabel(e.target)} tone={ringHeld ? 'hold' : 'navy'} onClick={() => onSelect({ kind: 'edge', edge: e })}>
+                {entityKindLabel(e.entity_kind)} · {nodeLabel(e.source)} · rarity {e.rarity.toFixed(2)}
+              </CardRow>
+            </li>
+          ))}
+        </Category>
+      )}
+    </div>
+  )
+}
+
+function Category({ title, count, children }: { title: string; count: number; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="flex items-baseline justify-between text-xs font-semibold tracking-wide text-ink-2 uppercase">
+        {title}
+        <span className="tabular-nums">{count}</span>
+      </h3>
+      <ul className="flex flex-col gap-2">{children}</ul>
     </section>
   )
 }
@@ -57,12 +160,10 @@ export function FamilyList({ cluster }: { cluster: GCluster }) {
           const r = cluster.families[f.id]
           const on = r?.fired === true
           return (
-            <li key={f.id} className="flex flex-col gap-0.5">
-              <span className={`text-sm ${on ? 'font-semibold text-ink' : 'text-ink-2'}`}>
-                {f.id} {f.label}
-                <span className="font-normal text-ink-2"> · {on ? 'fired' : 'not fired'}</span>
-              </span>
-              {on && r && <span className="text-xs text-ink-2">{r.evidence}</span>}
+            <li key={f.id}>
+              <CardRow icon={on ? CircleCheck : CircleDashed} title={`${f.id} ${f.label}`} muted={!on}>
+                {on && r ? r.evidence : 'Not fired'}
+              </CardRow>
             </li>
           )
         })}
@@ -279,21 +380,26 @@ export function EvidenceDrawer({
   const selKey = selection === null ? 'none' : selection.kind === 'edge' ? `e:${selection.edge.source}:${selection.edge.target}` : `n:${selection.id}`
 
   return (
-    <aside aria-label="Evidence" className="flex w-80 shrink-0 flex-col gap-4 overflow-y-auto rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
+    <aside aria-label="Evidence" className="flex w-80 shrink-0 flex-col gap-4 overflow-y-auto rounded-md border border-line bg-page p-4">
+      <div className="flex flex-col gap-0.5">
+        <h2 className="text-base font-semibold text-navy">Evidence</h2>
+        <p className="text-xs text-ink-2">Deterministic links behind the hold, and the advisory investigator.</p>
+      </div>
       <div role="tablist" aria-label="Drawer" className="flex gap-4 border-b border-line">
         <button type="button" role="tab" aria-selected={tab === 'evidence'} className={tabClass('evidence')} onClick={() => setTab('evidence')}>
           Evidence
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'investigator'}
-          className={tabClass('investigator')}
-          onClick={() => setTab('investigator')}
-          disabled={cluster === null}
-        >
-          Investigator
-        </button>
+        {cluster !== null && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'investigator'}
+            className={tabClass('investigator')}
+            onClick={() => setTab('investigator')}
+          >
+            Investigator
+          </button>
+        )}
       </div>
       <div key={`${tab}-${selKey}`} className="flex animate-drawer-in flex-col gap-4">
         {tab === 'investigator' && cluster !== null ? (
@@ -301,7 +407,15 @@ export function EvidenceDrawer({
         ) : (
           <>
             {selection === null && (
-              <p className="text-sm text-ink-2">Select an edge or a node to see the shared value, its rarity and the source sentence.</p>
+              <Overview cluster={cluster} view={view} ringDeals={ringDeals} ringHeld={ringHeld} nodeLabel={nodeLabel} onSelect={onSelect} />
+            )}
+            {selection !== null && (
+              <div>
+                <Button variant="outline" size="sm" onClick={() => onSelect(null)}>
+                  <ArrowLeft aria-hidden="true" />
+                  Back to overview
+                </Button>
+              </div>
             )}
             {selection?.kind === 'edge' && (
               <EdgeEvidence edge={selection.edge} view={view} ringHeld={ringHeld} boardFolders={boardFolders} nodeLabel={nodeLabel} onSelect={onSelect} />

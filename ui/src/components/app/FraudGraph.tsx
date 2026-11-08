@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Crosshair, Maximize2, Minus, Network, Plus } from 'lucide-react'
 import { describeError } from '../../api/client.ts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,11 +11,12 @@ import type { GraphPalette } from '../../graph/palette.ts'
 import { fmtSimTime } from '../../lib/format.ts'
 import { buildHash } from '../../route.ts'
 import { useClockStore } from '../../state/clockStore.ts'
+import { useUiStore } from '../../state/uiStore.ts'
 import { simToMs } from '../../time/timeview.ts'
 import { EvidenceDrawer } from './EvidenceDrawer.tsx'
 import { GraphCanvas } from './GraphCanvas.tsx'
-import type { Selection } from './GraphCanvas.tsx'
-import { Caption, ErrorState, LoadingState, PageTitle, PipelineLink } from './Primitives.tsx'
+import type { GraphControls, Selection } from './GraphCanvas.tsx'
+import { Caption, ErrorState, IconEmptyState, LoadingState, PageHeader } from './Primitives.tsx'
 
 // The graph shares the light navy/sky palette with every other tab; the canvas reads it from the tokens.
 function useInvestigationMode(): GraphPalette | null {
@@ -75,6 +77,8 @@ export function FraudGraphView({
   const [selection, setSelection] = useState<Selection>(null)
   const [fitMode, setFitMode] = useState<'focus' | 'all'>('focus')
   const [fitToken, setFitToken] = useState(0)
+  const controls = useRef<GraphControls | null>(null)
+  const [zoom, setZoom] = useState(1)
 
   const activeId = clusterId ?? defaultClusterId(graph)
   const cluster = graph.clusters.find((c) => c.id === activeId) ?? null
@@ -100,55 +104,93 @@ export function FraudGraphView({
 
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label="Breadcrumb" className="text-xs text-ink-2">
-        <PipelineLink>Pipeline</PipelineLink>
-        <span> / Fraud graph</span>
-      </nav>
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <PageTitle>{cluster ? `Ring ${cluster.id}` : 'Fraud graph'}</PageTitle>
-          {cluster && (
-            <div className="flex flex-wrap items-center gap-2">
-              {hold.held ? (
-                <span key="held" className="animate-fade-in">
-                  <Badge variant="hold">Held: fraud review</Badge>
-                </span>
-              ) : (
-                <Badge variant="outline">{cluster.tier === 'watch' ? 'Watch' : cluster.tier === 'hold' ? 'Forming: not held yet' : 'No flag'}</Badge>
-              )}
-              <span className="text-sm text-ink-2">
-                {hold.held && hold.at
-                  ? `Held since ${fmtSimTime(hold.at)} · ${ringVisible.length} of ${cluster.deals.length} ring deals on screen`
-                  : `${ringVisible.length} of ${cluster.deals.length} ring deals on screen as of ${fmtSimTime(now)}`}
+      <PageHeader
+        title={cluster ? `Ring ${cluster.id}` : 'Fraud graph'}
+        crumbs={['Fraud', 'Graph', ...(cluster ? [cluster.id] : [])]}
+        toolbar={
+          <>
+            <Button
+              variant={fitMode === 'focus' ? 'default' : 'outline'}
+              size="sm"
+              aria-pressed={fitMode === 'focus'}
+              onClick={() => {
+                setFitMode('focus')
+                setFitToken((n) => n + 1)
+              }}
+            >
+              <Crosshair aria-hidden="true" />
+              Focus ring
+            </Button>
+            <Button
+              variant={fitMode === 'all' ? 'default' : 'outline'}
+              size="sm"
+              aria-pressed={fitMode === 'all'}
+              onClick={() => {
+                setFitMode('all')
+                setFitToken((n) => n + 1)
+              }}
+            >
+              <Network aria-hidden="true" />
+              Whole graph
+            </Button>
+            {graph.clusters.length > 1 && (
+              <nav aria-label="Clusters" className="flex gap-2">
+                {graph.clusters.map((c) => (
+                  <a
+                    key={c.id}
+                    href={buildHash({ view: 'graph', clusterId: c.id })}
+                    aria-current={c.id === activeId ? 'page' : undefined}
+                    className={`inline-flex h-7 items-center rounded-sm border px-2 text-xs ${
+                      c.id === activeId ? 'border-navy font-semibold text-navy' : 'border-line text-ink-2 hover:bg-subtle'
+                    }`}
+                  >
+                    {c.id} · {c.tier}
+                  </a>
+                ))}
+              </nav>
+            )}
+            <div role="group" aria-label="Zoom" className="ml-auto flex items-center gap-1">
+              <Button variant="outline" size="icon" className="size-7" aria-label="Zoom in" title="Zoom in" onClick={() => controls.current?.zoomIn()}>
+                <Plus aria-hidden="true" />
+              </Button>
+              <span className="w-12 text-center text-xs text-ink-2 tabular-nums" aria-live="polite">
+                {Math.round(zoom * 100)}%
               </span>
-              {rt && (
-                <Badge variant="chip" title={`${rt.falseFlags} false ${rt.falseFlags === 1 ? 'flag' : 'flags'} across the synthetic tricks`}>
-                  Red-team: {rt.bypasses} {rt.bypasses === 1 ? 'bypass' : 'bypasses'} / {rt.attempts} attempts
-                </Badge>
-              )}
+              <Button variant="outline" size="icon" className="size-7" aria-label="Zoom out" title="Zoom out" onClick={() => controls.current?.zoomOut()}>
+                <Minus aria-hidden="true" />
+              </Button>
+              <Button variant="outline" size="icon" className="size-7" aria-label="Fit to view" title="Fit to view" onClick={() => controls.current?.fit()}>
+                <Maximize2 aria-hidden="true" />
+              </Button>
             </div>
-          )}
-        </div>
-        {graph.clusters.length > 1 && (
-          <nav aria-label="Clusters" className="flex gap-2">
-            {graph.clusters.map((c) => (
-              <a
-                key={c.id}
-                href={buildHash({ view: 'graph', clusterId: c.id })}
-                aria-current={c.id === activeId ? 'page' : undefined}
-                className={`rounded-sm border px-2 py-1 text-xs ${
-                  c.id === activeId ? 'border-navy font-semibold text-navy' : 'border-line text-ink-2 hover:bg-subtle'
-                }`}
-              >
-                {c.id} · {c.tier}
-              </a>
-            ))}
-          </nav>
+          </>
+        }
+      >
+        {cluster && (
+          <div className="flex flex-wrap items-center gap-2 pl-4">
+            {hold.held ? (
+              <span key="held" className="animate-fade-in">
+                <Badge variant="hold">Held: fraud review</Badge>
+              </span>
+            ) : (
+              <Badge variant="outline">{cluster.tier === 'watch' ? 'Watch' : cluster.tier === 'hold' ? 'Forming: not held yet' : 'No flag'}</Badge>
+            )}
+            <span className="text-sm text-ink-2">
+              {hold.held && hold.at
+                ? `Held since ${fmtSimTime(hold.at)} · ${ringVisible.length} of ${cluster.deals.length} ring deals on screen`
+                : `${ringVisible.length} of ${cluster.deals.length} ring deals on screen as of ${fmtSimTime(now)}`}
+            </span>
+            {rt && (
+              <Badge variant="chip" title={`${rt.falseFlags} false ${rt.falseFlags === 1 ? 'flag' : 'flags'} across the synthetic tricks`}>
+                Red-team: {rt.bypasses} {rt.bypasses === 1 ? 'bypass' : 'bypasses'} / {rt.attempts} attempts
+              </Badge>
+            )}
+          </div>
         )}
-      </header>
+      </PageHeader>
 
       <div className="flex h-[calc(100vh-14rem)] min-h-[32rem] gap-4">
-        <div className="relative min-w-0 flex-1 overflow-hidden rounded-md border border-line border-t-4 border-t-navy bg-surface">
+        <div className="relative min-w-0 flex-1 overflow-hidden rounded-md border border-line bg-surface">
           {palette && (
             <GraphCanvas
               view={view}
@@ -159,34 +201,14 @@ export function FraudGraphView({
               onSelect={setSelection}
               fitMode={fitMode}
               fitToken={fitToken}
+              controlsRef={controls}
+              onZoom={setZoom}
             />
           )}
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-3">
             <Caption>
               {view.edges.length} shared values visible as of {fmtSimTime(now)}. Replay the clock to watch the ring form.
             </Caption>
-            <div className="pointer-events-auto flex gap-2">
-              <Button
-                variant={fitMode === 'focus' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setFitMode('focus')
-                  setFitToken((n) => n + 1)
-                }}
-              >
-                Focus ring
-              </Button>
-              <Button
-                variant={fitMode === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setFitMode('all')
-                  setFitToken((n) => n + 1)
-                }}
-              >
-                Whole graph
-              </Button>
-            </div>
           </div>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-2 p-3">
             {view.backgroundDeals.length > 0 && (
@@ -214,6 +236,15 @@ export function FraudGraphView({
   )
 }
 
+function GraphEmpty() {
+  const showPipeline = useUiStore((s) => s.showPipeline)
+  return (
+    <IconEmptyState icon={Network} heading="No deals in the graph yet." action={{ label: 'Back to pipeline', onClick: showPipeline }}>
+      The engine has not linked any deals in this run.
+    </IconEmptyState>
+  )
+}
+
 export function FraudGraph({ clusterId }: { clusterId: string | null }) {
   const palette = useInvestigationMode()
   const g = useGraph()
@@ -222,7 +253,7 @@ export function FraudGraph({ clusterId }: { clusterId: string | null }) {
     return <ErrorState heading="Could not load the fraud graph." message={describeError(g.error)} onRetry={() => void g.refetch()} />
   }
   if (g.data.nodes.length === 0) {
-    return <Caption>No deals in the graph yet.</Caption>
+    return <GraphEmpty />
   }
   // Keyed by cluster: switching clusters starts with a clean drawer and a fresh fit.
   return <FraudGraphView key={clusterId ?? ''} graph={g.data as GGraph} clusterId={clusterId} palette={palette} />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type React from 'react'
 import ForceGraph2D from 'react-force-graph-2d'
 import type { ForceGraphMethods, LinkObject, NodeObject } from 'react-force-graph-2d'
 import { edgeKey, kindGroup } from '../../graph/graphview.ts'
@@ -8,11 +9,20 @@ import { withAlpha } from '../../graph/palette.ts'
 import { LayoutCache } from '../../graph/layoutCache.ts'
 import { entityKindLabel } from '../../labels.ts'
 
+// Imperative zoom controls for the page toolbar (react-force-graph zoom / zoomToFit).
+export interface GraphControls {
+  zoomIn: () => void
+  zoomOut: () => void
+  fit: () => void
+}
+
 export type Selection = { kind: 'edge'; edge: GEdge } | { kind: 'node'; id: string } | null
 
 interface NodeData {
   id: string
   node: GNode
+  // Last drawn card size (graph units), for the pointer area.
+  __card?: { w: number; h: number }
 }
 interface LinkData {
   key: string
@@ -45,7 +55,11 @@ export function GraphCanvas({
   onSelect,
   fitMode,
   fitToken,
+  controlsRef,
+  onZoom,
 }: {
+  controlsRef?: React.MutableRefObject<GraphControls | null>
+  onZoom?: (k: number) => void
   view: GraphView
   ringDeals: Set<string>
   ringHeld: boolean
@@ -81,7 +95,7 @@ export function GraphCanvas({
     const fg = fgRef.current
     if (!fg) return
     fg.d3Force('charge')?.strength(-320)
-    fg.d3Force('link')?.distance(80)
+    fg.d3Force('link')?.distance(110)
     // Gentle pull to the centre so unlinked deals stay near the ring instead of drifting off-screen.
     let nodes: N[] = []
     const gravity = Object.assign(
@@ -117,6 +131,23 @@ export function GraphCanvas({
     fg.zoomToFit(600, 128, filter)
   }, [fitToken, fitMode])
 
+  useEffect(() => {
+    if (!controlsRef) return
+    controlsRef.current = {
+      zoomIn: () => {
+        const fg = fgRef.current
+        if (fg) fg.zoom(fg.zoom() * 1.4, 300)
+      },
+      zoomOut: () => {
+        const fg = fgRef.current
+        if (fg) fg.zoom(fg.zoom() / 1.4, 300)
+      },
+      fit: () => {
+        if (fgRef.current) fit(fgRef.current)
+      },
+    }
+  })
+
   const selectedNode = selection?.kind === 'node' ? selection.id : null
   const selectedEdge = selection?.kind === 'edge' ? edgeKey(selection.edge) : null
   const p = palette
@@ -146,28 +177,16 @@ export function GraphCanvas({
         ctx.lineWidth = 1.5
         ctx.strokeRect(x - s / 2, y - s / 2, s, s)
       }
-    } else if (n.type === 'history_deal') {
-      ctx.beginPath()
-      ctx.arc(x, y, DEAL_R, 0, 2 * Math.PI)
-      ctx.strokeStyle = withAlpha(lit ? p.hold : p.history, alpha)
-      ctx.lineWidth = 2
-      ctx.stroke()
-    } else {
-      ctx.beginPath()
-      ctx.arc(x, y, DEAL_R, 0, 2 * Math.PI)
-      ctx.fillStyle = withAlpha(lit ? p.hold : p.deal, alpha)
-      ctx.fill()
-      if (inRing && !ringHeld) {
-        ctx.strokeStyle = p.navy
-        ctx.lineWidth = 1.5
-        ctx.stroke()
-      }
     }
     ctx.restore()
+    if (n.type !== 'entity') {
+      drawCard(obj, ctx, scale, { inFocus, inRing, lit, alpha })
+      return
+    }
 
     if (selectedNode === n.id) {
       ctx.beginPath()
-      ctx.arc(x, y, DEAL_R + 5, 0, 2 * Math.PI)
+      ctx.arc(x, y, ENTITY_SIDE + 3, 0, 2 * Math.PI)
       ctx.strokeStyle = p.navy
       ctx.lineWidth = 2 / scale
       ctx.stroke()
@@ -189,11 +208,112 @@ export function GraphCanvas({
     }
   }
 
+  // A deal is a small card: icon badge, label and a muted status line (red only when the ring is held,
+  // amber while it is forming).
+  const drawCard = (
+    obj: N,
+    ctx: CanvasRenderingContext2D,
+    scale: number,
+    st: { inFocus: boolean; inRing: boolean; lit: boolean; alpha: number },
+  ): void => {
+    const n = obj.node
+    const x = obj.x ?? 0
+    const y = obj.y ?? 0
+    const k = textScale(scale)
+    const fs = LABEL_PX / k
+    const sub = (LABEL_PX - 1) / k
+    const pad = 6 / k
+    const badge = 8 / k
+    const history = n.type === 'history_deal'
+    const subtitle = st.inRing ? (st.lit ? 'Held: ring' : 'Ring: not held yet') : history ? 'Prior deal' : st.inFocus ? 'Linked, not held' : 'Not linked'
+    const font = (w: number, size: number): string => `${w} ${size}px 'Geist Variable', ui-sans-serif, sans-serif`
+    ctx.font = font(600, fs)
+    const tw = ctx.measureText(n.label).width
+    ctx.font = font(400, sub)
+    const sw = ctx.measureText(subtitle).width
+    const w = pad * 3 + badge * 2 + Math.max(tw, sw)
+    const h = pad * 2 + fs * 1.2 + sub * 1.2
+    const left = x - w / 2
+    const top = y - h / 2
+    obj.__card = { w, h }
+    const accent = st.lit ? p.hold : st.inRing ? p.risk : p.navy
+    ctx.save()
+    ctx.globalAlpha = st.alpha
+    if (st.lit) {
+      ctx.shadowColor = p.hold
+      ctx.shadowBlur = HALO
+    }
+    ctx.beginPath()
+    ctx.roundRect(left, top, w, h, 6 / k)
+    ctx.fillStyle = p.surface
+    ctx.fill()
+    ctx.shadowBlur = 0
+    ctx.lineWidth = (selectedNode === n.id ? 2.5 : st.inRing ? 1.5 : 1) / k
+    ctx.strokeStyle = selectedNode === n.id ? p.navy : st.inRing ? accent : p.line
+    if (history) ctx.setLineDash([4 / k, 3 / k])
+    ctx.stroke()
+    ctx.setLineDash([])
+    // Icon badge: a filled circle with a document glyph (hollow for a prior deal).
+    const bx = left + pad + badge
+    ctx.beginPath()
+    ctx.arc(bx, y, badge, 0, 2 * Math.PI)
+    if (history) {
+      ctx.strokeStyle = p.history
+      ctx.lineWidth = 1.5 / k
+      ctx.stroke()
+    } else {
+      ctx.fillStyle = accent
+      ctx.fill()
+    }
+    ctx.strokeStyle = history ? p.history : p.surface
+    ctx.lineWidth = 1.2 / k
+    for (const dy of [-2.5, 0, 2.5]) {
+      ctx.beginPath()
+      ctx.moveTo(bx - 3 / k, y + dy / k)
+      ctx.lineTo(bx + 3 / k, y + dy / k)
+      ctx.stroke()
+    }
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    const tx = bx + badge + pad
+    ctx.font = font(600, fs)
+    ctx.fillStyle = st.lit ? p.hold : p.navy
+    ctx.fillText(n.label, tx, top + pad)
+    ctx.font = font(400, sub)
+    ctx.fillStyle = st.lit ? p.hold : st.inRing ? p.risk : p.ink2
+    ctx.fillText(subtitle, tx, top + pad + fs * 1.2)
+    ctx.restore()
+  }
+
   const paintNodeArea = (obj: N, color: string, ctx: CanvasRenderingContext2D): void => {
     ctx.fillStyle = color
+    const c = obj.__card
+    if (c) {
+      ctx.fillRect((obj.x ?? 0) - c.w / 2, (obj.y ?? 0) - c.h / 2, c.w, c.h)
+      return
+    }
     ctx.beginPath()
     ctx.arc(obj.x ?? 0, obj.y ?? 0, DEAL_R + 4, 0, 2 * Math.PI)
     ctx.fill()
+  }
+
+  // Dotted grid behind the graph, fixed in screen spacing, panning with the view.
+  const drawGrid = (ctx: CanvasRenderingContext2D, scale: number): void => {
+    const t = ctx.getTransform()
+    const gap = 24 / scale
+    const x0 = -t.e / t.a
+    const y0 = -t.f / t.d
+    const x1 = x0 + ctx.canvas.width / t.a
+    const y1 = y0 + ctx.canvas.height / t.d
+    const r = 1 / scale
+    ctx.save()
+    ctx.fillStyle = withAlpha(p.ink2, 0.22)
+    for (let gx = Math.floor(x0 / gap) * gap; gx <= x1; gx += gap) {
+      for (let gy = Math.floor(y0 / gap) * gap; gy <= y1; gy += gap) {
+        ctx.fillRect(gx - r, gy - r, 2 * r, 2 * r)
+      }
+    }
+    ctx.restore()
   }
 
   const drawLink = (obj: L, ctx: CanvasRenderingContext2D, scale: number): void => {
@@ -273,6 +393,8 @@ export function GraphCanvas({
           linkHoverPrecision={6}
           autoPauseRedraw={false}
           cooldownTicks={120}
+          onRenderFramePre={drawGrid}
+          onZoom={({ k }) => onZoom?.(k)}
           onEngineStop={() => {
             if (needsFit.current && fgRef.current) {
               needsFit.current = false
