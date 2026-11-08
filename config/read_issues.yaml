@@ -80,3 +80,31 @@ thresholds:
   bank_balance_tolerance_cents: 100   # balance-sheet cash versus statement closing balance
   revenue_tolerance_pct: 1.0          # application revenue versus a document for the same year
   ocr_min_disagreeing_fields: 2       # an OCR-sourced ID raises ID_MISMATCH only with this many disagreements
+
+# J6: an ID that disagrees with the application raises OLD_TRICK:ID_MISMATCH. Whether it ALSO raises
+# MISMATCH:guarantor_name / guarantor_dob / guarantor_address is one flag (default no; flip to try the other reading).
+id_disagreement_also_mismatch: false
+
+# J13: the application's annual revenue is for the most recent full year before the reference date;
+# only a document covering that same year is compared (offset 1 = the calendar year before).
+revenue_year_offset: 1
+
+# SHELL_ADDRESS: mailbox-store forms only. A suite marker (Ste, Suite, #, Apt, Unit) never matches.
+shell_address_patterns:
+  - '\bpmb\b'
+  - '\bp\.\s?m\.\s?b\b'
+  - '\bp\.?\s?o\.?\s?box\b'
+  - '\bpost\s+office\s+box\b'
+  - '\bmail\s?box(?:es)?\b'
+  - '\b(?:ups\s+store|postnet|pak\s?mail|pack\s*(?:and|&)\s*ship|shipping\s+(?:center|store))\b'
+
+# Plain words for the document a disagreement was found in (borrower-facing evidence).
+doc_labels:
+  ein_letter: "IRS EIN letter"
+  certificate_of_formation: "certificate of formation"
+  tax_return: "tax return"
+  form_7004: "IRS Form 7004 extension"
+  request_letter: "request letter"
+  financial_statements: "financial statements"
+  bank_statement: "bank statement"
+  guarantor_id: "photo ID"

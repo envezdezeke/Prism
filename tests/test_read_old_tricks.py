@@ -238,3 +238,122 @@ def test_missing_page_is_quiet_gated_like_missing_doc(tmp_path, fake_app):
     label = "MISSING_PAGE:bank_statement_2026-08"
     assert label not in read_issues.detect_issues(st, RULES, st.last_arrival_at + timedelta(minutes=29))
     assert label in read_issues.detect_issues(st, RULES, st.last_arrival_at + timedelta(minutes=30))
+
+
+# ================================================================ DUP_EIN, SHELL_ADDRESS, real data
+
+from prism.read.docmodel import ParsedCert, ParsedIrs  # noqa: E402
+from tests.real_data import requires_sample, sample_root, tuning_folders  # noqa: E402
+from tests.test_read_issues import World, app, complete_world  # noqa: E402
+
+HISTORY_HEADER = "deal_id,application_date,legal_name,ein,industry\n"
+
+
+def history(tmp_path: Path, rows: list[str], header: str = HISTORY_HEADER) -> Path:
+    d = tmp_path / "history"
+    d.mkdir()
+    (d / "deals.csv").write_text(header + "\n".join(rows) + "\n", encoding="utf-8")
+    return d
+
+
+def dup_world(tmp_path, monkeypatch, *, name="Acme LLC", ein="98-7654321", irs_ein="98-7654321"):
+    w = complete_world(tmp_path, monkeypatch, application=app(legal_name=name, ein=ein))
+    w.table[next(d.path for d in w.docs if d.doc_class == "ein_letter")] = ParsedIrs(name=name, ein=irs_ein)
+    return w
+
+
+def dup(w, hist):
+    return old_tricks.dup_ein(w.state(), Rules(history_dir=hist))
+
+
+def test_same_ein_under_a_different_name_is_a_duplicate(tmp_path, monkeypatch):
+    hist = history(tmp_path, ["H-1,2025-01-01,Other Trading Co LLC,98-7654321,x"])
+    w = dup_world(sub(tmp_path, "w"), monkeypatch)
+    assert dup(w, hist)
+    st = w.state()
+    got = read_issues.detect_issues(st, Rules(history_dir=hist), st.last_arrival_at + timedelta(minutes=1))
+    assert "OLD_TRICK:DUP_EIN" in got  # never quiet-gated
+
+
+def test_same_base_name_with_another_suffix_is_the_same_company(tmp_path, monkeypatch):
+    hist = history(tmp_path, ["H-1,2025-01-01,ACME INC.,98-7654321,x"])
+    assert not dup(dup_world(sub(tmp_path, "w"), monkeypatch), hist)
+
+
+def test_the_irs_letter_ein_is_the_one_tested(tmp_path, monkeypatch):
+    hist = history(tmp_path, ["H-1,2025-01-01,Other Trading Co LLC,11-2223333,x"])
+    w = dup_world(sub(tmp_path, "w"), monkeypatch, ein="98-7654321", irs_ein="11-2223333")
+    assert dup(w, hist)
+
+
+def test_ein_absent_from_history_or_missing_history_raises_nothing(tmp_path, monkeypatch):
+    hist = history(tmp_path, ["H-1,2025-01-01,Other Trading Co LLC,55-5555555,x"])
+    w = dup_world(sub(tmp_path, "w"), monkeypatch)
+    assert not dup(w, hist)
+    assert not dup(w, None)
+    assert not dup(w, tmp_path / "no_such_dir")
+
+
+def test_malformed_history_rows_are_skipped_and_never_throw(tmp_path, monkeypatch):
+    hist = history(tmp_path, ["garbage", ",,,,", "H-9,2025-01-01,Other Trading Co LLC,98-7654321,x", "H-2,\x00,,,"])
+    assert dup(dup_world(sub(tmp_path, "w"), monkeypatch), hist)
+    (hist / "deals.csv").write_bytes(b"\xff\xfe\x00 not csv at all")
+    assert not dup(dup_world(sub(tmp_path, "w2"), monkeypatch), hist)
+    other = history(sub(tmp_path, "h2"), ["x"], header="a,b\n")
+    assert not dup(dup_world(sub(tmp_path, "w3"), monkeypatch), other)
+
+
+@pytest.mark.parametrize("addr,expected", [
+    ("PMB 214, 100 Main Street, Testville, TX 75001", True),
+    ("100 Main St #214 PMB, Testville, TX 75001", True),
+    ("P.O. Box 55, Testville, TX 75001", True),
+    ("PO Box 55, Testville, TX 75001", True),
+    ("P O Box 55, Testville, TX 75001", True),
+    ("Mailbox 9, 1 Pine Rd, Testville, TX", True),
+    ("100 Main St, The UPS Store 4412, Testville, TX", True),
+    ("100 Main St Ste 100, Testville, TX 75001", False),
+    ("100 Main St Suite 4, Testville, TX 75001", False),
+    ("100 Main St #7, Testville, TX 75001", False),
+    ("100 Main St Apt 2, Testville, TX 75001", False),
+    ("40 Box Canyon Rd, Testville, TX 75001", False),
+    ("", False),
+])
+def test_shell_address_patterns(tmp_path, monkeypatch, addr, expected):
+    w = complete_world(tmp_path, monkeypatch, application=app(business_address=addr or None))
+    w.table[next(d.path for d in w.docs if d.doc_class == "certificate_of_formation")] = ParsedCert()
+    assert old_tricks.shell_address(w.state()) is expected
+
+
+def test_shell_address_falls_back_to_the_certificate_office(tmp_path, monkeypatch):
+    w = complete_world(tmp_path, monkeypatch, application=app(business_address=None))
+    w.table[next(d.path for d in w.docs if d.doc_class == "certificate_of_formation")] = ParsedCert(
+        principal_office="PMB 12, 1 Main St, Testville, TX")
+    assert old_tricks.shell_address(w.state())
+
+
+def test_detect_issues_survives_a_failing_rule_group(tmp_path, monkeypatch):
+    w = complete_world(tmp_path, monkeypatch)
+    monkeypatch.setattr(old_tricks, "shell_address", lambda state: (_ for _ in ()).throw(RuntimeError("boom")))
+    st = w.state()
+    assert read_issues.detect_issues(st, RULES, st.last_arrival_at + timedelta(minutes=45)) == []
+
+
+@requires_sample
+def test_clean_tuning_deals_raise_no_mismatch_or_identity_false_alarm():
+    """Real documents, tuning deals only: the checks that need 03-02's parsers must stay quiet on clean deals."""
+    import json
+
+    from prism.engine.config import load_rules
+    from prism.engine.run import run_sim
+
+    root = sample_root()
+    rules = load_rules(root)
+    result = run_sim(root / "shared_folder", root / "sim" / "arrivals.jsonl", data_root=root)
+    gold = json.loads((Path(__file__).resolve().parents[1] / "eval" / "gold.json").read_text(encoding="utf-8"))["deals"]
+    watched = ("MISMATCH:", "OLD_TRICK:ID_MISMATCH", "OLD_TRICK:DUP_EIN", "OLD_TRICK:SHELL_ADDRESS")
+    false_alarms = 0
+    for name in tuning_folders(root):
+        expected = set(gold.get(name, {}).get("issues") or [])
+        got = {i for i in result.states[name].issues if i.startswith(watched)}
+        false_alarms += len(got - expected)
+    assert rules is not None and false_alarms == 0

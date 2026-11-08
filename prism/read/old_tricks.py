@@ -6,13 +6,17 @@ Each check returns a boolean; the ``*_reasons`` helpers return short reason code
 """
 from __future__ import annotations
 
+import csv
 import logging
+import re
 from datetime import date
 from fractions import Fraction
+from pathlib import Path
 from typing import Any, Optional
 
 from prism.read import docmodel, requirements, statements
 from prism.read.docmodel import ParsedApplication, ParsedStatement, ParsedTax
+from prism.read.normalize import name_base, norm_ein
 
 log = logging.getLogger("prism")
 
@@ -136,3 +140,100 @@ def rev_inflation(state: Any) -> bool:
     stated, annual = nums
     ratio = Fraction(str(_threshold("rev_inflation_ratio") or 1.5))
     return Fraction(stated) > ratio * annual
+
+
+# ---------------------------------------------------------------- ID_MISMATCH
+
+def id_mismatch(state: Any) -> bool:
+    """A readable photo ID disagrees with the application: name beyond nicknames, date of birth, or address.
+
+    An unreadable ID raises nothing; an OCR-sourced ID needs several disagreeing fields (see compare)."""
+    from prism.read import compare
+
+    return bool(compare.raising_id_results(state))
+
+
+# ---------------------------------------------------------------- DUP_EIN
+
+_HISTORY_CACHE: dict[tuple[str, int], dict[str, frozenset[str]]] = {}
+_HISTORY_MAX_ROWS = 500_000
+
+
+def _history_eins(path: Any) -> dict[str, frozenset[str]]:
+    """``{EIN: {base names}}`` from history/deals.csv. Never raises; a bad row is skipped, a missing file is empty."""
+    try:
+        p = Path(path) / "deals.csv"
+        key = (str(p), p.stat().st_mtime_ns)
+    except (OSError, TypeError, ValueError):
+        return {}
+    hit = _HISTORY_CACHE.get(key)
+    if hit is not None:
+        return hit
+    index: dict[str, set[str]] = {}
+    try:
+        with open(p, encoding="utf-8-sig", errors="replace", newline="") as f:
+            for n, row in enumerate(csv.DictReader(f)):
+                if n >= _HISTORY_MAX_ROWS:
+                    break
+                try:
+                    ein = norm_ein(str(row.get("ein") or ""))
+                    base = name_base(row.get("legal_name"))
+                except Exception:  # noqa: BLE001
+                    continue
+                if ein and base:
+                    index.setdefault(ein, set()).add(base)
+    except (OSError, csv.Error):
+        index = {}
+    result = {k: frozenset(v) for k, v in index.items()}
+    _HISTORY_CACHE.clear()
+    _HISTORY_CACHE[key] = result
+    return result
+
+
+def dup_ein(state: Any, rules: Any) -> bool:
+    """The EIN (IRS letter, else application) is in history under a different canonical base name."""
+    history_dir = getattr(rules, "history_dir", None)
+    if history_dir is None:
+        return False
+    app = requirements.latest_application(state)
+    irs = docmodel.parsed_all(state, "ein_letter")
+    irs_ein = getattr(irs[-1][1], "ein", None) if irs else None
+    ein = norm_ein(irs_ein) or (norm_ein(app.ein) if app is not None else None)
+    mine = name_base(app.legal_name) if app is not None else ""
+    if not ein or not mine:
+        return False
+    known = _history_eins(history_dir).get(ein)
+    return bool(known) and any(base != mine for base in known)
+
+
+# ---------------------------------------------------------------- SHELL_ADDRESS
+
+_SHELL_CACHE: dict[int, list[re.Pattern[str]]] = {}
+
+
+def _shell_patterns() -> list[re.Pattern[str]]:
+    pats = requirements.get_issues_config().raw.get("shell_address_patterns") or []
+    key = id(pats)
+    if key not in _SHELL_CACHE:
+        compiled = []
+        for pat in pats:
+            try:
+                compiled.append(re.compile(str(pat), re.IGNORECASE))
+            except re.error:
+                continue
+        _SHELL_CACHE.clear()
+        _SHELL_CACHE[key] = compiled
+    return _SHELL_CACHE[key]
+
+
+def shell_address(state: Any) -> bool:
+    """The business address (application, else the certificate's principal office) is a mailbox store or PMB."""
+    app = requirements.latest_application(state)
+    addr = app.business_address if app is not None else None
+    if not (isinstance(addr, str) and addr.strip()):
+        cert = docmodel.parsed_all(state, "certificate_of_formation")
+        addr = getattr(cert[-1][1], "principal_office", None) if cert else None
+    if not (isinstance(addr, str) and addr.strip()):
+        return False
+    text = addr[:400]
+    return any(rx.search(text) for rx in _shell_patterns())

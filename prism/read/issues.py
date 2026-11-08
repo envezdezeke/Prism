@@ -14,7 +14,7 @@ from typing import Callable
 from prism.contract import ISSUE_RE
 from prism.engine.config import Rules
 from prism.engine.state import DealState
-from prism.read import old_tricks, requirements, statements
+from prism.read import compare, old_tricks, requirements, statements
 from prism.read.settings import get_config
 
 log = logging.getLogger("prism")
@@ -38,12 +38,32 @@ def _rev_inflation(state: DealState, rules: Rules) -> list[str]:
     return ["OLD_TRICK:REV_INFLATION"] if old_tricks.rev_inflation(state) else []
 
 
+def _mismatches(state: DealState, rules: Rules) -> list[str]:
+    return [f"MISMATCH:{field}" for field in compare.find_mismatches(state, rules)]
+
+
+def _id_mismatch(state: DealState, rules: Rules) -> list[str]:
+    return ["OLD_TRICK:ID_MISMATCH"] if old_tricks.id_mismatch(state) else []
+
+
+def _dup_ein(state: DealState, rules: Rules) -> list[str]:
+    return ["OLD_TRICK:DUP_EIN"] if old_tricks.dup_ein(state, rules) else []
+
+
+def _shell_address(state: DealState, rules: Rules) -> list[str]:
+    return ["OLD_TRICK:SHELL_ADDRESS"] if old_tricks.shell_address(state) else []
+
+
 # Rule groups run in order; each is isolated so one strange document cannot freeze the deal.
 _GROUPS: tuple[tuple[str, Callable[[DealState, Rules], list[str]]], ...] = (
     ("missing_doc", _missing_docs),
     ("missing_page", _missing_pages),
     ("stmt_tamper", _stmt_tamper),
     ("rev_inflation", _rev_inflation),
+    ("mismatch", _mismatches),
+    ("id_mismatch", _id_mismatch),
+    ("dup_ein", _dup_ein),
+    ("shell_address", _shell_address),
 )
 
 
@@ -87,5 +107,14 @@ def detect_issues(state: DealState, rules: Rules, now: datetime) -> list[str]:
 
 
 def mismatch_evidence(state: DealState, rules: Rules) -> dict[str, dict[str, str]]:
-    """Per mismatch field, the application and document wording for the credit memo. Stub: empty (Task 3 fills it)."""
-    return {}
+    """Per raised MISMATCH field, ``{application, document, value}`` in plain words for the borrower message.
+
+    Shares one computation with ``detect_issues`` (``compare.find_mismatches``) so the two cannot disagree.
+    """
+    try:
+        found = compare.find_mismatches(state, rules)
+    except Exception:  # noqa: BLE001
+        log.error("mismatch evidence failed", exc_info=True)
+        return {}
+    return {field: {"application": m.application, "document": m.document, "value": m.value}
+            for field, m in sorted(found.items())}

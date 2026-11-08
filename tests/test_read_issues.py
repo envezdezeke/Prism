@@ -18,6 +18,7 @@ from prism.read import issues as read_issues
 from prism.read.docmodel import (Guarantor, Parsed7004, ParsedApplication, ParsedCert, ParsedFinancials,
                                  ParsedId, ParsedTax)
 from tests.read_fixtures import make_state
+from tests.test_read_forms import ID_ROWS
 from tests.statement_fixtures import write_statement
 
 TZ = timezone(timedelta(hours=-6))
@@ -338,7 +339,10 @@ def _arrivals(tmp_path, rows):
 
 def _generated_deal(tmp_path, *, skip="2026-08", late_minutes=None):
     """Intake and Credit papers from the generators plus a statement per window month (one withheld)."""
-    st = make_state(tmp_path, folder="Deal")
+    # the shared fixture ID shows a different house number than the application, which is a real ID_MISMATCH
+    id_rows = [("Address", "20 Sample Lane, Testville, TX 75002") if isinstance(r, tuple) and r[0] == "Address" else r
+               for r in ID_ROWS]
+    st = make_state(tmp_path, parts={"id": id_rows}, folder="Deal")
     folder_dir = tmp_path / "Deal"
     rows = [{"path": d.path, "arrive_at": d.arrive_at.isoformat()} for d in st.docs]
     last = max(d.arrive_at for d in st.docs)
