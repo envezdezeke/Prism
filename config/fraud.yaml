@@ -1,0 +1,37 @@
+# Fraud-model parameters (docs/MODEL_DESIGN.md section 1: M7, M8, M13, M18).
+# This file stores percentiles and fractions, never bit values. Bit thresholds
+# are recomputed at startup from whatever history ships with the dataset.
+version: 1
+
+families:
+  F1:                      # shared rare entity (mandatory for a hold)
+    votes: true
+    rarity_fraction: 0.02  # entity counts only if fewer than 2% of history deals use it
+    min_linked_deals: 2    # ... and it links at least this many deals
+  F2:                      # novelty or burst
+    votes: true
+    percentile: 0.95
+  F3:                      # lookalike vendor or account
+    votes: true
+    percentile: 0.95
+  F4:                      # document forensics
+    votes: true
+    percentile: 0.95
+  F5:                      # deposit pattern
+    votes: true
+    percentile: 0.95
+  F6:                      # terms shape: evidence only, never votes
+    votes: false
+
+hold_rule:
+  required: [F1]
+  additional_from: [F2, F3, F4, F5]
+  min_additional: 2
+
+history_flags:
+  min_links: 2             # independent links with a held cluster (M18)
+
+calibration:               # measurement split only; real runs use all history as baseline
+  train_end: "2026-06-30"
+  test_start: "2026-07-01"
+  test_end: "2026-10-31"
