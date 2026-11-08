@@ -3,15 +3,15 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: Pipeline Cockpit UI on Mock Data
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-11-08T01:53:15.481Z"
-last_activity: "2026-11-07 ~20:15 CT - plan 02-01 complete; Ezekiel merged 261107-qx4 fraud baseline"
-state_head: b12359b7f21c8764a9bcb291346d9e43f8407489
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-11-08T02:02:22.861Z"
+last_activity: "2026-11-07 ~20:15 CT - Jesse: plan 02-01 done (UI scaffold, tokens, live pipeline board; 11/11 UI tests). Ezekiel: Merged quick task 261107-qx4 (fraud baseline, F1/F3/F5 + calibration; Jul-Oct replay: 1/72 good-deal false flags as lower bound, F1 fires on ~30% of clean deals). Move core (261107-qx3) still running in a worktree."
+state_head: a64e0c9e13fc7209b0aae37382d7e559e7ecda78
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 ## Current Position
 
 Phase: 02 (Pipeline Cockpit UI on Mock Data) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-11-07 ~20:15 CT - Jesse: plan 02-01 done (UI scaffold, tokens, live pipeline board; 11/11 UI tests). Ezekiel: Merged quick task 261107-qx4 (fraud baseline, F1/F3/F5 + calibration; Jul-Oct replay: 1/72 good-deal false flags as lower bound, F1 fires on ~30% of clean deals). Move core (261107-qx3) still running in a worktree.
 
@@ -83,6 +83,7 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 02 P01 | 8min | 2 tasks | 31 files |
+| Phase 02 P02 | 6min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,8 @@ Full log in the PROJECT.md Key Decisions table. Most load-bearing right now:
 - Hold = F1 shared rare entity + at least 2 other families; 1–2 families = watch tier; no sample literals in detection code.
 - [Phase 02]: openapi-typescript runs via npx with its own TypeScript 5 (TS 7 has no JS compiler API); not a local dependency
 - [Phase 02]: Plan 02-01: no destructive Badge/Button variant; red exists only via hold tokens (D-05)
+- [Phase 02]: 02-02: UI-SPEC copy and layout override plan copy (button labels, empty/sync messages, column limit only when shared); Play/Pause separate from Replay from start
+- [Phase 02]: 02-02: clock writes send only {to} or {}, debounced 300 ms, local clock never reverts; mock 422 on backward targets shows a neutral inline message
 
 ### Pending Todos
 
@@ -125,8 +128,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-08T01:53:15.467Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-11-08T02:02:22.849Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
 
 **Loose ends from the planning session:**
