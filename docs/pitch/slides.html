@@ -98,6 +98,9 @@
   .card .label { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
   .card p { margin: 0 0 8px; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
 
+  .linkrow { display: flex; justify-content: space-between; gap: 16px; padding: 14px 20px; border-top: 1px solid var(--line); font-size: 14px; }
+  .linkrow:first-child { border-top: 0; }
+  .linkrow span:first-child { color: var(--ink-2); }
   .wordmark { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
   .wordmark svg { width: 48px; height: 48px; }
   .wordmark span { font-size: 40px; font-weight: 600; letter-spacing: -.02em; }
@@ -258,22 +261,26 @@
     <h1>Catch the ring. Leave honest borrowers alone.</h1>
     <p class="crumb">Prism / Close</p>
     <div class="rule"></div>
-    <div class="body">
-      <div>
+    <div class="body" style="grid-template-columns: 1fr 1fr;">
+      <div class="panel">
         <div class="wordmark"><svg viewBox="0 0 64 64" aria-label="Prism"><rect width="64" height="64" rx="12" fill="#0E2846"/><use href="#mark"/></svg><span>Prism</span></div>
-        <div class="panel"><ul class="points">
-          <li>Catches the ring before the money goes out, leaves honest borrowers alone, and shows its work.</li>
-          <li>A deterministic engine makes every scored decision. A Nemotron agent investigates each held ring and a vision model reads hard documents, never inside the score.</li>
-          <li>Team Prism: finance and quant.</li>
+        <ul class="points">
+          <li><b>Stops the ring before the money goes out</b>, leaves honest borrowers alone, and shows its work.</li>
+          <li><b>A deterministic engine</b> makes every scored decision. A Nemotron agent investigates each held ring and a vision model reads hard documents, never inside the score.</li>
+          <li><b>Team Prism:</b> finance and quant.</li>
         </ul>
       </div>
       <div>
-        <div class="kpis">
+        <div class="kpis" style="margin-top: 0;">
           <div class="kpi hold"><div class="top"><div class="label">Fakes held, blind run</div><div class="value"><span class="ph">[[BLIND_HELD]]</span> / <span class="ph">[[BLIND_TOTAL]]</span></div></div><div class="sub">before Closed</div></div>
           <div class="kpi"><div class="top"><div class="label">False flags</div><div class="value"><span class="ph">[[BLIND_FALSE_FLAGS]]</span></div></div><div class="sub">honest deals held</div></div>
         </div>
-        <p class="note">Repository <span class="ph">[[REPO_URL]]</span> · Demo video <span class="ph">[[DEMO_VIDEO_URL]]</span> · Scorecard <span class="ph">[[SCORECARD_COMMIT]]</span></p>
-        <p class="note">Goldman Sachs "DealPilot — Move the Deal. Stop the Fraud." and NVIDIA Nemotron tracks.</p>
+        <div class="panel" style="margin-top: 12px; padding: 0;">
+          <div class="linkrow"><span>Repository</span><span class="ph">[[REPO_URL]]</span></div>
+          <div class="linkrow"><span>Demo video</span><span class="ph">[[DEMO_VIDEO_URL]]</span></div>
+          <div class="linkrow"><span>Scorecard commit</span><span class="ph">[[SCORECARD_COMMIT]]</span></div>
+          <div class="linkrow"><span>Tracks</span><span>Goldman Sachs DealPilot · NVIDIA Nemotron</span></div>
+        </div>
       </div>
     </div>
   </div>
