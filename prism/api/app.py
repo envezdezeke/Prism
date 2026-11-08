@@ -45,6 +45,9 @@ def require_mock() -> None:
         raise HTTPException(status_code=503, detail="engine not wired yet")
 
 
+from prism.api.upload_routes import build_upload_router  # noqa: E402
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Prism API")
     app.add_middleware(
@@ -132,6 +135,7 @@ def create_app() -> FastAPI:
     app.include_router(api)
     app.include_router(build_agents_router(load_fixture, mock_enabled))
     app.include_router(build_graph_router(load_fixture, mock_enabled))
+    app.include_router(build_upload_router())
     return app
 
 

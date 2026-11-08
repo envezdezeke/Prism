@@ -35,6 +35,7 @@ const RULES: Rule[] = [
       'src/components/app/FraudGraph.tsx',
       'src/components/app/EvidenceDrawer.tsx',
       'src/components/app/Overview.tsx',
+      'src/components/app/UploadRun.tsx',
       'src/components/app/DealDetail.tsx',
       'src/components/ui/',
       'src/index.css',

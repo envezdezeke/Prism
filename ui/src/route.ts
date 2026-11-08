@@ -2,6 +2,7 @@
 // so the folder (and a cluster id) is always passed through encodeURIComponent.
 export type Route =
   | { view: 'overview' }
+  | { view: 'upload' }
   | { view: 'pipeline' }
   | { view: 'deal'; folder: string }
   | { view: 'inbox' }
@@ -18,6 +19,8 @@ export function buildHash(route: Route): string {
       return `${DEAL_PREFIX}${encodeURIComponent(route.folder)}`
     case 'overview':
       return '#/overview'
+    case 'upload':
+      return '#/upload'
     case 'inbox':
       return '#/inbox'
     case 'alerts':
@@ -46,6 +49,7 @@ export function parseHash(hash: string): Route {
     return { view: 'pipeline' }
   }
   if (hash === '#/overview') return { view: 'overview' }
+  if (hash === '#/upload') return { view: 'upload' }
   if (hash === '#/inbox') return { view: 'inbox' }
   if (hash === '#/alerts') return { view: 'alerts' }
   if (hash === '#/graph' || hash === GRAPH_PREFIX) return { view: 'graph', clusterId: null }

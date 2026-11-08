@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Bell, ChevronDown, Home, ChevronsLeft, ChevronsRight, Inbox as InboxIcon, LayoutGrid, Network } from 'lucide-react'
+import { Bell, ChevronDown, FolderUp, Home, ChevronsLeft, ChevronsRight, Inbox as InboxIcon, LayoutGrid, Network } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AlertsFeed } from '@/components/app/AlertsFeed'
 import { Board } from '@/components/app/Board'
@@ -9,6 +9,7 @@ import { DealDetail } from '@/components/app/DealDetail'
 import { FraudGraph } from '@/components/app/FraudGraph'
 import { Inbox } from '@/components/app/Inbox'
 import { Overview } from '@/components/app/Overview'
+import { UploadRun } from '@/components/app/UploadRun'
 import { usePendingCount } from './state/pendingCount.ts'
 import { buildHash } from './route.ts'
 import type { Route } from './route.ts'
@@ -28,6 +29,7 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
     ],
   },
   { title: 'Fraud', items: [{ id: 'graph', label: 'Graph', route: { view: 'graph', clusterId: null }, icon: Network }] },
+  { title: 'Judge data', items: [{ id: 'upload', label: 'Upload & run', route: { view: 'upload' }, icon: FolderUp }] },
 ]
 
 // Pipeline stays the active item while one of its deals is open.
@@ -129,6 +131,8 @@ function Screen({ route }: { route: Route }) {
       return <FraudGraph clusterId={route.clusterId} />
     case 'overview':
       return <Overview />
+    case 'upload':
+      return <UploadRun />
     default:
       return <Board />
   }
