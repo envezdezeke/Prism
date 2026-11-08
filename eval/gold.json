@@ -40,16 +40,16 @@
       "notes": ""
     },
     "Garza Family Pharmacy": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Garza Family Pharmacy LLC",
+        "ein": "75-2291847",
+        "amount_requested": 60000,
+        "purpose_category": "inventory",
+        "product": "Revolving Line of Credit",
+        "term_months": 12,
+        "guarantor_name": "Maria Elena Garza",
+        "annual_revenue_stated": 1920000,
         "needed_by": null
       },
       "extracted_accept": {},
@@ -57,19 +57,19 @@
       "issues": [],
       "issues_optional": [],
       "routing": {
-        "credit_decision": null,
-        "committee_approval": null,
-        "commitment_signoff": null,
-        "funding_release": null
+        "credit_decision": "marcus.lee",
+        "committee_approval": "priscilla.nguyen",
+        "commitment_signoff": "brian.foster",
+        "funding_release": "tasha.reed"
       },
-      "final_stage": null,
+      "final_stage": "Closed",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Returning customer since 2016, prior lines 2023/2024/2025 repaid (H-2511-002). All docs present; 6 statements complete, footed and chained; ID matches; revenue 1.92M vs deposits annualized 1.97M (0.97x). Real."
     },
     "Granite Bay Building Supply": {
       "status": "todo",
@@ -168,21 +168,28 @@
       "notes": ""
     },
     "Oakline Auto": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Oakline Auto Repair LLC",
+        "ein": "26-4019983",
+        "amount_requested": 85000,
+        "purpose_category": "equipment",
+        "product": "Equipment Loan",
+        "term_months": 48,
+        "guarantor_name": "Bob Kline",
+        "annual_revenue_stated": 1150000,
         "needed_by": null
       },
-      "extracted_accept": {},
+      "extracted_accept": {
+        "guarantor_name": [
+          "Robert Allen Kline",
+          "Robert Kline"
+        ]
+      },
       "sources": {},
-      "issues": [],
+      "issues": [
+        "MISSING_PAGE:bank_statement_2026-08"
+      ],
       "issues_optional": [],
       "routing": {
         "credit_decision": null,
@@ -190,26 +197,26 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Credit",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Aug statement 'Page 1 of 2', page 2 absent: MISSING_PAGE, not STMT_TAMPER (footing fails only because of the missing page; balances chain). Bob = Robert Allen Kline (nickname; DOB/address/DL match). Quote 2x21,450 + 42,100 = 85,000; vendor Metroplex Equipment Supply, Inc. remit ...9902 seen in 24 history equipment deals. Stuck at Credit: Credit needs all statement pages; info_request to borrower for Aug page 2."
     },
     "Okafor Advisory - James": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Okafor Advisory Group LLC",
+        "ein": "47-3368120",
+        "amount_requested": 1200000,
+        "purpose_category": "working_capital",
+        "product": "Revolving Line of Credit",
+        "term_months": 24,
+        "guarantor_name": "James Chukwuemeka Okafor",
+        "annual_revenue_stated": 9800000,
         "needed_by": null
       },
       "extracted_accept": {},
@@ -217,19 +224,19 @@
       "issues": [],
       "issues_optional": [],
       "routing": {
-        "credit_decision": null,
-        "committee_approval": null,
-        "commitment_signoff": null,
-        "funding_release": null
+        "credit_decision": "marcus.lee",
+        "committee_approval": "harold.benson",
+        "commitment_signoff": "brian.foster",
+        "funding_release": "tasha.reed"
       },
-      "final_stage": null,
+      "final_stage": "Closed",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Big and international but real. $1.2M >= $250k -> committee chair (48h). Returning customer (H-2601-006, $900k RLOC funded/current). Contracts in UK/DE/SG/AE/US match wires; 7 of 22 deposits round but client-named and spread across weekdays. Revenue 9.8M vs deposits annualized 11.2M (0.87x)."
     },
     "Pecan Grove Catering": {
       "status": "todo",
@@ -296,16 +303,16 @@
       "notes": ""
     },
     "Ridgeway Freight Logistics": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Ridgeway Freight Logistics LLC",
+        "ein": "92-2714056",
+        "amount_requested": 247500,
+        "purpose_category": "equipment",
+        "product": "Equipment Loan",
+        "term_months": 60,
+        "guarantor_name": "Marcus Dell",
+        "annual_revenue_stated": 1120000,
         "needed_by": null
       },
       "extracted_accept": {},
@@ -318,14 +325,14 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Intake",
       "fraud": {
-        "flagged": false,
-        "held": false,
-        "latest_ok_stage": null,
+        "flagged": true,
+        "held": true,
+        "latest_ok_stage": "Committed",
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "HOLD. Independent signs agree: (1) every PDF incl. bank statements and ID made by DocuForge 2.1, not the bank's statement system; (2) preparer K. Delacroix 214-555-0187 seen only on 2 history loans (Aug-Sep 2026); (3) lookalike vendor 'Metroplex Equipment Supply LLC' remit ...4471 vs established 'Metroplex Equipment Supply, Inc.' ...9902 (24 history loans); (4) deposits 100% round $100s, Mon/Thu only (history median ~8%); (5) $247,500 just under the $250k committee line; (6) formed 2025-07. First ring deal to land (Mon 13:51); all evidence present by 14:10 Mon, so flag at Intake from history links alone. Revenue: 2025 return $470k covers ~5.5 months; $1.12M is the run rate (deposits annualized $1.11M): not a mismatch (J13). Held at Intake (fraud_hold -> victor.hale, backup monica.salas), so later gates never reached. latest_ok_stage = Committed (must be held before Closed); ideal is Intake, Mon ~14:10. linked_deals and history_flags filled after all 13."
     },
     "Summit Peak Flooring": {
       "status": "todo",
@@ -360,21 +367,28 @@
       "notes": ""
     },
     "tyler loopwise loan stuff": {
-      "status": "todo",
+      "status": "done",
       "extracted": {
-        "legal_name": null,
-        "ein": null,
-        "amount_requested": null,
-        "purpose_category": null,
-        "product": null,
-        "term_months": null,
-        "guarantor_name": null,
-        "annual_revenue_stated": null,
+        "legal_name": "Loopwise Labs Inc.",
+        "ein": "93-4410276",
+        "amount_requested": 150000,
+        "purpose_category": "expansion",
+        "product": "Term Loan",
+        "term_months": 36,
+        "guarantor_name": "Tyler James Brooks",
+        "annual_revenue_stated": 450000,
         "needed_by": null
       },
-      "extracted_accept": {},
+      "extracted_accept": {
+        "annual_revenue_stated": [
+          400000,
+          500000
+        ]
+      },
       "sources": {},
-      "issues": [],
+      "issues": [
+        "MISSING_DOC:bank_statement_2026-06"
+      ],
       "issues_optional": [],
       "routing": {
         "credit_decision": null,
@@ -382,14 +396,14 @@
         "commitment_signoff": null,
         "funding_release": null
       },
-      "final_stage": null,
+      "final_stage": "Credit",
       "fraud": {
         "flagged": false,
         "held": false,
         "latest_ok_stage": null,
         "linked_deals": []
       },
-      "notes": ""
+      "notes": "Messy but real. Revenue stated as 'approx 400-500k' -> midpoint (J7, low confidence). Form 7004 accepted (business est. 2025-03-10, under 2 years). June statement promised, never arrives. CSV statements, JPG ID matches, self-prepared, net losses, unsecured: all normal for a young startup. Stuck at Credit: June statement never arrives, so no credit_decision on an incomplete file; info_request to borrower."
     },
     "Westfield Print & Sign": {
       "status": "todo",
