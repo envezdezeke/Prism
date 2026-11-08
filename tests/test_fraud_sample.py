@@ -160,3 +160,27 @@ def test_tuning_linked_deals_match_gold(sample_run, gold, tuning):
     for folder in tuning:
         got = set(sample_run.states[folder].fraud.linked_deals)
         assert got == set(gold[folder]["fraud"]["linked_deals"]), "tuning linked_deals differ from gold"
+
+
+@requires_sample
+def test_no_good_tuning_deal_gets_f1_with_f2_and_f4(sample_run, gold, tuning):
+    """F2 and F4 add no false votes: no good tuning deal fires F1, F2 and F4 together."""
+    from prism.engine.config import load_rules as _load_rules
+    from prism.fraud.baseline import build_baseline
+    from prism.fraud.graph import build_graph
+    from prism.fraud.signals import compute_signals
+
+    root = sample_root()
+    rules = _load_rules(root)
+    base = build_baseline(rules.history_dir, rules.fraud)
+    states = sample_run.states
+    sigs = compute_signals(build_graph(states, base), states, base, rules.fraud, None)
+    fired = {}
+    for s in sigs:
+        if s.fired:
+            fired.setdefault(s.deals[0], set()).add(s.family)
+    for folder in tuning:
+        if gold[folder]["fraud"]["flagged"]:
+            continue
+        assert not {"F1", "F2", "F4"} <= fired.get(folder, set()), "a good tuning deal fires F1+F2+F4"
+        assert not states[folder].fraud.flagged

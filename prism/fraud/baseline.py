@@ -15,7 +15,7 @@ from __future__ import annotations
 import csv
 import math
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
@@ -60,6 +60,14 @@ def _finite(v: Any) -> Optional[float]:
     except (TypeError, ValueError):
         return None
     return x if math.isfinite(x) else None
+
+
+def _positive(v: Any) -> Optional[float]:
+    """A finite positive number from a CSV cell (commas and a leading $ allowed), else None."""
+    if isinstance(v, str):
+        v = v.replace(",", "").replace("$", "").strip()
+    x = _finite(v)
+    return x if x is not None and x > 0 else None
 
 
 def deposit_features(rows: Any) -> Optional[DepositFeatures]:
@@ -115,6 +123,8 @@ class HistoryDeal:
     fraud_label: str
     repayment_status: str
     profile: DealProfile
+    amount: Optional[float] = None  # amount_requested (F6)
+    revenue: Optional[float] = None  # annual_revenue_stated, None unless positive (F6)
 
     @property
     def repaid(self) -> bool:
@@ -267,6 +277,13 @@ class Baseline:
             sum(1 for o in self._vendor_obs if o[0] == exclude) if exclude in self._vendor_ids else 0
         )
 
+    def terms_ratios(self, exclude: Optional[str] = None) -> list[float]:
+        """Sorted amount-to-revenue ratios of the clean (repaid) history deals (F6 reference)."""
+        return sorted(
+            d.amount / d.revenue for i, d in self.deals.items()
+            if i != exclude and d.repaid and d.amount is not None and d.revenue is not None
+        )
+
     def round_shares(self, exclude: Optional[str] = None) -> list[float]:
         """Per-deal round-deposit shares (id order) for deals with deposit data."""
         return [s for i, s in sorted(self._round_share.items()) if i != exclude]
@@ -315,6 +332,8 @@ class Baseline:
                 fraud_label=str(row.get("fraud_label") or "").strip(),
                 repayment_status=str(row.get("repayment_status") or "").strip(),
                 profile=DealProfile(deal_id=deal_id, entities=entities),
+                amount=_positive(row.get("amount_requested")),
+                revenue=_positive(row.get("annual_revenue_stated")),
             )
         grouped: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
         unknown: set[str] = set()
@@ -328,10 +347,7 @@ class Baseline:
             warnings.append(f"monthly_deposits.csv: deposit rows for unknown deal id {deal_id or '(blank)'} ignored")
         for deal_id, rows in grouped.items():
             d = deals[deal_id]
-            deals[deal_id] = HistoryDeal(
-                d.deal_id, d.applied, d.final_status, d.fraud_label, d.repayment_status,
-                DealProfile(d.deal_id, d.profile.entities, deposit_features(rows)),
-            )
+            deals[deal_id] = replace(d, profile=DealProfile(d.deal_id, d.profile.entities, deposit_features(rows)))
         return cls(deals=deals, params=params or FraudParams(), warnings=warnings)
 
     def restricted_to(self, ids: Iterable[str]) -> "Baseline":

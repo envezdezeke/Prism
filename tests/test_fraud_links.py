@@ -197,7 +197,7 @@ def test_held_ring_links_peers_and_qualified_history_only():
         assert set(c.families) == set(FAMILY_LABELS)
     assert hold.families["F1"].fired and "used by 2 of 152 history deals" in hold.families["F1"].evidence
     assert LINK_MARK not in hold.families["F1"].evidence
-    assert hold.families["F2"].evidence == "not evaluated"
+    assert hold.families["F2"].evidence == "not fired"  # all six families computed since Task 3
     assert watch.families["F3"].evidence == "not fired"
 
 

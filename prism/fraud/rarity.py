@@ -45,6 +45,15 @@ class FraudParams:
     # history_flags.link_classes: (entity kind, link class id) pairs that merge kinds into one
     # independent link class (M18). Empty means every kind is its own class.
     link_classes: tuple[tuple[str, str], ...] = ()
+    burst_window_days: int = 7  # F2: partners opened within this many days count
+    burst_min_partners: int = 1  # F2 fires at this many burst partners
+    f4_third_party_classes: tuple[str, ...] = ("bank_statement",)
+    f4_borrower_classes: tuple[str, ...] = (
+        "application", "request_letter", "equipment_quote", "financial_statements",
+    )
+    f4_min_docs: int = 3  # F4: at least this many matching statements
+    f4_min_share: float = 0.8  # ... and at least this share of the usable statements
+    f6_tail_percentile: float = 0.95  # F6: ratio at or above this percentile of clean history
 
     def weight(self, kind: str) -> float:
         return self.type_weights.get(kind, self.default_type_weight)
@@ -81,6 +90,28 @@ class FraudParams:
         alpha = (fams.get("F5") or {}).get("dirichlet_alpha", 0.5)
         if not _num(alpha) or alpha <= 0:
             raise ConfigError("fraud.yaml: F5.dirichlet_alpha must be a number > 0")
+        f2 = fams.get("F2") or {}
+        window = f2.get("burst_window_days", 7)
+        if isinstance(window, bool) or not isinstance(window, int) or window < 0:
+            raise ConfigError("fraud.yaml: F2.burst_window_days must be an int >= 0")
+        min_partners = f2.get("burst_min_partners", 1)
+        if isinstance(min_partners, bool) or not isinstance(min_partners, int) or min_partners < 1:
+            raise ConfigError("fraud.yaml: F2.burst_min_partners must be an int >= 1")
+        f4 = fams.get("F4") or {}
+        third = _str_tuple(f4.get("third_party_classes", ["bank_statement"]), "F4.third_party_classes")
+        borrower = _str_tuple(
+            f4.get("borrower_classes", ["application", "request_letter", "equipment_quote", "financial_statements"]),
+            "F4.borrower_classes",
+        )
+        min_docs = f4.get("min_docs", 3)
+        if isinstance(min_docs, bool) or not isinstance(min_docs, int) or min_docs < 1:
+            raise ConfigError("fraud.yaml: F4.min_docs must be an int >= 1")
+        min_share = f4.get("min_share", 0.8)
+        if not _num(min_share) or not 0 < min_share <= 1:
+            raise ConfigError("fraud.yaml: F4.min_share must be a number in (0, 1]")
+        tail = (fams.get("F6") or {}).get("tail_percentile", 0.95)
+        if not _num(tail) or not 0 < tail < 1:
+            raise ConfigError("fraud.yaml: F6.tail_percentile must be a number in (0, 1)")
         link_classes = _parse_link_classes(((cfg.raw or {}).get("history_flags") or {}).get("link_classes"))
         return cls(
             rho=cfg.f1_rarity_fraction,
@@ -96,7 +127,20 @@ class FraudParams:
             min_vendor_deals=min_vendor,
             dirichlet_alpha=float(alpha),
             link_classes=link_classes,
+            burst_window_days=window,
+            burst_min_partners=min_partners,
+            f4_third_party_classes=third,
+            f4_borrower_classes=borrower,
+            f4_min_docs=min_docs,
+            f4_min_share=float(min_share),
+            f6_tail_percentile=float(tail),
         )
+
+
+def _str_tuple(v: Any, name: str) -> tuple[str, ...]:
+    if not isinstance(v, (list, tuple)) or not v or not all(isinstance(x, str) and x for x in v):
+        raise ConfigError(f"fraud.yaml: {name} must be a non-empty list of strings")
+    return tuple(v)
 
 
 def _parse_link_classes(raw: Any) -> tuple[tuple[str, str], ...]:

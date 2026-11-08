@@ -273,7 +273,8 @@ def render_markdown(rep: dict[str, Any]) -> str:
         "",
         "## Caveats",
         "",
-        "- F2 and F4 are not built, so the false-flag count above (all of F1, F3 and F5) is a lower "
+        "- F2 and F4 are not built into this history replay (history rows carry no document "
+        "metadata or arrival times), so the false-flag count above (all of F1, F3 and F5) is a lower "
         "bound: with F2 and F4 there are more ways to reach the two additional families a hold needs.",
         "- tau for F3 and F5 and the F5 reference sample come from the train period only.",
         "- F1 has no percentile (it is mandatory for a hold and fires on any strong shared entity), so "

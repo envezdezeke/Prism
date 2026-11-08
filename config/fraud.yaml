@@ -23,7 +23,9 @@ families:
     outcome_beta: 0.5        # discount for shared values whose history deals repaid
   F2:                      # novelty or burst
     votes: true
-    percentile: 0.95
+    percentile: 0.95       # kept for the config contract; F2 is a structural rule and ignores it
+    burst_window_days: 7   # partners sharing a strong entity, opened within this many days
+    burst_min_partners: 1  # fires at this many burst partners; bits = log2(1 + k)
   F3:                      # lookalike vendor or account
     votes: true
     percentile: 0.95
@@ -32,13 +34,18 @@ families:
     min_vendor_deals: 3    # a "frequent" history vendor has at least this many deals
   F4:                      # document forensics
     votes: true
-    percentile: 0.95
+    percentile: 0.95       # kept for the config contract; F4 is a structural rule and ignores it
+    third_party_classes: [bank_statement]   # documents that should come from someone else's tool
+    borrower_classes: [application, request_letter, equipment_quote, financial_statements]
+    min_docs: 3            # at least this many third-party docs made by a borrower-paperwork tool
+    min_share: 0.8         # ... and at least this share of the usable ones (producer text, no OCR)
   F5:                      # deposit pattern
     votes: true
     percentile: 0.95
     dirichlet_alpha: 0.5   # weekday-distribution smoothing
   F6:                      # terms shape: evidence only, never votes
     votes: false
+    tail_percentile: 0.95  # amount/revenue at or above this percentile of clean history
 
 hold_rule:
   required: [F1]

@@ -238,7 +238,7 @@ def test_report_files_and_determinism(tmp_path):
     first = data["deals"][1]
     assert set(first["bits"]) == {"F1", "F3", "F5"} and first["fired"] == ["F1"]
     md = (out / "baseline_eval.md").read_text(encoding="utf-8")
-    assert "F2 and F4 are not built" in md and "lower bound" in md and "train period" in md
+    assert "F2 and F4 are not built into this history replay" in md and "lower bound" in md and "train period" in md
     code2, out2 = run_main(tmp_path, name="out2")
     assert code2 == 0
     for name in ("baseline_eval.json", "baseline_eval.md"):

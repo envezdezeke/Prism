@@ -3,17 +3,19 @@
 Contract: one FamilySignal per fired-or-evaluated family per deal group; F6 is evidence
 only and never votes. Thresholds come from ``FraudConfig`` percentiles, not literals.
 
-Built so far: F1 (shared rare entity), F3 (lookalike vendor or account) and F5 (deposit
-pattern). F2, F4 and F6 are not built. F1 has no percentile: it fires iff a strong shared
-entity exists. F3 and F5 fire iff ``bits > 0`` and ``bits >= tau`` where tau is the startup
+All six families are built. F1 has no percentile: it fires iff a strong shared entity
+exists. F3 and F5 fire iff ``bits > 0`` and ``bits >= tau`` where tau is the startup
 calibration percentile on ``Baseline.calibration`` (never fires when tau is missing).
+F2 (burst) and F4 (document forensics) are structural rules with thresholds from
+config/fraud.yaml (their percentile entries are kept for the config contract but unused).
+F6 (terms shape) is evidence only: it is non-voting in config and never counts toward a hold.
 """
 from __future__ import annotations
 
 import math
 from collections import Counter
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import date, datetime
 from typing import Mapping, Optional
 
 from prism.engine.config import FraudConfig
@@ -23,6 +25,7 @@ from prism.fraud.canon import split_legal_suffix
 from prism.fraud.graph import EntityGraph
 from prism.fraud.rarity import (
     FraudParams,
+    percentile,
     base_similar,
     entropy_bits,
     fit_beta_mom,
@@ -36,7 +39,7 @@ from prism.fraud.rarity import (
 
 
 # Families compute_signals evaluates; the others show "not evaluated" in clusters.
-COMPUTED_FAMILIES: tuple[str, ...] = ("F1", "F3", "F5")
+COMPUTED_FAMILIES: tuple[str, ...] = ("F1", "F2", "F3", "F4", "F5", "F6")
 
 
 @dataclass(frozen=True)
@@ -279,6 +282,159 @@ def score_f5(
     )
 
 
+# ------------------------------------------------------------------------------- F2
+
+@dataclass(frozen=True)
+class F2Result:
+    k: int  # distinct burst partners
+    partners: tuple[str, ...]
+    bits: float  # log2(1 + k)
+    fired: bool
+    evidence: str
+
+
+def opening_date(deal_id: str, states: Mapping[str, DealState], baseline: Baseline) -> Optional[date]:
+    """A current deal opens with its earliest visible document; a history deal on its application."""
+    st = states.get(deal_id)
+    if st is not None:
+        times = [d.arrive_at for d in st.docs if d.arrive_at is not None]
+        return min(times).date() if times else None
+    hd = baseline.deals.get(deal_id)
+    return hd.applied if hd is not None else None
+
+
+def score_f2(
+    folder: str,
+    graph: EntityGraph,
+    states: Mapping[str, DealState],
+    baseline: Baseline,
+    params: FraudParams,
+) -> Optional[F2Result]:
+    """F2: other deals sharing a strong entity with this one, opened within the burst window.
+
+    A ring opens together; honest repeat borrowers come back months apart. None when no
+    partner falls inside the window (nothing to report).
+    """
+    prof = graph.profiles.get(folder)
+    start = opening_date(folder, states, baseline)
+    if prof is None or start is None:
+        return None
+    partners: set[str] = set()
+    for kind in sorted(prof.entities):
+        for value in prof.entities[kind]:
+            w = graph.entity_weights.get((kind, value))
+            if w is None or not w.strong:
+                continue
+            for other in graph.entity_deals.get((kind, value), ()):
+                if other == folder or other in partners:
+                    continue
+                when = opening_date(other, states, baseline)
+                if when is not None and abs((when - start).days) <= params.burst_window_days:
+                    partners.add(other)
+    if not partners:
+        return None
+    k = len(partners)
+    return F2Result(
+        k=k,
+        partners=tuple(sorted(partners)),
+        bits=math.log2(1 + k),
+        fired=k >= params.burst_min_partners,
+        evidence=(
+            f"{k} other deal{'s' if k != 1 else ''} that share a rare entity with this one "
+            f"opened within {params.burst_window_days} days (a ring opens together; honest "
+            "repeat borrowers come back months apart)"
+        ),
+    )
+
+
+# ------------------------------------------------------------------------------- F4
+
+@dataclass(frozen=True)
+class F4Result:
+    matched: int  # third-party documents made by a borrower-paperwork tool
+    usable: int  # third-party documents with producer text and no OCR
+    bits: float  # matched, informational (F4 has no percentile)
+    fired: bool
+    evidence: str
+
+
+def _tool(doc) -> Optional[tuple[str, str]]:
+    meta = doc.meta or {}
+    producer = str(meta.get("producer") or "").strip()
+    if not producer or meta.get("ocr_used") is True:
+        return None
+    return producer, str(meta.get("creator") or "").strip()
+
+
+def score_f4(state: DealState, params: FraudParams) -> Optional[F4Result]:
+    """F4: the same creation tool made the borrower's own paperwork and its bank statements.
+
+    Only third-party documents with producer text and no OCR are usable, so scans and images
+    never fire. None when there is no usable third-party document or no borrower tool.
+    """
+    third = set(params.f4_third_party_classes)
+    borrower = set(params.f4_borrower_classes)
+    tools = {t for d in state.docs if d.doc_class in borrower for t in [_tool(d)] if t is not None}
+    usable = [t for d in state.docs if d.doc_class in third for t in [_tool(d)] if t is not None]
+    if not usable or not tools:
+        return None
+    matched = sum(1 for t in usable if t in tools)
+    fired = matched >= params.f4_min_docs and matched / len(usable) >= params.f4_min_share
+    return F4Result(
+        matched=matched,
+        usable=len(usable),
+        bits=float(matched),
+        fired=fired,
+        evidence=(
+            f"the same creation tool produced the borrower's own paperwork and {matched} of "
+            f"{len(usable)} bank statements (statements normally come from the bank's systems)"
+        ),
+    )
+
+
+# ------------------------------------------------------------------------------- F6
+
+@dataclass(frozen=True)
+class F6Result:
+    ratio: float
+    bits: float
+    fired: bool
+    evidence: str
+
+
+def _fact_number(state: DealState, key: str) -> Optional[float]:
+    f = state.facts.get(key)
+    if f is None or isinstance(f.value, bool):
+        return None
+    try:
+        x = float(f.value)
+    except (TypeError, ValueError):
+        return None
+    return x if math.isfinite(x) else None
+
+
+def score_f6(state: DealState, baseline: Baseline, params: FraudParams) -> Optional[F6Result]:
+    """F6 (evidence only): amount requested over stated revenue against clean history ratios."""
+    amount = _fact_number(state, "amount_requested")
+    revenue = _fact_number(state, "annual_revenue_stated")
+    ref = baseline.terms_ratios()
+    if amount is None or revenue is None or amount <= 0 or revenue <= 0 or not ref:
+        return None
+    ratio = amount / revenue
+    bits = upper_tail_bits(ratio, ref)
+    cut = percentile(ref, params.f6_tail_percentile)
+    fired = bits > 0 and cut is not None and ratio >= cut
+    return F6Result(
+        ratio=ratio,
+        bits=bits,
+        fired=fired,
+        evidence=(
+            f"amount requested is {ratio:.2f} times stated annual revenue; "
+            f"{len(ref)} clean history deals reference this ratio (evidence only, never votes)"
+        ),
+    )
+
+
 # ------------------------------------------------------------------------------ driver
 
 def _fires(bits: float, tau: Optional[float]) -> bool:
@@ -321,4 +477,15 @@ def compute_signals(
                 out.append(
                     FamilySignal("F5", (folder,), f5.bits, _fires(f5.bits, cal.tau.get("F5")), f5.evidence)
                 )
+        f2 = score_f2(folder, graph, states, baseline, params)
+        if f2 is not None:
+            out.append(FamilySignal("F2", (folder,) + f2.partners, f2.bits, f2.fired, f2.evidence))
+        if state is not None:
+            f4 = score_f4(state, params)
+            if f4 is not None:
+                out.append(FamilySignal("F4", (folder,), f4.bits, f4.fired, f4.evidence))
+            f6 = score_f6(state, baseline, params)
+            if f6 is not None:
+                out.append(FamilySignal("F6", (folder,), f6.bits, f6.fired, f6.evidence))
+    out.sort(key=lambda sg: (sg.deals[0], sg.family))
     return out
