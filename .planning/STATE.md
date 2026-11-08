@@ -3,15 +3,15 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: Pipeline Cockpit UI on Mock Data
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-11-08T02:06:04.854Z"
-last_activity: "2026-11-07 ~20:15 CT - Jesse: plan 02-01 done (UI scaffold, tokens, live pipeline board; 11/11 UI tests). Ezekiel: Merged quick task 261107-qx4 (fraud baseline, F1/F3/F5 + calibration; Jul-Oct replay: 1/72 good-deal false flags as lower bound, F1 fires on ~30% of clean deals). Move core (261107-qx3) still running in a worktree."
-state_head: 8bbd3db53341c83fdf268d1acc380380b627195c
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-11-08T03:23:11.994Z"
+last_activity: "2026-11-07 ~20:10 CT - Merged quick task 261107-qx3 (Move core; 353 tests). Fraud baseline (qx4) merged earlier. Next: Phase 3 Read (critical path), then Phase 5 decide/clusters/history_flags."
+state_head: 9ee86e083dfda2911f53af20b2e1e7bbcba92340
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 ## Current Position
 
 Phase: 02 (Pipeline Cockpit UI on Mock Data) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-11-07 ~20:10 CT - Merged quick task 261107-qx3 (Move core; 353 tests). Fraud baseline (qx4) merged earlier. Next: Phase 3 Read (critical path), then Phase 5 decide/clusters/history_flags.
 
@@ -84,6 +84,7 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 |------|----------|-------|-------|
 | Phase 02 P01 | 8min | 2 tasks | 31 files |
 | Phase 02 P02 | 6min | 3 tasks | 17 files |
+| Phase 02 P03 | 120min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,7 @@ Full log in the PROJECT.md Key Decisions table. Most load-bearing right now:
 - [Phase 02]: Plan 02-01: no destructive Badge/Button variant; red exists only via hold tokens (D-05)
 - [Phase 02]: 02-02: UI-SPEC copy and layout override plan copy (button labels, empty/sync messages, column limit only when shared); Play/Pause separate from Replay from start
 - [Phase 02]: 02-02: clock writes send only {to} or {}, debounced 300 ms, local clock never reverts; mock 422 on backward targets shows a neutral inline message
+- [Phase 02]: 02-03: UI-SPEC copy won over plan (role labels, whole-percent confidence, no credit officer row); deal links are hash anchors; stage-log why hidden until the exit time; .gitignore data/ anchored to /data/ so ui/src/data is tracked
 
 ### Pending Todos
 
@@ -129,8 +131,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-08T02:02:22.849Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-11-08T03:23:11.980Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
 
 **Loose ends from the planning session:**
