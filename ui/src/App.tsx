@@ -57,7 +57,7 @@ function Rail() {
   const toggle = useUiStore((s) => s.toggleRail)
   const pending = usePendingCount()
   return (
-    <aside aria-label="Primary" className={`flex min-h-screen shrink-0 flex-col gap-4 bg-navy pb-4 ${collapsed ? 'w-14' : 'w-56'}`}>
+    <aside aria-label="Primary" className={`rail-light flex min-h-screen shrink-0 flex-col gap-4 bg-navy pb-4 ${collapsed ? 'w-14' : 'w-56'}`}>
       <div className={`flex h-14 items-center border-b border-surface/15 ${collapsed ? 'justify-center' : 'justify-between px-3'}`}>
         {!collapsed && (
           <span className="flex items-center gap-2 text-base font-bold tracking-wide text-surface">

@@ -28,7 +28,7 @@ export function PipelineLink({ className, children }: { className?: string; chil
 
 // The only place the display serif and the page-title size are applied.
 export function PageTitle({ children }: { children: ReactNode }) {
-  return <h1 className="border-l-4 border-sky pl-3 font-display text-title font-bold text-navy">{children}</h1>
+  return <h1 className="font-display text-title font-semibold tracking-tight text-ink">{children}</h1>
 }
 
 export function Caption({ children, className }: { children: ReactNode; className?: string }) {

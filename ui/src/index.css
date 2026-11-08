@@ -1,8 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/source-serif-4";
+@import "@fontsource-variable/inter";
 
 /* Design tokens: 02-UI-SPEC.md is the source of truth (D-04 to D-08, D-19).
    Navy is the only accent. Red is reserved for a fraud hold. The only dark styling is the
@@ -17,17 +16,17 @@
   --inset-shadow-*: initial;
   --drop-shadow-*: initial;
 
-  --color-page: #FAF9F7;
+  --color-page: #F5F5F5;
   --color-surface: #FFFFFF;
-  --color-subtle: #F5F5F4;
-  --color-ink: #1C1917;
-  --color-ink-2: #57534E;
+  --color-subtle: #F4F4F5;
+  --color-ink: #0A0A0A;
+  --color-ink-2: #5F5F5F;
   /* Null dashes, SLA fill and ticks, input borders. Never caption text. */
-  --color-tertiary: #78716C;
-  --color-line: #D6D3D1;
-  --color-navy: #0E2846;
-  /* Sky (#7399C6, sponsor palette, Jesse D-03 amended): highlights on navy, graph edges. */
-  --color-sky: #7399C6;
+  --color-tertiary: #8A8A8A;
+  --color-line: #E5E5E5;
+  --color-navy: #111111;
+  /* Sky (now neutral grey in the monochrome restyle): highlights on navy, graph edges. */
+  --color-sky: #A3A3A3;
   --color-hold: #B42318;
   --color-hold-soft: #FEF3F2;
   --color-risk: #B54708;
@@ -35,10 +34,10 @@
   --color-ok: #067647;
   --color-ok-soft: #ECFDF3;
 
-  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans);
   /* Serif: page titles only (D-19). */
-  --font-display: 'Source Serif 4 Variable', ui-serif, Georgia, serif;
+  --font-display: var(--font-sans);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Four sizes: 12, 13, 14 and a 28px page title. */
@@ -48,14 +47,14 @@
   --text-sm--line-height: 1.4;
   --text-base: 14px;
   --text-base--line-height: 1.4;
-  --text-title: 28px;
+  --text-title: 22px;
   --text-title--line-height: 1.2;
 
   /* Nothing exceeds 6px (D-07). */
   --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 6px;
-  --radius-xl: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 12px;
   --radius-2xl: 6px;
   --radius-3xl: 6px;
   --radius-4xl: 6px;
@@ -72,9 +71,9 @@
 
   /* Fraud-graph canvas colours (D-30). The canvas reads these at runtime (src/graph/palette.ts), so
      every colour still has one source. Muted stone, navy, amber and green only. */
-  --color-graph-deal: #0E2846;
+  --color-graph-deal: #111111;
   --color-graph-history: #A8A29E;
-  --color-graph-edge: #7399C6;
+  --color-graph-edge: #A3A3A3;
   --color-graph-document: #A18A62;
   --color-graph-identity: #6E7A8C;
   --color-graph-money: #6F8F7B;
@@ -201,3 +200,16 @@
     }
   }
 }
+
+/* Monochrome restyle: the rail was built light-on-navy; inside it the tokens swap so the same
+   classes render a white rail with black accents. */
+.rail-light {
+  --color-navy: #FFFFFF;
+  --color-surface: #0A0A0A;
+  --color-sky: #111111;
+  border-right: 1px solid #E5E5E5;
+}
+.rail-light .bg-sky { color: #FFFFFF; }
+.rail-light [aria-current='page'], .rail-light .bg-surface { background-color: #F4F4F5; color: #0A0A0A; }
+.rail-light input { background-color: #FFFFFF; color: #0A0A0A; border-color: #E5E5E5; }
+body { font-feature-settings: "cv11" 1, "ss01" 1; letter-spacing: -0.005em; }

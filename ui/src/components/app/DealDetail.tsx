@@ -60,7 +60,7 @@ function SummaryPanel({ row }: { row: BoardRow<DealDetailData> }) {
   const rm = deal.rm == null ? null : personLabel(deal.rm, 'Relationship manager')
   return (
     <section aria-label="Summary" className="flex flex-col gap-2 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Summary</h2>
+      <h2 className="text-base font-semibold text-ink">Summary</h2>
       <dl className="flex flex-col gap-2">
         <Row label="Stage">{row.stage}</Row>
         <Row label="Stage entered">{fmtSimTime(row.enteredAt)}</Row>
@@ -99,7 +99,7 @@ function FactsSection({ deal }: { deal: DealDetailData }) {
   return (
     <section aria-label="Facts" className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
-        <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Facts</h2>
+        <h2 className="text-base font-semibold text-ink">Facts</h2>
         <Caption>As of end of run</Caption>
       </div>
       {!anyFact ? (
@@ -107,7 +107,7 @@ function FactsSection({ deal }: { deal: DealDetailData }) {
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+            <TableHeader className="bg-subtle [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-ink-2 [&_th]:uppercase">
               <TableRow className="border-navy hover:bg-transparent">
                 <TableHead>Field</TableHead>
                 <TableHead>Value</TableHead>
@@ -175,7 +175,7 @@ function IssuesSection({ deal }: { deal: DealDetailData }) {
   return (
     <section aria-label="Issues" className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
-        <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Issues</h2>
+        <h2 className="text-base font-semibold text-ink">Issues</h2>
         <Caption>As of end of run</Caption>
       </div>
       <IssueList issues={deal.issues} empty="No open issues." />
@@ -191,7 +191,7 @@ function StageLogSection({ deal, nowMs }: { deal: DealDetailData; nowMs: number 
   const entries = stageLogAt(deal.stage_log, nowMs)
   return (
     <section aria-label="Stage log" className="flex flex-col gap-2">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Stage log</h2>
+      <h2 className="text-base font-semibold text-ink">Stage log</h2>
       <ol className="flex flex-col gap-4 border-l-2 border-navy pl-4">
         {entries.map((e) => (
           <li key={`${e.stage}-${e.entered_at}`} className="flex flex-col gap-1">
@@ -224,13 +224,13 @@ function RequestsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: n
   const requests = requestsAt(deal.human_requests, nowMs)
   return (
     <section aria-label="Human requests" className="flex flex-col gap-2">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Human requests</h2>
+      <h2 className="text-base font-semibold text-ink">Human requests</h2>
       {requests.length === 0 ? (
         <p className="text-sm text-ink-2">No requests on this deal as of {when}.</p>
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+            <TableHeader className="bg-subtle [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-ink-2 [&_th]:uppercase">
               <TableRow className="border-navy hover:bg-transparent">
                 <TableHead>Sent</TableHead>
                 <TableHead>Type</TableHead>
@@ -275,13 +275,13 @@ function AlertsSection({ deal, nowMs, when }: { deal: DealDetailData; nowMs: num
   const alerts = alertsAt(deal.alerts, nowMs, 'oldest')
   return (
     <section aria-label="Alerts" className="flex flex-col gap-2">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Alerts</h2>
+      <h2 className="text-base font-semibold text-ink">Alerts</h2>
       {alerts.length === 0 ? (
         <p className="text-sm text-ink-2">No alerts on this deal as of {when}.</p>
       ) : (
         <div className="rounded-md border border-line bg-surface">
           <Table>
-            <TableHeader className="bg-navy [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wide [&_th]:text-surface [&_th]:uppercase">
+            <TableHeader className="bg-subtle [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-ink-2 [&_th]:uppercase">
               <TableRow className="border-navy hover:bg-transparent">
                 <TableHead className="border-l-2 border-transparent">Time</TableHead>
                 <TableHead>Level</TableHead>
@@ -330,7 +330,7 @@ function FraudPanel({
   const linked = f.linked_deals ?? []
   return (
     <section aria-label="Fraud status" className="flex flex-col gap-2 rounded-md border border-line border-t-4 border-t-navy bg-surface p-4">
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">Fraud status</h2>
+      <h2 className="text-base font-semibold text-ink">Fraud status</h2>
       {held ? (
         <>
           <StatusBadge held watch={false} />

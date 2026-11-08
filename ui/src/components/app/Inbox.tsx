@@ -139,7 +139,7 @@ export function InboxView({ items, now }: { items: InboxItem[]; now: string }) {
         }
       />
       {show !== 'answered' && (<>
-      <h2 className="border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">
+      <h2 className="text-base font-semibold text-ink">
         Pending <span className="font-normal text-ink-2 tabular-nums">{pending.length}</span>
       </h2>
       {pending.length === 0 ? (
@@ -159,7 +159,7 @@ export function InboxView({ items, now }: { items: InboxItem[]; now: string }) {
       )}
       </>)}
       {show !== 'pending' && (<>
-      <h2 className="pt-4 border-l-4 border-sky pl-2 text-base font-bold tracking-wide text-navy uppercase">
+      <h2 className="pt-4 text-base font-semibold text-ink">
         Answered <span className="font-normal text-ink-2 tabular-nums">{done.length}</span>
       </h2>
       {done.length === 0 ? (

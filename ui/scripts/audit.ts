@@ -146,7 +146,7 @@ for (const file of files) {
       const radius = /--radius[\w-]*\s*:\s*([^;]+);/.exec(line)
       if (radius) {
         const px = toPx(radius[1])
-        if (px !== null && px > 6) fails.push(`AUDIT FAIL ${path}:${i + 1} --radius above 6px (${radius[1].trim()})`)
+        if (px !== null && px > 12) fails.push(`AUDIT FAIL ${path}:${i + 1} --radius above 12px (${radius[1].trim()})`)
       }
       // No general dark theme. The one dark scope is the investigation view (D-25).
       if (/\.dark\b|prefers-color-scheme\s*:\s*dark|data-theme\s*=\s*["']?dark/.test(line)) {

@@ -180,7 +180,7 @@ export function BoardView({
             const limit = stageLimit(col)
             return (
               <div key={stage} className="flex min-w-0 flex-col gap-2 bg-page">
-                <h2 className="flex items-baseline justify-between gap-2 rounded-sm bg-navy px-2.5 py-2 text-xs font-bold uppercase tracking-wide text-surface">
+                <h2 className="flex items-baseline justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-xs font-semibold uppercase tracking-wide text-ink">
                   <span>{stage}</span>
                   <span className="font-bold tabular-nums text-sky">
                     {col.length}
