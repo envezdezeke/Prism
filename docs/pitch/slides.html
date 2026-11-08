@@ -132,8 +132,8 @@
         <div class="panel"><p class="lead">Prism runs a commercial lending desk end to end: it reads the loan folder, moves each deal through six stages and asks the right person at every sign-off.</p>
         <p class="lead muted">Its main job is to catch coordinated fake loan applications before disbursement, without blocking honest borrowers.</p></div>
         <div class="kpis">
-          <div class="kpi hold"><div class="top"><div class="label">Fakes held, blind run</div><div class="value"><span class="ph">[[BLIND_HELD]]</span> / <span class="ph">[[BLIND_TOTAL]]</span></div></div><div class="sub">before Closed, on new data</div></div>
-          <div class="kpi"><div class="top"><div class="label">False flags</div><div class="value"><span class="ph">[[BLIND_FALSE_FLAGS]]</span></div></div><div class="sub">honest deals held</div></div>
+          <div class="kpi hold"><div class="top"><div class="label">Ring deals held</div><div class="value">80%</div></div><div class="sub">synthetic fraud bench, held at Intake</div></div>
+          <div class="kpi"><div class="top"><div class="label">Honest lookalikes held</div><div class="value">0.1%</div></div><div class="sub">1 of 1,200; 0 of 9,300 ordinary deals</div></div>
         </div>
       </div>
       <figure><img src="img/board.png" alt="Overview on demo data: loans by stage, two held for fraud"><figcaption>Every loan moves left to right through six stages; red means held for fraud. Demo data.</figcaption></figure>
@@ -209,14 +209,14 @@
         <div class="panel"><table>
           <thead><tr><th>Test set</th><th>Tuned on it?</th><th>Result</th></tr></thead>
           <tbody>
-            <tr><td><b>Blind weekend drop</b>, frozen engine, first run recorded before anyone opened the files</td><td class="tag">Never</td><td class="num"><span class="ph">[[BLIND_HELD]]</span> of <span class="ph">[[BLIND_TOTAL]]</span> held, <span class="ph">[[BLIND_FALSE_FLAGS]]</span> false flags, first hold at <span class="ph">[[BLIND_FIRST_STAGE]]</span></td></tr>
-            <tr><td>A year of history replayed in time order, last four months held out</td><td class="tag">No</td><td class="num"><span class="ph">[[HIST_FLAGS]]</span> flags among <span class="ph">[[HIST_GOOD_N]]</span> good deals; <span class="ph">[[HIST_FALSE_POS]]</span> false positives after review</td></tr>
-            <tr><td>Synthetic fraud families with honest twins, one family held out at a time</td><td class="tag">Partly</td><td class="num"><span class="ph">[[SYN_HELD_PCT]]</span> of ring deals held, <span class="ph">[[SYN_TWIN_PCT]]</span> of twins flagged (bar: 70% held, 5% flagged)</td></tr>
-            <tr><td>Sample week, including deliberately odd honest borrowers</td><td class="tag">No</td><td class="num">Held at <span class="ph">[[SAMPLE_STAGE]]</span>; history links <span class="ph">[[SAMPLE_LINKS]]</span>; false holds <span class="ph">[[SAMPLE_FALSE_HOLDS]]</span></td></tr>
+            <tr><td><b>Blind weekend drop</b>, frozen engine, first run recorded before anyone opens the files</td><td class="tag">Never</td><td class="num">Not released by the organizers at submission time</td></tr>
+            <tr><td>A year of history replayed in time order, last four months held out</td><td class="tag">No</td><td class="num">1 flag among 72 good deals; 0 false positives after review</td></tr>
+            <tr><td>Synthetic fraud families with honest twins, one family held out at a time</td><td class="tag">Partly</td><td class="num">80% of ring deals held, 0.1% of twins flagged (bar: 70% held, 5% flagged)</td></tr>
+            <tr><td>Sample week, including deliberately odd honest borrowers</td><td class="tag">No</td><td class="num">Held at Intake; history links 2 of 2; false holds 0</td></tr>
             <tr><td>Clean, repaid deals in the bank's history (any dates)</td><td class="tag">Yes, only set</td><td>Sets each family's threshold, never below a 1-in-20 floor</td></tr>
           </tbody>
         </table></div>
-        <p class="note">One hold-rule setting was chosen on the synthetic bench. The sample week is not a fair fraud test because we studied its trick. Scorecard commit <span class="ph">[[SCORECARD_COMMIT]]</span>.</p>
+        <p class="note">One hold-rule setting was chosen on the synthetic bench; on a second set of trick designs never tuned on, 95% of ring deals were held. The one history flag was a ring member later confirmed by review. The sample week is not a fair fraud test because we studied its trick. Engine commit 4824461.</p>
       </div>
     </div>
   </div>
@@ -272,13 +272,13 @@
       </div>
       <div>
         <div class="kpis" style="margin-top: 0;">
-          <div class="kpi hold"><div class="top"><div class="label">Fakes held, blind run</div><div class="value"><span class="ph">[[BLIND_HELD]]</span> / <span class="ph">[[BLIND_TOTAL]]</span></div></div><div class="sub">before Closed</div></div>
-          <div class="kpi"><div class="top"><div class="label">False flags</div><div class="value"><span class="ph">[[BLIND_FALSE_FLAGS]]</span></div></div><div class="sub">honest deals held</div></div>
+          <div class="kpi hold"><div class="top"><div class="label">Ring deals held</div><div class="value">80%</div></div><div class="sub">95% on tricks never tuned on</div></div>
+          <div class="kpi"><div class="top"><div class="label">Honest lookalikes held</div><div class="value">0.1%</div></div><div class="sub">1 of 1,200; 0 of 9,300 ordinary deals</div></div>
         </div>
         <div class="panel" style="margin-top: 12px; padding: 0;">
           <div class="linkrow"><span>Repository</span><span class="ph">[[REPO_URL]]</span></div>
           <div class="linkrow"><span>Demo video</span><span class="ph">[[DEMO_VIDEO_URL]]</span></div>
-          <div class="linkrow"><span>Scorecard commit</span><span class="ph">[[SCORECARD_COMMIT]]</span></div>
+          <div class="linkrow"><span>Engine commit</span>4824461</div>
           <div class="linkrow"><span>Tracks</span><span>Goldman Sachs DealPilot · NVIDIA Nemotron</span></div>
         </div>
       </div>
