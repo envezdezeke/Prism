@@ -150,7 +150,15 @@ def run_sim(
     result = RunResult(errors=list(alog.errors), unattached=alog.unattached())
     result.errors.extend(f"config: {w}" for w in rules.warnings)
 
-    names = sorted(set(alog.folders()) | set(deal_dirs(folder)))
+    on_disk = set(deal_dirs(folder))
+    listed = set(alog.folders())
+    # An arrival whose deal folder is not on disk would invent a deal the validator rejects
+    # ("unexpected deal"), so it is skipped and reported. With no readable folder at all the
+    # arrivals file is the only list of deals and is kept whole.
+    ghosts = sorted(listed - on_disk) if on_disk else []
+    for g in ghosts:
+        result.errors.append(f"arrivals for folder not on disk skipped: {g}")
+    names = sorted((listed - set(ghosts)) | on_disk)
     states = {n: DealState(folder=n) for n in names}
     result.states = states
 
@@ -172,7 +180,7 @@ def run_sim(
         visible = alog.visible_files(now)
         fresh: dict[str, list[Arrival]] = {}
         for a in visible:
-            if a.path in seen or "/" not in a.path:
+            if a.path in seen or "/" not in a.path or a.folder not in states:
                 continue
             seen.add(a.path)
             fresh.setdefault(a.folder, []).append(a)

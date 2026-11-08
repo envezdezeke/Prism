@@ -464,3 +464,13 @@ def test_default_end_is_last_arrival_plus_grace(tmp_path):
     with_grace = run_sim(tmp_path / "shared", arr, data_root=tmp_path)
     no_grace = run_sim(tmp_path / "shared", arr, data_root=tmp_path, end_grace_minutes=0)
     assert with_grace.n_ticks == no_grace.n_ticks + 1
+
+
+def test_arrival_for_folder_not_on_disk_is_skipped_and_reported(tiny_set):
+    folder, arrivals = tiny_set
+    with open(arrivals, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"path": "Nowhere Inc/x.pdf", "arrive_at": "2026-01-05T09:50-06:00"}) + "\n")
+    result = run_sim(folder, arrivals)
+    assert "Nowhere Inc" not in result.states
+    assert sorted(result.states) == ["Alpha Trading", "Beta & Sons"]
+    assert any("not on disk skipped: Nowhere Inc" in e for e in result.errors)
