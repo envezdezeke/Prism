@@ -121,7 +121,7 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 
 ## 7. Jesse's work items (finance)
 
-1. **Answer key `eval/gold.json`** for all 13 sample folders: the true extracted fields plus the true `issues`. This is the highest-value finance task; every READ result gets scored against it.
+1. ✅ **Done Sat 18:29.** **Answer key `eval/gold.json`** for all 13 sample folders: the true extracted fields plus the true `issues`. This is the highest-value finance task; every READ result gets scored against it.
 2. Domain rules: per-field mismatch tolerances and the nickname list; required docs per stage; vendor and disbursement verification; the 7004 rule (business under 2 years old). **Started:** `docs/DETAILS_CHECKLIST.md` (rules plus judgment calls J1–J20 awaiting Jesse's sign-off).
 3. Credit memo template (Committee requires one): the 5 Cs, risk rating, flags with evidence, approval conditions. Nemotron fills it; deterministic facts only.
 4. Plain-English templates for human requests and SLA alerts (each must say: whose deal + RM, stage + duration, waiting on, what unblocks it).
@@ -132,20 +132,20 @@ Judges are likely engineers, and compliance terms sound like bloat to them. Rule
 - Jesse's earlier local session built a generic finance/actuarial Streamlit starter (VaR/CVaR, Monte Carlo, credit loss), written before the tracks were known. It's **not** in this repo (it conflicts with the FastAPI/React stack and the no-Claude rule) and lives only on Jesse's machine (local branch `starter-local`). Ignore it unless a specific function is useful.
 - That session went through several red-team passes. The conclusions are captured above and agree with PROJECT.md's key decisions: the deterministic engine owns the score, multi-signal agreement before a hold, nothing sample-specific hard-coded, and the data stays out of git.
 
-## 9. Open items for Jesse + Zeke (as of Sat ~17:45 CT)
+## 9. Open items for Jesse + Zeke (updated Sat ~18:45 CT)
 
 Settle these together; each blocks clean hand-offs.
 
 | # | Item | Why it matters | Proposed answer |
 |---|---|---|---|
-| 1 | **Contract + mock data (due H1, 16:55) is not on GitHub yet** | The screen work can't start against real shapes | Zeke posts an ETA |
-| 2 | **Answer key `eval/gold.json` (due H2, 17:55) not started; file shape undefined** | The self-score and the H10 gate depend on it | New due time (proposed 19:00). Zeke names the shape, or it mirrors SUBMISSION_FORMAT's keys plus an "acceptable answers" note for ambiguous fields |
-| 3 | **The answer key must be labelled blind.** ROADMAP Phase 3 already lists research-expected issues | If labels copy the research, the score checks the research against itself | Jesse labels from the raw files without reading those expectations, then we diff and discuss every disagreement |
+| 1 | ~~Contract + mock data~~ | | **Resolved:** delivered by Zeke Sat evening (`docs/CONTRACT.md`, `fixtures/`, `prism/`; 76 tests pass on Mac) |
+| 2 | ~~Answer key not started; shape undefined~~ | | **Resolved Sat 18:29:** Zeke's template (`eval/README.md`), all 13 deals `done`, pushed before the 20:00 deadline |
+| 3 | ~~Answer key must be labelled blind~~ | | **Done:** labelled from raw files, then diffed against the research: zero disagreements on issues, holds or links |
 | 4 | **Jesse's role.** The plan has Jesse coding the UI for ~8h (H1–H9) plus the graph view; Jesse is finance, not a developer | Biggest schedule risk on Jesse's track | Jesse owns: the details checklist and judgment calls, answer key, credit-memo and alert wording, false-flag review, pitch. The UI gets built with Claude Code under Jesse's direction, kept plain (accuracy > looks) |
 | 5 | **Finance items aren't in the ROADMAP**: domain rules / judgment calls, credit-memo template, alert and request wording (§7 items 2–4) | The Committee stage can't exit without a credit memo; alerts must say 4 specific things | Add them to Jesse's track, ahead of UI polish |
-| 6 | **Judgment calls J1–J20** in `docs/DETAILS_CHECKLIST.md` | Zeke would otherwise guess at 2am | Jesse confirms or changes each; Zeke builds to them |
+| 6 | ~~Judgment calls J1–J20~~ | | **Locked** by Jesse; Zeke confirmed in STATE.md |
 | 7 | **Organizer questions** were in two places; now merged into §5 here, owned by Jesse | Who answers human requests during judging, and how `issues` is scored, both change the build | Jesse owns asking Vijay; record the answers in PROJECT.md Key Decisions |
-| 8 | **Jesse's machine is a Mac**; setup docs and DEMO-02 (clean-checkout run "on Jesse's machine") assume Windows | The clean-checkout test would fail on setup, not on our code | Mac notes added to ONBOARDING §4; Zeke keeps scripts cross-platform |
+| 8 | ~~Mac setup~~ | | **Resolved:** Mac steps in ONBOARDING §4; Zeke's tests pass on Jesse's Mac |
 | 9 | ~~Push access for Jesse~~ | | **Resolved 17:50:** Jesse pushed successfully |
 | 10 | ~~"Aiming for best design" vs. Goldman > Nemotron > UI~~ | | **Fixed:** ONBOARDING §7 and PROJECT.md now say accuracy first |
 | 11 | **Drop-day fixes vs. the blind headline.** ROADMAP's drop slot allows generic fixes, then a re-tagged baseline | Fixing before recording makes the "blind" number not blind | Record the first-run score and commit first (§3 item 6), then fix |

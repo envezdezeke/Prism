@@ -49,9 +49,9 @@ Clock: H0 = Sat 2026-11-07 15:55 CT. Hard deadline Sun 2026-11-08 12:00 CT; subm
 
 ## Right Now and Next
 
-**Ezekiel, now:** plan and start Phase 1. The first deliverable is the API contract plus mock fixtures, due to Jesse at H1 (Sat 16:55).
+**Ezekiel, now:** contract + mock fixtures delivered (quick task 261107-pfc; 76 tests pass, also on Jesse's Mac). Next per ROADMAP: the rest of Phase 1 (validator, determinism harness, CLI, self-score script against `eval/gold.json`, VL read of Tyler's JPG), then Phase 3.
 
-**Jesse, now:** write the golden labels for the 13 sample deals into `eval/gold.json`, due at H2 (Sat 17:55). Per deal: expected facts, issues, who each sign-off goes to, hold or no hold, linked deals, `history_flags`. The exact file shape comes with the Phase 1 plan; start with per-deal notes. You need the data pack at `data/participant/` on your machine; it is not in git, so get it from Ezekiel. From H1, start Phase 2 against the mock fixtures; it does not wait on the engine.
+**Jesse, now:** golden labels delivered Sat 18:29: `eval/gold.json` has all 13 deals `done`, plus `history_flags` and a 20-id `history_must_not_flag`. Labelled blind, then diffed against the research with zero disagreements on issues, holds or links. Judgment calls J1–J20 are locked in `docs/DETAILS_CHECKLIST.md`. Next: credit-memo template and alert/request wording (HANDOFF §7 items 3–4); Jesse's UI role is still open with Ezekiel (HANDOFF §9 item 4).
 
 **Next hand-offs and gates:**
 - H1 (Sat 16:55): contract + mock fixtures, Ezekiel to Jesse
@@ -98,9 +98,8 @@ None yet.
 
 - The organizers have not yet said how judges send human answers or how drops arrive during judging. The inbox plus scripted personas cover both cases meanwhile.
 - Weekend drop arrival time is unknown; the drop-response slot is reserved.
-- Hosted Nemotron tool calling and rate limits (community-reported 40 requests per minute) are unverified until the Phase 1 smoke test.
-- Research file counts disagree (167 vs 146 files; 173 arrivals vs 186 files); Phase 1 inventories them.
-- PROJECT.md notes the remote repo already has a commit; pull before the first push.
+- Hosted Nemotron tool calling is verified on our key (see loose ends below); the VL read of Tyler's JPG and the rate limit (community-reported 40 RPM) are still unverified.
+- ~~Research file counts disagree~~ Resolved 2026-11-07: 173 files on disk = 173 arrivals (167 PDF, 5 CSV, 1 JPG); no file arrives that isn't on disk and vice versa.
 - H5–H10 (Phases 4 and 5) is the tightest stretch. FRD-01/FRD-02 can start alongside Phase 4 once Phase 3 lands.
 
 ### Quick Tasks Completed

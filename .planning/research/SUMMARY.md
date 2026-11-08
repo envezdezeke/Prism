@@ -22,6 +22,7 @@ Core engine and API, all verified installed or installable on this machine for c
 Frontend: React 19.3, Vite 8.3 (Node 24 is fine), `@vitejs/plugin-react` 6, Tailwind 4.3 with the Vite plugin (CSS-only config), shadcn/ui on Base UI (do not paste Radix snippets from older blogs), react-force-graph-2d 1.29 (canvas, custom node and link drawing, light-theme safe), TanStack Query, zustand. TypeScript 7 removed `baseUrl`, so use only `paths`. Skip dark mode and chart libraries.
 
 **Nemotron model IDs (use these, from the live `/v1/models` catalog):**
+> **Superseded 2026-11-07:** `nemotron-3-super-120b-a12b` and `nemotron-nano-3-30b-a3b` return 404 on our key's tier. Use the IDs in `.env.example` / PROJECT.md (`nemotron-3.5-super-vl-120b-a12b`, `nemotron-3.5-lightning-30b-a3b`, `nemotron-3-nano-omni-30b-a3b-reasoning`).
 - Agents and red-team: `nvidia/nemotron-3-super-120b-a12b` (temperature 1.0, top_p 0.95 per the model card)
 - Fast text and JSON jobs: `nvidia/nemotron-nano-3-30b-a3b` (reasoning off)
 - VL reader: `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` (base64 `image_url`; PDFs must be rasterized first)
