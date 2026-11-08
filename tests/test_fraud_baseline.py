@@ -5,14 +5,17 @@ import math
 from datetime import date, datetime, timezone
 
 import pytest
-from test_fraud_synth import deal_row, filler_deals, iso_day, write_history
+from test_fraud_synth import deal_row, deposit_rows, filler_deals, iso_day, write_history
 
 from prism.engine.config import load_fraud_config
 from prism.engine.state import DealState, EntityRef
-from prism.fraud.baseline import Baseline, build_baseline
+from prism.fraud.baseline import (
+    Baseline, Calibration, DealProfile, DepositFeatures, build_baseline, deposit_features,
+)
 from prism.fraud.decide import FraudOutcome, evaluate
 from prism.fraud.graph import build_graph
-from prism.fraud.signals import compute_signals
+from prism.fraud.rarity import FraudParams, fit_beta_mom, shrunk_share
+from prism.fraud.signals import compute_signals, f5_statistics, score_f3, score_f5
 
 NOW = datetime(2026, 11, 1, tzinfo=timezone.utc)
 # History size for the tracer: large enough that df = 2 is under the 2% rarity fraction.
@@ -156,3 +159,182 @@ def test_engine_output_unchanged_decide_is_stub(tmp_path, cfg):
     states = {"a": DealState(folder="a", entities=[EntityRef("remit_account", "4321", "d")])}
     out = evaluate(states, base, cfg, NOW)
     assert out == FraudOutcome() and out.per_deal == {} and out.clusters == []
+
+
+# ------------------------------------------------------------- Task 2: deposits, F3, F5
+
+OTHER_VENDORS = ["Omega Trucking LLC", "Sigma Tools LLC", "Delta Pumps LLC", "Theta Cranes LLC"]
+
+
+@pytest.fixture(scope="module")
+def params(cfg):
+    return FraudParams.from_config(cfg)
+
+
+def vendor_rows(extra=()):
+    rows = [deal_row(f"X-{i:03d}", iso_day(i), equipment_vendor="Kappa Supply LLC",
+                     vendor_remit_acct_last4="1111") for i in range(5)]
+    rows += [deal_row(f"X-{5 + i:03d}", iso_day(5 + i), equipment_vendor=v,
+                      vendor_remit_acct_last4=f"20{i}") for i, v in enumerate(OTHER_VENDORS)]
+    rows += list(extra)
+    return rows
+
+
+def vendor_profile(vendor, account="1111"):
+    ents = {"vendor": (vendor,)}
+    if account:
+        ents["remit_account"] = (account,)
+    return DealProfile("q", ents)
+
+
+def test_deposit_features_from_rows():
+    rows = [
+        {"deposit_count": "10", "pct_deposits_multiple_of_100": "0.5", "deposit_weekdays": "Mon-Fri"},
+        {"deposit_count": "20", "pct_deposits_multiple_of_100": "0.25", "deposit_weekdays": "Mon,Thu"},
+        {"deposit_count": "x", "pct_deposits_multiple_of_100": "0.9", "deposit_weekdays": "Mon-Fri"},
+        {"deposit_count": "5", "pct_deposits_multiple_of_100": "1.0", "deposit_weekdays": "garbage"},
+        {"nonsense": 1},
+    ]
+    f = deposit_features(rows)
+    assert isinstance(f, DepositFeatures)
+    assert f.n == 35 and f.months_used == 3
+    assert f.round_mass == pytest.approx(5 + 5 + 5)
+    assert f.day_mass == pytest.approx((12, 2, 2, 12, 2, 0, 0))
+    assert deposit_features([]) is None
+    assert deposit_features([{"deposit_count": "bad"}]) is None
+    assert deposit_features("not rows") is None
+
+
+def test_from_rows_attaches_deposits_and_warns_for_unknown_ids(params):
+    deps = deposit_rows("X-000", [(10, 0.5, "Mon-Fri")] * 6) + deposit_rows("X-404", [(3, 0.1, "Mon-Fri")])
+    b = Baseline.from_rows([deal_row("X-000"), deal_row("X-001")], deps, params)
+    assert b.deals["X-000"].profile.deposits.n == 60
+    assert b.deals["X-001"].profile.deposits is None
+    assert any("X-404" in w for w in b.warnings)
+    assert b.round_shares() == [pytest.approx(0.5)]
+    assert b.round_shares(exclude="X-000") == []
+    assert b.pooled_day_mass()[0] == pytest.approx(60 * 1 / 5)
+    assert sum(b.pooled_day_mass(exclude="X-000")) == 0
+
+
+def test_f3_lookalikes(params):
+    b = Baseline.from_rows(vendor_rows(), params=params)
+    expect = -math.log2(1 / 10)  # n_pat 0, n_vend 9 vendor observations
+    suffix = score_f3(vendor_profile("kappa supply inc"), b, params)
+    assert suffix is not None and suffix.bits == pytest.approx(expect)
+    assert suffix.group == "kappa supply" and (suffix.n_pat, suffix.n_vend) == (0, 9)
+    assert "suffix" in suffix.what_differs
+    acct = score_f3(vendor_profile("kappa supply llc", "9999"), b, params)
+    assert acct is not None and "account" in acct.what_differs
+    typo = score_f3(vendor_profile("kappa suply llc"), b, params)
+    assert typo is not None and "name" in typo.what_differs
+    assert score_f3(vendor_profile("kappa supply llc"), b, params) is None  # the usual form
+    assert score_f3(vendor_profile("kappa supply llc", ""), b, params) is None  # no account: never "different"
+    assert score_f3(vendor_profile("zebra imports llc"), b, params) is None
+    assert score_f3(DealProfile("q", {}), b, params) is None
+
+
+def test_f3_needs_a_frequent_vendor(params):
+    rows = vendor_rows()
+    b = Baseline.from_rows(rows, params=params)
+    # Omega appears once: below min_vendor_deals, so a lookalike of it is not a signal.
+    assert score_f3(vendor_profile("omega trucking inc", "200"), b, params) is None
+
+
+def test_f3_prior_pattern_lowers_bits_and_leave_one_out(params):
+    prior = deal_row("X-100", iso_day(20), equipment_vendor="Kappa Supply Inc", vendor_remit_acct_last4="1111")
+    base_bits = score_f3(vendor_profile("kappa supply inc"), Baseline.from_rows(vendor_rows(), params=params), params).bits
+    b = Baseline.from_rows(vendor_rows([prior]), params=params)
+    got = score_f3(vendor_profile("kappa supply inc"), b, params)
+    assert (got.n_pat, got.n_vend) == (1, 10)
+    assert got.bits == pytest.approx(-math.log2(2 / 11)) and got.bits < base_bits
+    loo = score_f3(vendor_profile("kappa supply inc"), b, params, exclude="X-100")
+    assert (loo.n_pat, loo.n_vend) == (0, 9) and loo.bits == pytest.approx(base_bits)
+    # excluding a member of the usual group shrinks the group but keeps it frequent (4 >= 3)
+    again = score_f3(vendor_profile("kappa supply inc"), b, params, exclude="X-000")
+    assert again is not None and again.n_vend == 9
+
+
+def test_f3_group_leave_one_out_can_dissolve_the_group(params):
+    rows = vendor_rows()[:3] + [deal_row("X-200", iso_day(9), equipment_vendor="Other Co", vendor_remit_acct_last4="5")]
+    b = Baseline.from_rows(rows, params=params)
+    assert score_f3(vendor_profile("kappa supply inc"), b, params) is not None
+    assert score_f3(vendor_profile("kappa supply inc"), b, params, exclude="X-000") is None
+
+
+def f5_history(params):
+    deals, deps = [], []
+    for i in range(10):
+        deals.append(deal_row(f"X-{i:03d}", iso_day(i)))
+        deps += deposit_rows(f"X-{i:03d}", [(10, round(0.1 + 0.02 * i, 2), "Mon-Fri")] * 6)
+    return Baseline.from_rows(deals, deps, params)
+
+
+REF = {"round": [0.2, 0.4, 0.6, 0.8], "conc": [-2.6, -2.4, -2.2, -2.0, -1.8], "kl": [0.1, 0.2, 0.3]}
+
+
+def deposits_profile(count, share, label):
+    return DealProfile("q", {}, deposit_features([
+        {"deposit_count": count, "pct_deposits_multiple_of_100": share, "deposit_weekdays": label}]))
+
+
+def test_f5_statistics_match_formulas(params):
+    b = f5_history(params)
+    prof = deposits_profile("400", "0.5", "Mon,Thu")
+    st = f5_statistics(prof, b, params)
+    a, bb = fit_beta_mom([round(0.1 + 0.02 * i, 2) for i in range(10)])
+    assert st["round"] == pytest.approx(shrunk_share(200, 400, a, bb))
+    al = params.dirichlet_alpha
+    q = [(m + al) / (400 + 7 * al) for m in (200, 0, 0, 200, 0, 0, 0)]
+    assert st["conc"] == pytest.approx(sum(p * math.log2(p) for p in q))
+    pooled = [120.0] * 5 + [0.0, 0.0]
+    p0 = [(m + al) / (600 + 7 * al) for m in pooled]
+    assert st["kl"] == pytest.approx(sum(p * math.log2(p / r) for p, r in zip(q, p0)))
+    assert f5_statistics(DealProfile("q", {}), b, params) is None
+
+
+def test_f5_shrinkage_and_concentration(params):
+    b = f5_history(params)
+    big = score_f5(deposits_profile("400", "1.0", "Mon-Fri"), b, params, REF)
+    small = score_f5(deposits_profile("4", "1.0", "Mon-Fri"), b, params, REF)
+    assert big.stat_bits["round"] > small.stat_bits["round"]  # same raw share, more evidence
+    two = score_f5(deposits_profile("200", "0.2", "Mon,Thu"), b, params, REF)
+    five = score_f5(deposits_profile("200", "0.2", "Mon-Fri"), b, params, REF)
+    assert two.stat_bits["conc"] > five.stat_bits["conc"]
+    assert two.bits == max(two.stat_bits.values()) == two.stat_bits[two.stat]
+    assert score_f5(DealProfile("q", {}), b, params, REF) is None
+    assert score_f5(deposits_profile("4", "1.0", "Mon-Fri"), b, params, {}) is None
+
+
+def test_compute_signals_f3_f5_fired_rule(cfg, params):
+    deps = []
+    for i in range(9):
+        deps += deposit_rows(f"X-{i:03d}", [(10, round(0.1 + 0.02 * i, 2), "Mon-Fri")] * 6)
+    b = Baseline.from_rows(vendor_rows(), deps, params)
+    months = [{"deposit_count": "400", "pct_deposits_multiple_of_100": "1.0", "deposit_weekdays": "Mon,Thu"}]
+    cur = DealState(
+        folder="cur",
+        entities=[EntityRef("vendor", "Kappa Supply Inc", "d"), EntityRef("remit_account", "1111", "d")],
+        features={"deposit_months": months},
+    )
+    states = {"cur": cur, "idle": DealState(folder="idle")}
+
+    def run(calibration):
+        b.calibration = calibration
+        g = build_graph(states, b)
+        return {s.family: s for s in compute_signals(g, states, b, cfg, NOW)}
+
+    sigs = run(Calibration(tau={"F3": 0.0, "F5": 1.0}, reference=REF))
+    assert set(sigs) == {"F3", "F5"}
+    assert sigs["F3"].fired and sigs["F3"].deals == ("cur",) and sigs["F3"].bits == pytest.approx(math.log2(10))
+    assert sigs["F5"].fired and sigs["F5"].bits >= 1.0
+    high = run(Calibration(tau={"F3": 99.0, "F5": 99.0}, reference=REF))
+    assert not high["F3"].fired and not high["F5"].fired
+    untuned = run(Calibration(reference=REF))  # no tau: never fires, never raises
+    assert not untuned["F3"].fired and not untuned["F5"].fired
+    assert set(run(Calibration())) == {"F3"}  # no F5 reference: nothing to compare against
+    ordered = compute_signals(build_graph(states, b), states, b, cfg, NOW)
+    assert [(s.deals[0], s.family) for s in ordered] == sorted((s.deals[0], s.family) for s in ordered)
+    # junk features are skipped, not fatal
+    cur.features["deposit_months"] = [None, 3, {"deposit_count": object()}]
+    assert "F5" not in run(Calibration(tau={"F5": 0.0}, reference=REF))

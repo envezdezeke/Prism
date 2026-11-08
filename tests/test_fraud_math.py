@@ -107,3 +107,89 @@ def test_params_from_config_and_validation():
         rarity.FraudParams.from_config(bad(outcome_beta=1.5))
     with pytest.raises(ConfigError):
         rarity.FraudParams.from_config(bad(outcome_beta="x"))
+
+
+# ------------------------------------------------------------ Task 2: shared math
+
+def test_percentile_interpolates():
+    v = [0, 10, 20, 30, 40]
+    assert rarity.percentile(v, 0.95) == pytest.approx(38.0)
+    assert rarity.percentile(v, 0.5) == pytest.approx(20.0)
+    assert rarity.percentile(v, 0) == 0.0 and rarity.percentile(v, 1) == 40.0
+    assert rarity.percentile([40, 0, 20, 10, 30], 0.95) == pytest.approx(38.0)
+    assert rarity.percentile([7], 0.95) == 7
+    assert rarity.percentile([], 0.95) is None
+
+
+def test_upper_tail_bits():
+    s = [1, 2, 3, 4]
+    assert rarity.upper_tail_bits(3, s) == pytest.approx(-math.log2(3 / 5))
+    assert rarity.upper_tail_bits(10, s) == pytest.approx(-math.log2(1 / 5))
+    assert rarity.upper_tail_bits(0, s) == 0.0
+    assert rarity.upper_tail_bits(5, []) == 0.0
+
+
+def test_fit_beta_mom_and_fallbacks():
+    a, b = rarity.fit_beta_mom([0.1, 0.2, 0.3])
+    assert (a, b) == (pytest.approx(3.0), pytest.approx(12.0))
+    for shares in ([], [0.4], [0.2, 0.2, 0.2], [0.0, 1.0], [0.0, 0.0]):
+        a, b = rarity.fit_beta_mom(shares)
+        assert a > 0 and b > 0
+    a, b = rarity.fit_beta_mom([])
+    assert a == pytest.approx(b)  # centred on 0.5
+    a, b = rarity.fit_beta_mom([0.2, 0.2])
+    assert a + b == pytest.approx(rarity.PRIOR_STRENGTH) and a / (a + b) == pytest.approx(0.2)
+
+
+def test_shrunk_share_pulls_small_samples():
+    assert rarity.shrunk_share(4, 4, 3, 12) == pytest.approx(7 / 19)
+    assert rarity.shrunk_share(400, 400, 3, 12) == pytest.approx(403 / 415)
+    vals = [rarity.shrunk_share(n, n, 3, 12) for n in (1, 4, 40, 400)]
+    assert vals == sorted(vals)
+
+
+def test_entropy_and_kl():
+    assert rarity.entropy_bits([0.5, 0.5]) == pytest.approx(1.0)
+    assert rarity.entropy_bits([0.2] * 5) == pytest.approx(math.log2(5))
+    assert rarity.kl_bits([0.3, 0.7], [0.3, 0.7]) == pytest.approx(0.0)
+    assert rarity.kl_bits([1.0, 0.0], [0.5, 0.5]) == pytest.approx(1.0)
+
+
+def test_parse_weekdays():
+    assert rarity.parse_weekdays("Mon-Fri") == (0, 1, 2, 3, 4)
+    assert len(rarity.parse_weekdays("Mon-Sat")) == 6
+    assert len(rarity.parse_weekdays("all days")) == 7
+    assert rarity.parse_weekdays("Mon,Thu") == (0, 3)
+    assert rarity.parse_weekdays("  mon , THU ") == (0, 3)
+    assert rarity.parse_weekdays("Sat-Mon") == (0, 5, 6)
+    assert rarity.parse_weekdays("Mon–Wed") == (0, 1, 2)
+    for bad in ("", None, "someday", "Mon-Zzz", "Mon,"):
+        assert rarity.parse_weekdays(bad) is None
+
+
+def test_edit_distance_and_similarity():
+    assert rarity.edit_distance("kitten", "sitting") == 3
+    assert rarity.edit_distance("", "abc") == 3 and rarity.edit_distance("same", "same") == 0
+    assert rarity.token_set_similarity("kappa supply", "supply kappa") == 1.0
+    assert rarity.token_set_similarity("kappa", "kappa supply") < 1.0
+    assert rarity.base_similar("kappa supply", "kappa suply", 0.8, 2)
+    assert rarity.base_similar("kappa supply", "supply kappa", 0.8, 2)
+    assert not rarity.base_similar("kappa supply", "omega trucking", 0.8, 2)
+    assert rarity.base_similar("abcd", "abxy", 0.99, 2)  # edit distance alone is enough
+
+
+def test_params_task2_keys_validate():
+    cfg = load_fraud_config()
+    p = rarity.FraudParams.from_config(cfg)
+    assert (p.min_similarity, p.max_edit_distance, p.min_vendor_deals) == (0.8, 2, 3)
+    assert p.dirichlet_alpha == 0.5
+
+    def bad(fam, **kw):
+        fams = {**cfg.raw["families"], fam: {**cfg.raw["families"][fam], **kw}}
+        return replace(cfg, raw={**cfg.raw, "families": fams})
+
+    for fam, kw in (("F3", {"min_similarity": 0}), ("F3", {"min_similarity": 1.5}),
+                    ("F3", {"max_edit_distance": -1}), ("F3", {"min_vendor_deals": 0}),
+                    ("F5", {"dirichlet_alpha": 0}), ("F5", {"dirichlet_alpha": -1})):
+        with pytest.raises(ConfigError):
+            rarity.FraudParams.from_config(bad(fam, **kw))

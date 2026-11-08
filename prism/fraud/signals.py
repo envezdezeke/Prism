@@ -4,19 +4,35 @@ Contract: one FamilySignal per fired-or-evaluated family per deal group; F6 is e
 only and never votes. Thresholds come from ``FraudConfig`` percentiles, not literals.
 
 Built so far: F1 (shared rare entity), F3 (lookalike vendor or account) and F5 (deposit
-pattern). F2, F4 and F6 are not built.
+pattern). F2, F4 and F6 are not built. F1 has no percentile: it fires iff a strong shared
+entity exists. F3 and F5 fire iff ``bits > 0`` and ``bits >= tau`` where tau is the startup
+calibration percentile on ``Baseline.calibration`` (never fires when tau is missing).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import math
+from collections import Counter
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Mapping, Optional
 
 from prism.engine.config import FraudConfig
 from prism.engine.state import DealState
-from prism.fraud.baseline import Baseline, DealProfile
+from prism.fraud.baseline import Baseline, DealProfile, deposit_features
+from prism.fraud.canon import split_legal_suffix
 from prism.fraud.graph import EntityGraph
-from prism.fraud.rarity import FraudParams, is_strong, outcome_discount, surprisal
+from prism.fraud.rarity import (
+    FraudParams,
+    base_similar,
+    entropy_bits,
+    fit_beta_mom,
+    is_strong,
+    kl_bits,
+    outcome_discount,
+    shrunk_share,
+    surprisal,
+    upper_tail_bits,
+)
 
 
 @dataclass(frozen=True)
@@ -26,6 +42,10 @@ class FamilySignal:
     bits: float
     fired: bool
     evidence: str
+
+
+def _plain(kind: str) -> str:
+    return kind.replace("_", " ")
 
 
 # ------------------------------------------------------------------------------- F1
@@ -89,18 +109,173 @@ def score_f1(
     )
 
 
-def _plain(kind: str) -> str:
-    return kind.replace("_", " ")
-
-
 def _f1_evidence(res: F1Result) -> str:
-    parts = [
-        f"{_plain(k)} used by {df} of {res.n} history deals" for k, _v, df in res.shared
-    ]
+    parts = [f"{_plain(k)} used by {df} of {res.n} history deals" for k, _v, df in res.shared]
     return "shared rare " + "; ".join(parts) + "; linked to " + ", ".join(res.partners)
 
 
+# ------------------------------------------------------------------------------- F3
+
+@dataclass(frozen=True)
+class F3Result:
+    bits: float
+    group: str  # base key of the frequent history vendor it imitates
+    what_differs: str  # name, suffix and/or remit account
+    n_pat: int  # history observations showing a variant of this vendor
+    n_vend: int  # history vendor observations judged against
+    evidence: str
+
+
+def _modal_form(members: list[tuple[str, str, str, str]]) -> tuple[str, str]:
+    """Most common (full key, account) form; ties broken by lexicographic order."""
+    counts = Counter((o[2], o[3]) for o in members)
+    return min(counts, key=lambda form: (-counts[form], form))
+
+
+def _differs(full: str, account: str, modal: tuple[str, str]) -> bool:
+    return full != modal[0] or bool(account and modal[1] and account != modal[1])
+
+
+def score_f3(
+    profile: DealProfile,
+    baseline: Baseline,
+    params: FraudParams,
+    *,
+    exclude: Optional[str] = None,
+) -> Optional[F3Result]:
+    """F3: a vendor with a frequent history vendor's base name but another suffix, name
+    spelling or remit account. ``bits = -log2((n_pat + 1) / (n_vend + 1))`` (M1)."""
+    vendors = profile.entities.get("vendor", ())
+    groups = baseline.vendor_groups()
+    if not vendors or not groups:
+        return None
+    accounts = profile.entities.get("remit_account") or ("",)
+    n_vend = baseline.n_vendor_obs(exclude)
+    best: Optional[F3Result] = None
+    for vendor in sorted(vendors):
+        key = split_legal_suffix(vendor)
+        for account in sorted(accounts):
+            for gbase in sorted(groups):
+                group = groups[gbase]
+                members = [o for o in group.members if o[0] != exclude]
+                if len(members) < params.min_vendor_deals:
+                    continue
+                if not base_similar(key.base, gbase, params.min_similarity, params.max_edit_distance):
+                    continue
+                modal = _modal_form(members)
+                if not _differs(key.full, account, modal):
+                    continue
+                diffs = []
+                if key.base != gbase:
+                    diffs.append("name")
+                if key.suffix != split_legal_suffix(modal[0]).suffix:
+                    diffs.append("suffix")
+                if account and modal[1] and account != modal[1]:
+                    diffs.append("remit account")
+                n_pat = sum(
+                    1 for o in group.similar if o[0] != exclude and _differs(o[2], o[3], modal)
+                )
+                bits = -math.log2((n_pat + 1) / (n_vend + 1))
+                bits = bits if bits > 0 else 0.0
+                if best is not None and (bits < best.bits or (bits == best.bits and gbase >= best.group)):
+                    continue
+                what = ", ".join(diffs)
+                best = F3Result(
+                    bits=bits, group=gbase, what_differs=what, n_pat=n_pat, n_vend=n_vend,
+                    evidence=(
+                        f"vendor resembles the usual history vendor '{gbase}' but its {what} differs; "
+                        f"{n_pat} of {n_vend} history vendor deals show such a variant"
+                    ),
+                )
+    return best
+
+
+# ------------------------------------------------------------------------------- F5
+
+F5_STATS = ("round", "conc", "kl")
+_F5_LABELS = {
+    "round": "round-number deposit share",
+    "conc": "weekday concentration",
+    "kl": "weekday pattern unlike history",
+}
+
+
+@dataclass(frozen=True)
+class F5Result:
+    bits: float  # maximum over the statistics
+    stat: str  # statistic that gave the maximum (ties in the order round, conc, kl)
+    stat_bits: dict[str, float]
+    z: dict[str, float]
+    evidence: str
+
+
+def _smoothed(mass: tuple[float, ...], alpha: float) -> list[float]:
+    total = sum(mass) + len(mass) * alpha
+    return [(m + alpha) / total for m in mass]
+
+
+def f5_statistics(
+    profile: DealProfile,
+    baseline: Baseline,
+    params: FraudParams,
+    *,
+    exclude: Optional[str] = None,
+) -> Optional[dict[str, float]]:
+    """F5 statistics oriented so higher is more suspicious; None without deposit data.
+
+    ``round``: beta-binomial posterior round share (prior fitted on history shares by method
+    of moments, so small samples shrink toward it). ``conc``: minus the Shannon entropy of the
+    Dirichlet-smoothed weekday distribution. ``kl``: KL of that distribution against the
+    pooled, equally smoothed history weekday distribution.
+    """
+    dep = profile.deposits
+    if dep is None or dep.n <= 0:
+        return None
+    a, b = fit_beta_mom(baseline.round_shares(exclude))
+    q = _smoothed(dep.day_mass, params.dirichlet_alpha)
+    p0 = _smoothed(baseline.pooled_day_mass(exclude), params.dirichlet_alpha)
+    return {
+        "round": shrunk_share(dep.round_mass, dep.n, a, b),
+        "conc": -entropy_bits(q),
+        "kl": kl_bits(q, p0),
+    }
+
+
+def score_f5(
+    profile: DealProfile,
+    baseline: Baseline,
+    params: FraudParams,
+    reference: Mapping[str, list[float]],
+    *,
+    exclude: Optional[str] = None,
+) -> Optional[F5Result]:
+    """F5: each statistic to bits through the smoothed upper tail on the clean reference."""
+    stats = f5_statistics(profile, baseline, params, exclude=exclude)
+    if stats is None:
+        return None
+    stat_bits = {
+        s: upper_tail_bits(stats[s], reference[s]) for s in F5_STATS if reference.get(s)
+    }
+    if not stat_bits:
+        return None
+    top = max(F5_STATS, key=lambda s: (stat_bits.get(s, -1.0), -F5_STATS.index(s)))
+    return F5Result(
+        bits=stat_bits[top],
+        stat=top,
+        stat_bits=stat_bits,
+        z={s: stats[s] for s in stat_bits},
+        evidence=(
+            f"deposit pattern unusual versus clean history: strongest on {_F5_LABELS[top]} "
+            f"({stat_bits[top]:.2f} bits)"
+        ),
+    )
+
+
 # ------------------------------------------------------------------------------ driver
+
+def _fires(bits: float, tau: Optional[float]) -> bool:
+    return bits > 0 and tau is not None and bits >= tau
+
 
 def compute_signals(
     graph: EntityGraph,
@@ -111,6 +286,7 @@ def compute_signals(
 ) -> list[FamilySignal]:
     """Return the family signals at ``now`` (``now`` is unused so far), sorted by (folder, family)."""
     params = baseline.params
+    cal = baseline.calibration
     out: list[FamilySignal] = []
     for folder in sorted(graph.profiles):
         profile = graph.profiles[folder]
@@ -119,4 +295,17 @@ def compute_signals(
             out.append(
                 FamilySignal("F1", (folder,) + f1.partners, f1.bits, True, _f1_evidence(f1))
             )
+        f3 = score_f3(profile, baseline, params)
+        if f3 is not None:
+            out.append(
+                FamilySignal("F3", (folder,), f3.bits, _fires(f3.bits, cal.tau.get("F3")), f3.evidence)
+            )
+        state = states.get(folder)
+        dep = deposit_features(state.features.get("deposit_months")) if state is not None else None
+        if dep is not None:
+            f5 = score_f5(replace(profile, deposits=dep), baseline, params, cal.reference)
+            if f5 is not None:
+                out.append(
+                    FamilySignal("F5", (folder,), f5.bits, _fires(f5.bits, cal.tau.get("F5")), f5.evidence)
+                )
     return out

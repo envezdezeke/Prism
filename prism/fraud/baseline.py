@@ -3,23 +3,26 @@
 Contract: built once per run from whatever history ships with the dataset; thresholds are
 recomputed from percentiles in config/fraud.yaml, never stored as bit values.
 
-``build_baseline`` reads ``deals.csv`` with the stdlib csv module and NEVER raises for history
-content: a missing dir or file, a bad date, a duplicate id or an absent column becomes a
-warning string on ``Baseline.warnings`` and a skipped row. Every value is canonicalized
-(prism.fraud.canon) so spellings of one entity share one key. Queries take an optional
-``exclude`` deal id (leave-one-out) that subtracts exactly that deal in O(1) via id sets.
+``build_baseline`` reads ``deals.csv`` (and ``monthly_deposits.csv`` when present) with the
+stdlib csv module and NEVER raises for history content: a missing dir or file, a bad date, a
+duplicate id or an absent column becomes a warning string on ``Baseline.warnings`` and a
+skipped row. Every value is canonicalized (prism.fraud.canon) so spellings of one entity
+share one key. Queries take an optional ``exclude`` deal id (leave-one-out) that subtracts
+exactly that deal in O(1) via id sets.
 """
 from __future__ import annotations
 
 import csv
+import math
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
 from prism.engine.config import FraudConfig
-from prism.fraud.canon import canon_value
-from prism.fraud.rarity import FraudParams
+from prism.fraud.canon import canon_value, split_legal_suffix
+from prism.fraud.rarity import FraudParams, base_similar, parse_weekdays
 
 # History CSV column -> entity kind. preparer_firm, registered_agent_address, ein, ssn and
 # licence columns are intentionally not indexed (see the plan SUMMARY).
@@ -41,13 +44,67 @@ HISTORY_PRODUCER_CLASS = "application"
 CLEAN_REPAYMENTS = ("current", "paid_off")
 
 
+# ------------------------------------------------------------------ deposit features
+
+@dataclass(frozen=True)
+class DepositFeatures:
+    n: float  # total deposits across the usable months
+    round_mass: float  # sum of (round share * count)
+    day_mass: tuple[float, ...]  # 7 weekday masses, Mon..Sun
+    months_used: int
+
+
+def _finite(v: Any) -> Optional[float]:
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return None
+    return x if math.isfinite(x) else None
+
+
+def deposit_features(rows: Any) -> Optional[DepositFeatures]:
+    """Pool per-month deposit rows into features; None when no row is usable.
+
+    Rows are mappings with ``deposit_count``, ``pct_deposits_multiple_of_100`` and
+    ``deposit_weekdays`` (the history column names). A row with an unparseable count or share
+    is skipped; an unparseable weekday label still counts toward ``n`` and round mass but adds
+    no day mass. A month spreads its count evenly over the days its label names.
+    """
+    if not isinstance(rows, (list, tuple)):
+        return None
+    n = 0.0
+    round_mass = 0.0
+    day_mass = [0.0] * 7
+    used = 0
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        count = _finite(row.get("deposit_count"))
+        share = _finite(row.get("pct_deposits_multiple_of_100"))
+        if count is None or share is None or count < 0:
+            continue
+        share = min(1.0, max(0.0, share))
+        n += count
+        round_mass += share * count
+        used += 1
+        days = parse_weekdays(row.get("deposit_weekdays"))
+        if days:
+            for d in days:
+                day_mass[d] += count / len(days)
+    if used == 0 or n <= 0:
+        return None
+    return DepositFeatures(n=n, round_mass=round_mass, day_mass=tuple(day_mass), months_used=used)
+
+
+# ------------------------------------------------------------------ profiles and deals
+
 @dataclass(frozen=True)
 class DealProfile:
-    """Canonical entities (and, later, deposit features) of one deal, history or current."""
+    """Canonical entities and deposit features of one deal, history or current."""
 
     deal_id: str
     entities: dict[str, tuple[str, ...]] = field(default_factory=dict)
-    deposits: Optional[Any] = None
+    deposits: Optional[DepositFeatures] = None
 
 
 @dataclass(frozen=True)
@@ -68,12 +125,42 @@ class HistoryDeal:
             and self.repayment_status in CLEAN_REPAYMENTS
         )
 
+    @property
+    def clean(self) -> bool:
+        """Alias of ``repaid``: the calibration clean set minus the date test."""
+        return self.repaid
+
+
+@dataclass
+class Calibration:
+    """Startup calibration record (M13): thresholds are computed, then kept here for audit."""
+
+    n_clean: int = 0
+    tau: dict[str, Optional[float]] = field(default_factory=dict)
+    reference: dict[str, list[float]] = field(default_factory=dict)
+    fire_rate_clean: dict[str, float] = field(default_factory=dict)
+    percentiles: dict[str, float] = field(default_factory=dict)
+
+
+# A vendor observation: (deal id, base key, full key, remit account or "").
+VendorObs = tuple[str, str, str, str]
+
+
+@dataclass(frozen=True)
+class VendorGroup:
+    """A frequent history vendor: its exact-base observations and every similar-base one."""
+
+    base: str
+    members: tuple[VendorObs, ...]
+    similar: tuple[VendorObs, ...]
+
 
 @dataclass
 class Baseline:
     n_history_deals: int = 0
     deals: dict[str, HistoryDeal] = field(default_factory=dict)
     params: FraudParams = field(default_factory=FraudParams)
+    calibration: Calibration = field(default_factory=Calibration)
     warnings: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -90,6 +177,47 @@ class Baseline:
         self._ids = ids
         self._repaid_ids = {i for i, d in self.deals.items() if d.repaid}
         self._ordered = sorted(self.deals, key=lambda i: (self.deals[i].applied, i))
+        self._build_deposit_aggregates()
+        self._build_vendor_index()
+
+    def _build_deposit_aggregates(self) -> None:
+        self._round_share: dict[str, float] = {}
+        self._day_mass: dict[str, tuple[float, ...]] = {}
+        pooled = [0.0] * 7
+        for i in sorted(self.deals):
+            dep = self.deals[i].profile.deposits
+            if dep is None or dep.n <= 0:
+                continue
+            self._round_share[i] = dep.round_mass / dep.n
+            self._day_mass[i] = dep.day_mass
+            for k in range(7):
+                pooled[k] += dep.day_mass[k]
+        self._pooled_day_mass = pooled
+
+    def _build_vendor_index(self) -> None:
+        obs: list[VendorObs] = []
+        for i in sorted(self.deals):
+            ents = self.deals[i].profile.entities
+            account = (ents.get("remit_account") or ("",))[0]
+            for v in ents.get("vendor", ()):
+                key = split_legal_suffix(v)
+                obs.append((i, key.base, key.full, account))
+        self._vendor_obs = obs
+        self._vendor_ids = {o[0] for o in obs}
+        by_base: dict[str, list[VendorObs]] = defaultdict(list)
+        for o in obs:
+            by_base[o[1]].append(o)
+        p = self.params
+        groups: dict[str, VendorGroup] = {}
+        for base in sorted(by_base):
+            if len(by_base[base]) < p.min_vendor_deals:
+                continue
+            similar: list[VendorObs] = []
+            for other in sorted(by_base):
+                if base_similar(other, base, p.min_similarity, p.max_edit_distance):
+                    similar.extend(by_base[other])
+            groups[base] = VendorGroup(base, tuple(by_base[base]), tuple(similar))
+        self._vendor_groups = groups
 
     # ------------------------------------------------------------------ queries
     def n_effective(self, exclude: Optional[str] = None) -> int:
@@ -129,6 +257,28 @@ class Baseline:
         """History ids sorted by (application date, id)."""
         return list(self._ordered)
 
+    def vendor_groups(self) -> Mapping[str, VendorGroup]:
+        """Frequent history vendors by base key (frequent as built, before any leave-one-out)."""
+        return self._vendor_groups
+
+    def n_vendor_obs(self, exclude: Optional[str] = None) -> int:
+        """History vendor observations, minus ``exclude``'s own."""
+        return len(self._vendor_obs) - (
+            sum(1 for o in self._vendor_obs if o[0] == exclude) if exclude in self._vendor_ids else 0
+        )
+
+    def round_shares(self, exclude: Optional[str] = None) -> list[float]:
+        """Per-deal round-deposit shares (id order) for deals with deposit data."""
+        return [s for i, s in sorted(self._round_share.items()) if i != exclude]
+
+    def pooled_day_mass(self, exclude: Optional[str] = None) -> tuple[float, ...]:
+        """Weekday deposit mass pooled over history deals, minus ``exclude``'s own."""
+        pooled = list(self._pooled_day_mass)
+        own = self._day_mass.get(exclude) if exclude is not None else None
+        if own is not None:
+            pooled = [p - o for p, o in zip(pooled, own)]
+        return tuple(max(0.0, p) for p in pooled)
+
     # ------------------------------------------------------------------ builders
     @classmethod
     def from_rows(
@@ -166,6 +316,22 @@ class Baseline:
                 repayment_status=str(row.get("repayment_status") or "").strip(),
                 profile=DealProfile(deal_id=deal_id, entities=entities),
             )
+        grouped: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+        unknown: set[str] = set()
+        for row in deposit_rows:
+            deal_id = str(row.get("deal_id") or "").strip()
+            if deal_id in deals:
+                grouped[deal_id].append(row)
+            else:
+                unknown.add(deal_id)
+        for deal_id in sorted(unknown):
+            warnings.append(f"monthly_deposits.csv: deposit rows for unknown deal id {deal_id or '(blank)'} ignored")
+        for deal_id, rows in grouped.items():
+            d = deals[deal_id]
+            deals[deal_id] = HistoryDeal(
+                d.deal_id, d.applied, d.final_status, d.fraud_label, d.repayment_status,
+                DealProfile(d.deal_id, d.profile.entities, deposit_features(rows)),
+            )
         return cls(deals=deals, params=params or FraudParams(), warnings=warnings)
 
     def restricted_to(self, ids: Iterable[str]) -> "Baseline":
@@ -174,9 +340,12 @@ class Baseline:
         return Baseline(deals=keep, params=self.params)
 
 
-def _read_csv(path: Path, warnings: list[str]) -> Optional[list[dict[str, str]]]:
+def _read_csv(path: Path, warnings: list[str], *, required: bool = True) -> Optional[list[dict[str, str]]]:
     if not path.is_file():
-        warnings.append(f"{path.name}: not found")
+        if required:
+            warnings.append(f"{path.name}: not found")
+        else:
+            warnings.append(f"{path.name}: not found, deposit features unavailable")
         return None
     try:
         with open(path, encoding="utf-8-sig", newline="") as f:
@@ -194,6 +363,7 @@ def build_baseline(history_dir: Optional[Path], cfg: FraudConfig) -> Baseline:
     hist = Path(history_dir)
     warnings: list[str] = []
     deal_rows = _read_csv(hist / "deals.csv", warnings)
-    base = Baseline.from_rows(deal_rows or (), params=params)
+    deposit_rows = _read_csv(hist / "monthly_deposits.csv", warnings, required=False)
+    base = Baseline.from_rows(deal_rows or (), deposit_rows or (), params=params)
     base.warnings[:0] = warnings
     return base

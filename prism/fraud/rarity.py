@@ -11,10 +11,12 @@ No I/O and no Baseline import: ``FraudParams`` is built once from ``FraudConfig.
 """
 from __future__ import annotations
 
+import difflib
+import functools
 import math
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from prism.engine.config import ConfigError, FraudConfig
 
@@ -36,6 +38,10 @@ class FraudParams:
     train_end: date = date.max
     test_start: date = date.min
     test_end: date = date.max
+    min_similarity: float = 0.8  # F3 token-set similarity floor
+    max_edit_distance: int = 2  # F3 typo tolerance
+    min_vendor_deals: int = 3  # F3: a "frequent" history vendor has at least this many deals
+    dirichlet_alpha: float = 0.5  # F5 weekday smoothing
 
     def weight(self, kind: str) -> float:
         return self.type_weights.get(kind, self.default_type_weight)
@@ -59,6 +65,19 @@ class FraudParams:
         beta = f1.get("outcome_beta", 0.0)
         if not _num(beta) or not 0 <= beta <= 1:
             raise ConfigError("fraud.yaml: F1.outcome_beta must be a number in [0, 1]")
+        f3 = fams.get("F3") or {}
+        min_sim = f3.get("min_similarity", 0.8)
+        if not _num(min_sim) or not 0 < min_sim <= 1:
+            raise ConfigError("fraud.yaml: F3.min_similarity must be a number in (0, 1]")
+        max_edit = f3.get("max_edit_distance", 2)
+        if isinstance(max_edit, bool) or not isinstance(max_edit, int) or max_edit < 0:
+            raise ConfigError("fraud.yaml: F3.max_edit_distance must be an int >= 0")
+        min_vendor = f3.get("min_vendor_deals", 3)
+        if isinstance(min_vendor, bool) or not isinstance(min_vendor, int) or min_vendor < 1:
+            raise ConfigError("fraud.yaml: F3.min_vendor_deals must be an int >= 1")
+        alpha = (fams.get("F5") or {}).get("dirichlet_alpha", 0.5)
+        if not _num(alpha) or alpha <= 0:
+            raise ConfigError("fraud.yaml: F5.dirichlet_alpha must be a number > 0")
         return cls(
             rho=cfg.f1_rarity_fraction,
             min_linked=cfg.f1_min_linked_deals,
@@ -68,6 +87,10 @@ class FraudParams:
             train_end=cfg.train_end,
             test_start=cfg.test_start,
             test_end=cfg.test_end,
+            min_similarity=float(min_sim),
+            max_edit_distance=max_edit,
+            min_vendor_deals=min_vendor,
+            dirichlet_alpha=float(alpha),
         )
 
 
@@ -94,3 +117,141 @@ def is_strong(df: int, n: int, links: int, rho: float, min_linked: int) -> bool:
 def outcome_discount(repaid: int, df: int, beta: float) -> float:
     """``omega_v = 1 - beta * (repaid + 1) / (df + 2)``: shared values that repaid count less."""
     return 1.0 - beta * (repaid + 1) / (df + 2)
+
+
+# ------------------------------------------------------------------ percentiles and tails
+
+def percentile(values: Sequence[float], q: float) -> Optional[float]:
+    """Linear-interpolated percentile (rank ``q * (n - 1)``); None for an empty sample."""
+    xs = sorted(values)
+    if not xs:
+        return None
+    rank = q * (len(xs) - 1)
+    lo = int(math.floor(rank))
+    hi = min(lo + 1, len(xs) - 1)
+    return xs[lo] + (xs[hi] - xs[lo]) * (rank - lo)
+
+
+def upper_tail_bits(z: float, sample: Sequence[float]) -> float:
+    """M7 smoothed empirical upper tail: ``-log2((1 + #{s >= z}) / (1 + len(sample)))``."""
+    if not sample:
+        return 0.0
+    above = sum(1 for s in sample if s >= z)
+    bits = -math.log2((1 + above) / (1 + len(sample)))
+    return bits if bits > 0 else 0.0
+
+
+# ------------------------------------------------------------------ F5 deposit statistics
+
+# Prior strength (a + b) used when the method-of-moments fit is degenerate. Documented
+# constant, not a bit threshold: it only says how many deposits the fallback prior is worth.
+PRIOR_STRENGTH = 10.0
+_SHARE_EPS = 0.01
+
+
+def fit_beta_mom(shares: Sequence[float]) -> tuple[float, float]:
+    """Beta(a, b) prior on the round share by method of moments.
+
+    ``a + b = m (1 - m) / var - 1``. Fewer than two shares, zero variance, or a variance at
+    or above ``m (1 - m)`` fall back to ``PRIOR_STRENGTH`` around the observed mean (0.5 when
+    there are no shares). a and b are always strictly positive.
+    """
+    n = len(shares)
+    mean = sum(shares) / n if n else 0.5
+    mean = min(1.0 - _SHARE_EPS, max(_SHARE_EPS, mean))
+    if n >= 2:
+        raw_mean = sum(shares) / n
+        var = sum((s - raw_mean) ** 2 for s in shares) / (n - 1)
+        limit = raw_mean * (1.0 - raw_mean)
+        if var > 0 and var < limit:
+            total = limit / var - 1.0
+            if total > 0:
+                return raw_mean * total, (1.0 - raw_mean) * total
+    return mean * PRIOR_STRENGTH, (1.0 - mean) * PRIOR_STRENGTH
+
+
+def shrunk_share(r: float, n: float, a: float, b: float) -> float:
+    """Beta-binomial posterior mean ``(r + a) / (n + a + b)`` of the round share."""
+    return (r + a) / (n + a + b)
+
+
+def entropy_bits(q: Sequence[float]) -> float:
+    """Shannon entropy in bits."""
+    h = -sum(p * math.log2(p) for p in q if p > 0)
+    return h if h > 0 else 0.0
+
+
+def kl_bits(q: Sequence[float], p0: Sequence[float]) -> float:
+    """KL divergence of ``q`` against ``p0`` in bits."""
+    d = sum(p * math.log2(p / max(r, 1e-12)) for p, r in zip(q, p0) if p > 0)
+    return d if d > 0 else 0.0
+
+
+_DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+_DAY_ALIASES = {
+    **{d: i for i, d in enumerate(_DAYS)},
+    "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3, "friday": 4, "saturday": 5,
+    "sunday": 6, "tues": 1, "thur": 3, "thurs": 3,
+}
+
+
+def parse_weekdays(label: Any) -> Optional[tuple[int, ...]]:
+    """Days (Mon=0 .. Sun=6) named by a label such as ``Mon-Fri``, ``Mon,Thu`` or ``all days``."""
+    if not isinstance(label, str):
+        return None
+    text = label.strip().casefold().replace("–", "-").replace("—", "-")
+    if not text:
+        return None
+    if text in ("all days", "all", "daily", "every day", "everyday", "7 days"):
+        return tuple(range(7))
+    days: set[int] = set()
+    for part in text.split(","):
+        part = part.strip()
+        if "-" in part:
+            lo, _, hi = part.partition("-")
+            a, b = _DAY_ALIASES.get(lo.strip()), _DAY_ALIASES.get(hi.strip())
+            if a is None or b is None:
+                return None
+            i = a
+            days.add(i)
+            while i != b:
+                i = (i + 1) % 7
+                days.add(i)
+        else:
+            d = _DAY_ALIASES.get(part)
+            if d is None:
+                return None
+            days.add(d)
+    return tuple(sorted(days))
+
+
+# ------------------------------------------------------------------ F3 similarity
+
+def edit_distance(a: str, b: str) -> int:
+    """Levenshtein distance."""
+    if a == b:
+        return 0
+    if not a or not b:
+        return len(a) or len(b)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, start=1):
+        cur = [i]
+        for j, cb in enumerate(b, start=1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def token_set_similarity(a: str, b: str) -> float:
+    """difflib ratio of the sorted-unique-token strings (word order ignored; a subset is not 1.0)."""
+    ka = " ".join(sorted(set(a.split())))
+    kb = " ".join(sorted(set(b.split())))
+    return difflib.SequenceMatcher(None, ka, kb).ratio()
+
+
+@functools.lru_cache(maxsize=65536)
+def base_similar(a: str, b: str, min_sim: float, max_edit: int) -> bool:
+    """Same or lookalike base name: token-set similarity >= ``min_sim`` or edit distance <= ``max_edit``."""
+    if a == b:
+        return True
+    return token_set_similarity(a, b) >= min_sim or edit_distance(a, b) <= max_edit

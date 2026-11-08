@@ -27,12 +27,16 @@ families:
   F3:                      # lookalike vendor or account
     votes: true
     percentile: 0.95
+    min_similarity: 0.8    # token-set similarity floor for "same base name"
+    max_edit_distance: 2   # ... or a typo within this many edits
+    min_vendor_deals: 3    # a "frequent" history vendor has at least this many deals
   F4:                      # document forensics
     votes: true
     percentile: 0.95
   F5:                      # deposit pattern
     votes: true
     percentile: 0.95
+    dirichlet_alpha: 0.5   # weekday-distribution smoothing
   F6:                      # terms shape: evidence only, never votes
     votes: false
 
