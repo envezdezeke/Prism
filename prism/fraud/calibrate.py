@@ -13,6 +13,7 @@ mandatory for a hold), so only its misfire rate on C is recorded.
 """
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 from prism.fraud.baseline import Baseline, Calibration
@@ -44,7 +45,20 @@ def _tau(values: list[float], params: FraudParams, family: str) -> Optional[floa
     q = params.percentiles.get(family)
     if q is None:
         return None
-    return percentile(values, q)
+    empirical = percentile(values, q)
+    if empirical is None:
+        return None
+    return max(empirical, floor_bits(q))
+
+
+def floor_bits(q: float) -> float:
+    """``-log2(1 - q)``: the surprise a q-tail event carries by definition.
+
+    With a thin or mostly-zero clean sample (a small history without lookalikes) the empirical
+    percentile collapses to 0 and any deal scoring a single bit would fire. The empirical
+    percentile can only raise tau above this floor.
+    """
+    return -math.log2(1.0 - q)
 
 
 def compute_thresholds(baseline: Baseline, params: FraudParams) -> Calibration:

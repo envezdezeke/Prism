@@ -15,7 +15,7 @@ from test_fraud_synth import deal_row, deposit_rows, filler_deals, iso_day, writ
 from prism.engine.config import DEFAULT_FRAUD_PATH, load_fraud_config
 from prism.fraud import eval_baseline
 from prism.fraud.baseline import Baseline, Calibration, build_baseline
-from prism.fraud.calibrate import clean_ids, compute_thresholds
+from prism.fraud.calibrate import clean_ids, compute_thresholds, floor_bits
 from prism.fraud.rarity import FraudParams, percentile, upper_tail_bits
 from prism.fraud.signals import F5_STATS, f5_statistics
 
@@ -86,7 +86,7 @@ def vendor_history(inc_lookalike=False):
 def test_f3_tau_zero_without_lookalikes(params):
     b = Baseline.from_rows(vendor_history(), params=params)
     cal = compute_thresholds(b, params)
-    assert cal.n_clean == 9 and cal.tau["F3"] == 0.0 and cal.fire_rate_clean["F3"] == 0.0
+    assert cal.n_clean == 9 and cal.tau["F3"] == pytest.approx(floor_bits(0.95)) and cal.fire_rate_clean["F3"] == 0.0
     assert cal.tau["F5"] is None and cal.reference == {}  # no deposit data at all
 
 
@@ -95,8 +95,8 @@ def test_f3_tau_is_interpolated_percentile(params):
     cal = compute_thresholds(b, params)
     lookalike_bits = math.log2(10)  # n_pat 0 of 9 other vendor observations
     # ten clean deals: nine with 0 bits and one with log2(10); rank 0.95 * 9 = 8.55
-    assert cal.tau["F3"] == pytest.approx(0.55 * lookalike_bits)
-    assert cal.fire_rate_clean["F3"] == pytest.approx(0.1)
+    assert cal.tau["F3"] == pytest.approx(max(0.55 * lookalike_bits, floor_bits(0.95)))
+    assert cal.fire_rate_clean["F3"] == pytest.approx(0.1 if lookalike_bits >= cal.tau["F3"] else 0.0)
     assert cal.n_clean == 10 and cal.percentiles["F3"] == 0.95
 
 
@@ -118,7 +118,7 @@ def test_f5_tau_matches_percentile_of_clean_bits(params):
     for i in clean_ids(b, params):
         st = f5_statistics(b.deals[i].profile, b, params, exclude=i)
         bits.append(max(upper_tail_bits(st[s], cal.reference[s]) for s in F5_STATS))
-    assert cal.tau["F5"] == pytest.approx(percentile(bits, 0.95))
+    assert cal.tau["F5"] == pytest.approx(max(percentile(bits, 0.95), floor_bits(0.95)))
     lo = compute_thresholds(b, replace(params, percentiles={**params.percentiles, "F5": 0.5}))
     hi = compute_thresholds(b, replace(params, percentiles={**params.percentiles, "F5": 0.99}))
     assert lo.tau["F5"] <= cal.tau["F5"] <= hi.tau["F5"]
@@ -131,6 +131,12 @@ def test_empty_clean_set_gives_no_tau(params):
     assert cal.n_clean == 0 and cal.tau == {"F3": None, "F5": None}
     assert cal.fire_rate_clean == {"F1": 0.0, "F3": 0.0, "F5": 0.0}
     assert compute_thresholds(Baseline(), params).n_clean == 0
+
+
+def test_tau_never_below_the_theoretical_floor(params):
+    # floor_bits(0.95) = -log2(0.05) ~ 4.32 bits: a thin history cannot make any deal with a
+    # single bit of surprise fire.
+    assert floor_bits(0.95) == pytest.approx(4.3219, abs=1e-4)
 
 
 def test_leave_one_out_f1_on_the_clean_set(params):
