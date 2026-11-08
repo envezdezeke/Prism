@@ -1,3 +1,4 @@
+import { STAGES } from '../../api/types.ts'
 import { useEffect } from 'react'
 import { describeError } from '../../api/client.ts'
 import type { DealDetail as DealDetailData, Fact } from '../../api/types.ts'
@@ -435,6 +436,7 @@ export function DealDetailView({
             cleared={row.stage === 'Closed'}
           />
         </div>
+        <StageStepper stage={row.stage} held={row.held} />
       </PageHeader>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-8">
@@ -489,5 +491,34 @@ export function DealDetail({ folder }: { folder: string }) {
   const clusterId = graph.data ? (clusterForDeal(graph.data as GGraph, folder)?.id ?? null) : null
   return (
     <DealDetailView detail={q.data} now={now} boardFolders={(deals.data ?? []).map((d) => d.folder)} clusterId={clusterId} />
+  )
+}
+
+// Where this loan sits in the six-stage flow: done stages filled, the current one ringed.
+function StageStepper({ stage, held }: { stage: string; held: boolean }) {
+  const idx = STAGES.indexOf(stage as (typeof STAGES)[number])
+  return (
+    <ol aria-label="Stage progress" className="flex items-center gap-0 pl-4 pt-1">
+      {STAGES.map((s, i) => {
+        const done = i < idx
+        const cur = i === idx
+        return (
+          <li key={s} className="flex flex-1 items-center last:flex-none">
+            <span className="flex flex-col items-center gap-1">
+              <span
+                aria-current={cur ? 'step' : undefined}
+                className={`flex size-6 items-center justify-center rounded-full text-xs font-semibold ${
+                  cur ? (held ? 'border-2 border-hold text-hold' : 'bg-navy text-surface ring-4 ring-subtle') : done ? 'bg-ink text-surface' : 'border border-line text-ink-2'
+                }`}
+              >
+                {i + 1}
+              </span>
+              <span className={`text-xs ${cur ? 'font-semibold text-ink' : 'text-ink-2'}`}>{s}{cur && held ? ' · held' : ''}</span>
+            </span>
+            {i < STAGES.length - 1 && <span className={`mx-2 mb-5 h-0.5 flex-1 rounded-full ${done ? 'bg-ink' : 'bg-line'}`} />}
+          </li>
+        )
+      })}
+    </ol>
   )
 }
